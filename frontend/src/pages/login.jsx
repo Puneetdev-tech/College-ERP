@@ -23,14 +23,14 @@ export default function Login() {
   }, []);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden">
+    <div className="relative h-screen w-screen">
       {/* Split Slideshow with Up-Down Transition */}
       {images.map((img, index) => {
         const isActive = index === currentImage;
         const isBefore = index < currentImage;
 
         return (
-          <div key={index} className="absolute inset-0 pointer-events-none">
+          <div key={index} className="absolute inset-0 pointer-events-none overflow-hidden">
             {/* Left Half - Slides Up/Down */}
             <div
               className={`absolute left-0 top-0 w-1/2 h-full overflow-hidden transition-all duration-1000 ease-in-out ${
@@ -67,7 +67,7 @@ export default function Login() {
       })}
 
       {/* Dark overlay and login form */}
-      <div className="relative z-10 h-full bg-black/50 flex justify-center items-center">
+      <div className="absolute inset-0 z-30 bg-black/50 flex justify-center items-center">
 
         <div className="w-[420px] backdrop-blur-lg bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl">
 
@@ -99,7 +99,10 @@ export default function Login() {
           </button>
 
           <div className="text-center mt-5">
-            <button className="text-cyan-300 hover:text-white">
+            <button
+              onClick={() => navigate("/forgot-password")}
+              className="text-cyan-300 hover:text-white hover:underline text-sm transition-all duration-300"
+            >
               Forgot Password?
             </button>
           </div>

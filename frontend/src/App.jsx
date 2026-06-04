@@ -11,6 +11,12 @@ import ReceiveOrder from "./pages/ReceiveOrder";
 import IssueStock from "./pages/IssueStock";
 import Analytics from "./pages/Analytics";
 import Reports from "./pages/Reports";
+import Notifications from "./pages/Notifications";
+import ForgotPassword from "./pages/ForgotPassword";
+import VerifyOTP from "./pages/VerifyOTP";
+import ResetPassword from "./pages/ResetPassword";
+import UserManagement from "./pages/UserManagement";
+import Settings from "./pages/Settings";
 
 
 function App() {
@@ -28,6 +34,12 @@ function App() {
           <Route path="/issue-stock" element={<IssueStock />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-otp" element={<VerifyOTP />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/users" element={<UserManagement />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </BrowserRouter>
     </StoreProvider>

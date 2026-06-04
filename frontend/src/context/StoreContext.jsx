@@ -144,7 +144,7 @@ export function StoreProvider({ children }) {
     if (orderIndex === -1) return { success: false, message: "Order not found!" };
 
     const order = orders[orderIndex];
-    if (order.status === "Approved") {
+    if (order.status === "Approved" || order.status === "Pending") {
       // 1. Mark order as Approved/Received
       const updatedOrders = [...orders];
       updatedOrders[orderIndex] = { ...order, status: "Received" };
@@ -186,6 +186,42 @@ export function StoreProvider({ children }) {
     return { success: false, message: "Order cannot be received!" };
   };
 
+  // Helper action: Add Inventory Item
+  const addInventoryItem = (itemDetails) => {
+    const existingIndex = inventory.findIndex(
+      (item) =>
+        item.category.toLowerCase() === itemDetails.category.toLowerCase() &&
+        item.subcategory.toLowerCase() === itemDetails.subcategory.toLowerCase() &&
+        item.type.toLowerCase() === itemDetails.type.toLowerCase()
+    );
+
+    if (existingIndex !== -1) {
+      const updatedInventory = [...inventory];
+      const existingItem = updatedInventory[existingIndex];
+      const newStock = existingItem.stock + itemDetails.stock;
+      updatedInventory[existingIndex] = {
+        ...existingItem,
+        stock: newStock,
+        price: itemDetails.price || existingItem.price,
+        status: newStock <= 4 ? "Low" : newStock <= 15 ? "Medium" : "Good"
+      };
+      setInventory(updatedInventory);
+    } else {
+      const newItem = {
+        id: inventory.length + 1,
+        item: itemDetails.item,
+        category: itemDetails.category,
+        subcategory: itemDetails.subcategory,
+        type: itemDetails.type || "Standard",
+        stock: itemDetails.stock,
+        price: itemDetails.price,
+        status: itemDetails.stock <= 4 ? "Low" : itemDetails.stock <= 15 ? "Medium" : "Good"
+      };
+      setInventory([...inventory, newItem]);
+    }
+    return { success: true };
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -194,7 +230,8 @@ export function StoreProvider({ children }) {
         orders,
         issueStockItem,
         placeOrderItem,
-        receiveOrderItem
+        receiveOrderItem,
+        addInventoryItem
       }}
     >
       {children}

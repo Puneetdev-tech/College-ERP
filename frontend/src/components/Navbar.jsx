@@ -3,8 +3,10 @@ import {
   FaUserCircle,
   FaSearch
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
+  const navigate = useNavigate();
   return (
     <div className="bg-white rounded-2xl shadow-md p-5 flex justify-between items-center">
 
@@ -24,9 +26,12 @@ export default function Navbar() {
 
       <div className="flex items-center gap-6">
 
-        <div className="relative cursor-pointer">
+        <div
+          className="relative cursor-pointer hover:text-blue-600 transition-colors duration-200"
+          onClick={() => navigate("/notifications")}
+          title="Notifications"
+        >
           <FaBell size={22} />
-
           <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1 rounded-full">
             4
           </span>
