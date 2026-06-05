@@ -152,11 +152,11 @@ export default function Analytics() {
   // 2. Dynamic Category Stock Double Bar Levels
   const categoryData = Object.keys(baseCategoryData).map((cat) => {
     const available = inventory
-      .filter((item) => item.category.toLowerCase() === cat.toLowerCase())
+      .filter((item) => (item.category || "").toLowerCase() === (cat || "").toLowerCase())
       .reduce((sum, item) => sum + item.stock, 0);
 
     const used = issuedStock
-      .filter((log) => log.category.toLowerCase() === cat.toLowerCase())
+      .filter((log) => (log.category || "").toLowerCase() === (cat || "").toLowerCase())
       .reduce((sum, log) => sum + log.quantity, 0);
 
     return {

@@ -4,27 +4,46 @@ import {
   FaBoxes,
   FaClipboardList
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { useStore } from "../context/StoreContext";
 
 export default function QuickActions() {
+  const navigate = useNavigate();
+  const { currentUser } = useStore();
 
-  const actions = [
+  const allActions = [
     {
       title: "Place Order",
-      icon: <FaPlus />
+      icon: <FaPlus />,
+      path: "/place-order",
+      permission: "Place Order"
     },
     {
       title: "Issue Stock",
-      icon: <FaClipboardList />
+      icon: <FaClipboardList />,
+      path: "/issue-stock",
+      permission: "Issue Stock"
     },
     {
       title: "Receive Stock",
-      icon: <FaBoxes />
+      icon: <FaBoxes />,
+      path: "/receive-order",
+      permission: "Receive Order"
     },
     {
       title: "Generate Report",
-      icon: <FaFilePdf />
+      icon: <FaFilePdf />,
+      path: "/reports",
+      permission: "Reports"
     },
   ];
+
+  // Filter actions based on logged in user's permissions
+  const actions = allActions.filter(action => 
+    currentUser?.permissions?.includes(action.permission)
+  );
+
+  if (actions.length === 0) return null;
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6">
@@ -39,11 +58,12 @@ export default function QuickActions() {
 
           <button
             key={index}
-            className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-xl hover:scale-105 transition"
+            onClick={() => navigate(action.path)}
+            className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-xl hover:scale-105 active:scale-95 transition shadow-md cursor-pointer"
           >
             <div className="flex flex-col items-center gap-2">
               {action.icon}
-              {action.title}
+              <span className="text-sm font-medium">{action.title}</span>
             </div>
           </button>
 

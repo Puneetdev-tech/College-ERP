@@ -5,43 +5,25 @@ import {
   FaShoppingCart
 } from "react-icons/fa";
 import Sidebar from "../components/sidebar";
+import { useStore } from "../context/StoreContext";
 
 export default function Notifications() {
+  const { notifications, markAllRead } = useStore();
 
-  const notifications = [
-    {
-      id: 1,
-      type: "Low Stock",
-      message: "A4 Sheets stock below minimum level",
-      time: "10 minutes ago",
-      color: "bg-red-100 text-red-800",
-      icon: <FaExclamationTriangle />
-    },
-    {
-      id: 2,
-      type: "Stock Received",
-      message: "20 Desktop Computers received",
-      time: "1 hour ago",
-      color: "bg-green-100 text-green-800",
-      icon: <FaBoxOpen />
-    },
-    {
-      id: 3,
-      type: "Stock Issued",
-      message: "5 Projectors issued to Laboratory",
-      time: "3 hours ago",
-      color: "bg-blue-100 text-blue-800",
-      icon: <FaClipboardCheck />
-    },
-    {
-      id: 4,
-      type: "Purchase Order",
-      message: "New Purchase Order PO-005 created",
-      time: "Yesterday",
-      color: "bg-yellow-100 text-yellow-800",
-      icon: <FaShoppingCart />
+  const getIcon = (iconType) => {
+    switch (iconType) {
+      case "low-stock":
+        return <FaExclamationTriangle />;
+      case "received":
+        return <FaBoxOpen />;
+      case "issued":
+        return <FaClipboardCheck />;
+      case "order":
+        return <FaShoppingCart />;
+      default:
+        return <FaBoxOpen />;
     }
-  ];
+  };
 
   return (
     <div className="bg-slate-100 min-h-screen">
@@ -52,35 +34,47 @@ export default function Notifications() {
           <h1 className="text-3xl font-bold text-slate-800">
             Notifications
           </h1>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl transition duration-200 cursor-pointer shadow-md">
+          <button 
+            onClick={markAllRead}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl transition duration-200 cursor-pointer shadow-md font-semibold"
+          >
             Mark All Read
           </button>
         </div>
 
         <div className="space-y-4">
-          {notifications.map((notification) => (
-            <div
-              key={notification.id}
-              className={`${notification.color} rounded-2xl p-5 shadow-md hover:shadow-lg transition-all duration-300 flex justify-between items-center`}
-            >
-              <div className="flex items-center gap-4">
-                <div className="text-2xl">
-                  {notification.icon}
+          {notifications && notifications.length > 0 ? (
+            notifications.map((notification) => (
+              <div
+                key={notification.id}
+                className={`${notification.color} ${notification.read ? 'opacity-60 shadow-sm' : 'shadow-md'} rounded-2xl p-5 hover:shadow-lg transition-all duration-300 flex justify-between items-center`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="text-2xl">
+                    {getIcon(notification.iconType)}
+                  </div>
+                  <div>
+                    <h3 className="font-bold flex items-center gap-2">
+                      {notification.type}
+                      {!notification.read && (
+                        <span className="w-2 h-2 rounded-full bg-red-500 inline-block" title="Unread" />
+                      )}
+                    </h3>
+                    <p className="text-sm opacity-90 mt-0.5">
+                      {notification.message}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold">
-                    {notification.type}
-                  </h3>
-                  <p className="text-sm opacity-90 mt-0.5">
-                    {notification.message}
-                  </p>
-                </div>
+                <span className="text-sm font-semibold opacity-75">
+                  {notification.time}
+                </span>
               </div>
-              <span className="text-sm font-semibold opacity-75">
-                {notification.time}
-              </span>
+            ))
+          ) : (
+            <div className="text-center p-12 text-slate-400 bg-white rounded-2xl shadow-sm border border-slate-200">
+              No notifications available
             </div>
-          ))}
+          )}
         </div>
 
       </div>

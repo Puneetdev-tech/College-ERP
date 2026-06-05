@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { FaPlus, FaSearch, FaFilePdf } from "react-icons/fa";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
 import Sidebar from "../components/sidebar";
 
 export default function InventoryTable() {
-  const { inventory, addInventoryItem } = useStore();
+  const { inventory, addInventoryItem, systemSettings } = useStore();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const paramCategory = searchParams.get("category");
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -57,14 +61,18 @@ export default function InventoryTable() {
     setShowModal(false);
   };
 
-  // Filter based on search query
-  const filteredInventory = inventory.filter(
-    (item) =>
-      item.item.toLowerCase().includes(search.toLowerCase()) ||
-      item.category.toLowerCase().includes(search.toLowerCase()) ||
-      item.subcategory.toLowerCase().includes(search.toLowerCase()) ||
-      item.type.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filter based on search query and optional category param
+  const filteredInventory = inventory.filter((item) => {
+    if (paramCategory && (item.category || "").toLowerCase() !== paramCategory.toLowerCase()) {
+      return false;
+    }
+    return (
+      (item.item || "").toLowerCase().includes(search.toLowerCase()) ||
+      (item.category || "").toLowerCase().includes(search.toLowerCase()) ||
+      (item.subcategory || "").toLowerCase().includes(search.toLowerCase()) ||
+      (item.type || "").toLowerCase().includes(search.toLowerCase())
+    );
+  });
 
   // Dynamic metrics calculations
   const totalItems = inventory.reduce((sum, item) => sum + item.stock, 0);
@@ -77,7 +85,21 @@ export default function InventoryTable() {
       <Sidebar />
       <div className="ml-64 p-6">
 
-        <div className="flex justify-between items-center mb-6">
+        {/* Print-only layout header */}
+        <div className="hidden print:block mb-8 border-b-2 border-slate-300 pb-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold">{systemSettings?.collegeInfo?.name || "RJ Institute of Technology"}</h1>
+              <p className="text-xs text-slate-500">{systemSettings?.collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
+            </div>
+            <div className="text-right">
+              <h2 className="text-lg font-bold text-slate-700">Master Inventory Ledger</h2>
+              <p className="text-xs text-slate-400">Date: {new Date().toLocaleDateString()}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center mb-6 no-print">
           <h1 className="text-3xl font-bold text-slate-800">
             Inventory Items
           </h1>
@@ -91,7 +113,10 @@ export default function InventoryTable() {
               Add Item
             </button>
 
-            <button className="bg-red-600 text-white px-5 py-3 rounded-xl flex items-center gap-2 cursor-pointer hover:scale-105 transition">
+            <button
+              onClick={() => window.print()}
+              className="bg-red-600 text-white px-5 py-3 rounded-xl flex items-center gap-2 cursor-pointer hover:scale-105 transition"
+            >
               <FaFilePdf />
               Export PDF
             </button>
@@ -99,7 +124,7 @@ export default function InventoryTable() {
         </div>
 
         {/* Dynamic Metric Cards */}
-        <div className="grid grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-4 gap-6 mb-6 no-print">
           <div className="bg-white p-5 rounded-2xl shadow-lg">
             <h3 className="text-gray-500 font-medium">Total Items</h3>
             <p className="text-3xl font-extrabold text-blue-700 mt-1">{totalItems}</p>
@@ -121,8 +146,20 @@ export default function InventoryTable() {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="bg-white rounded-2xl p-4 shadow-lg mb-6">
+        {/* Search Bar & Filters */}
+        <div className="bg-white rounded-2xl p-4 shadow-lg mb-6 no-print">
+          {paramCategory && (
+            <div className="mb-3 flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-3.5 py-1.5 rounded-xl text-xs font-bold w-fit animate-fadeIn">
+              <span>Category: <strong>{paramCategory}</strong></span>
+              <button
+                onClick={() => navigate("/inventory/items")}
+                className="hover:text-red-600 font-extrabold text-sm ml-2 transition cursor-pointer"
+                title="Clear Filter"
+              >
+                ×
+              </button>
+            </div>
+          )}
           <div className="relative">
             <FaSearch className="absolute left-4 top-4 text-gray-400" />
             <input
