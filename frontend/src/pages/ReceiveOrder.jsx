@@ -9,12 +9,15 @@ import {
   FaHourglassHalf, 
   FaFileInvoice,
   FaUpload,
-  FaArrowRight
+  FaArrowRight,
+  FaTimesCircle
 } from "react-icons/fa";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
 import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
+import FlashMessage from "../components/FlashMessage";
+import useFlash from "../components/useFlash";
 
 const getCurrentDateTimeString = () => {
   const now = new Date();
@@ -35,6 +38,7 @@ const formatDateTime = (dateTimeStr) => {
 
 export default function ReceiveOrder() {
   const { orders, receiveOrderItem } = useStore();
+  const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamVal = searchParams.get("search") || "";
 
@@ -72,7 +76,9 @@ export default function ReceiveOrder() {
 
     const res = receiveOrderItem(selectedOrder.id, receiveDate.replace("T", " "));
     if (res.success) {
+      const msg = `Order #${selectedOrder.id} received — ${selectedOrder.quantity} × ${selectedOrder.item} stocked successfully.`;
       setSuccessMsg(`Order #${selectedOrder.id} received successfully! Stock levels updated.`);
+      showFlash("success", "Order Received & Stocked", msg);
       setRemarks("");
       setInvoiceFile(null);
       setTimeout(() => {
@@ -106,6 +112,7 @@ export default function ReceiveOrder() {
   return (
     <div className="bg-slate-50 min-h-screen text-slate-800 transition-colors duration-300">
       <Sidebar />
+      <FlashMessage flashes={flashes} onDismiss={dismissFlash} />
       <div className="ml-64 p-8 max-w-7xl mx-auto">
         <Navbar />
 
@@ -251,24 +258,37 @@ export default function ReceiveOrder() {
                       <td className="p-4 text-sm font-black text-slate-800 dark:text-slate-100">{order.quantity}</td>
                       <td className="p-4 text-sm font-semibold text-slate-800 dark:text-slate-100">₹{order.pricePerUnit?.toLocaleString()}</td>
                       <td className="p-4 text-sm font-black text-slate-800 dark:text-slate-100">₹{(order.pricePerUnit * order.quantity)?.toLocaleString()}</td>
-                      
-                      {/* Premium Interactive Progress Tracker */}
+                                     {/* Premium Interactive Progress Tracker */}
                       <td className="p-4 min-w-[200px]">
                         <div className="flex items-center w-full">
                           <div className="flex flex-col items-center">
                             <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-[8px] text-white font-bold" title="Order Placed">1</div>
-                            <span className="text-[9px] text-slate-450 dark:text-slate-500 font-bold mt-1">Placed</span>
+                            <span className="text-[9px] text-slate-455 dark:text-slate-500 font-bold mt-1">Placed</span>
                           </div>
                           
                           <div className={`flex-1 h-0.5 mx-1.5 ${
-                            order.status === "Approved" || order.status === "Received" ? "bg-amber-500" : "bg-slate-200 dark:bg-slate-800"
+                            order.status === "Approved" || order.status === "Received" 
+                              ? "bg-amber-500" 
+                              : order.status === "Rejected"
+                              ? "bg-red-500"
+                              : "bg-slate-200 dark:bg-slate-800"
                           }`} />
                           
                           <div className="flex flex-col items-center">
                             <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] text-white font-bold ${
-                              order.status === "Approved" || order.status === "Received" ? "bg-amber-500" : "bg-slate-350"
-                            }`} title="Approved by Principal">2</div>
-                            <span className="text-[9px] text-slate-450 dark:text-slate-500 font-bold mt-1">Approved</span>
+                              order.status === "Approved" || order.status === "Received" 
+                                ? "bg-amber-500" 
+                                : order.status === "Rejected"
+                                ? "bg-red-500"
+                                : "bg-slate-350"
+                            }`} title={order.status === "Rejected" ? "Rejected" : "Approved by Principal"}>2</div>
+                            <span className={`text-[9px] font-bold mt-1 ${
+                              order.status === "Rejected" 
+                                ? "text-red-600 dark:text-red-400" 
+                                : "text-slate-455 dark:text-slate-500"
+                            }`}>
+                              {order.status === "Rejected" ? "Rejected" : "Approved"}
+                            </span>
                           </div>
 
                           <div className={`flex-1 h-0.5 mx-1.5 ${
@@ -300,6 +320,18 @@ export default function ReceiveOrder() {
                           <span className="text-yellow-600 dark:text-yellow-400 font-bold text-xs inline-flex items-center gap-1.5 bg-yellow-50 dark:bg-yellow-950/20 px-3 py-1.5 rounded-full border border-yellow-150 dark:border-yellow-900/50">
                             <FaHourglassHalf className="animate-spin duration-[4000ms]" /> Awaiting Appr.
                           </span>
+                        ) : order.status === "Rejected" ? (
+                          <div className="flex flex-col items-center gap-2">
+                            <span className="text-rose-600 dark:text-rose-450 font-bold text-xs inline-flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/20 px-3 py-1.5 rounded-full border border-rose-150 dark:border-rose-900/50">
+                              <FaTimesCircle /> Rejected
+                            </span>
+                            <button
+                              disabled
+                              className="bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 px-4 py-2.5 rounded-xl font-bold cursor-not-allowed flex items-center gap-1 text-xs"
+                            >
+                              Receive Order
+                            </button>
+                          </div>
                         ) : (
                           /* Approved: Pulsing animation button */
                           <button

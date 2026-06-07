@@ -15,6 +15,8 @@ import { useSearchParams } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
 import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
+import FlashMessage from "../components/FlashMessage";
+import useFlash from "../components/useFlash";
 
 const departmentsList = [
   "Hostel",
@@ -46,6 +48,7 @@ const formatDateTime = (dateTimeStr) => {
 
 export default function PlaceOrder() {
   const { inventory, orders, placeOrderItem, systemSettings } = useStore();
+  const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamVal = searchParams.get("search") || "";
 
@@ -155,6 +158,13 @@ export default function PlaceOrder() {
       faculty: faculty.trim()
     });
 
+    // Flash message
+    showFlash(
+      "success",
+      "Purchase Order Placed",
+      `Order for ${qty} × ${item.trim()} placed successfully and sent for approval.`
+    );
+
     setSupplier("");
     setItem("");
     setCategory("Electronics");
@@ -207,6 +217,7 @@ export default function PlaceOrder() {
   return (
     <div className="bg-slate-50 min-h-screen text-slate-800 transition-colors duration-300">
       <Sidebar />
+      <FlashMessage flashes={flashes} onDismiss={dismissFlash} />
       <div className="ml-64 p-8 max-w-7xl mx-auto">
         <Navbar />
 
