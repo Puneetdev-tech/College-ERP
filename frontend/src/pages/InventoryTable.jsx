@@ -1,11 +1,27 @@
 import { useState } from "react";
-import { FaPlus, FaSearch, FaFilePdf } from "react-icons/fa";
+import { FaPlus, FaSearch, FaFilePdf, FaClock } from "react-icons/fa";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
 import Sidebar from "../components/sidebar";
+import FlashMessage from "../components/FlashMessage";
+import useFlash from "../components/useFlash";
+
+const formatDateTime = (dtStr) => {
+  if (!dtStr) return "—";
+  try {
+    const d = new Date(dtStr.replace(" ", "T"));
+    if (isNaN(d.getTime())) return dtStr;
+    return d.toLocaleDateString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric"
+    }) + " " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return dtStr;
+  }
+};
 
 export default function InventoryTable() {
   const { inventory, addInventoryItem, systemSettings } = useStore();
+  const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const paramCategory = searchParams.get("category");
@@ -52,6 +68,13 @@ export default function InventoryTable() {
       price: price
     });
 
+    // Show flash notification
+    showFlash(
+      "success",
+      "Item Added to Inventory",
+      `${itemName.trim()} (×${qty}) has been added to inventory successfully.`
+    );
+
     setItemName("");
     setCategory("");
     setSubcategory("");
@@ -62,6 +85,7 @@ export default function InventoryTable() {
   };
 
   // Filter based on search query and optional category param
+  // Inventory is already sorted newest-first from context
   const filteredInventory = inventory.filter((item) => {
     if (paramCategory && (item.category || "").toLowerCase() !== paramCategory.toLowerCase()) {
       return false;
@@ -83,6 +107,8 @@ export default function InventoryTable() {
   return (
     <div className="bg-slate-100 min-h-screen">
       <Sidebar />
+      <FlashMessage flashes={flashes} onDismiss={dismissFlash} />
+
       <div className="ml-64 p-6">
 
         {/* Print-only layout header */}
@@ -182,6 +208,7 @@ export default function InventoryTable() {
                 <th className="p-4 text-left">Stock</th>
                 <th className="p-4 text-left">Unit Price</th>
                 <th className="p-4 text-left">Status</th>
+                <th className="p-4 text-left">Date Added / Updated</th>
               </tr>
             </thead>
 
@@ -215,6 +242,19 @@ export default function InventoryTable() {
                     >
                       {item.status}
                     </span>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <FaClock className="text-slate-400 flex-shrink-0" />
+                      <span>
+                        {item.updatedAt
+                          ? <><span className="text-blue-500 font-semibold">Updated: </span>{formatDateTime(item.updatedAt)}</>
+                          : item.createdAt
+                          ? formatDateTime(item.createdAt)
+                          : "—"
+                        }
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -179,25 +179,39 @@ export function StoreProvider({ children }) {
     return { success: true };
   };
 
-  // Initial inventory items
+  // Helper: get current local datetime string
+  const getNowString = () => {
+    const tzOffset = new Date().getTimezoneOffset() * 60000;
+    return new Date(Date.now() - tzOffset).toISOString().slice(0, 19).replace("T", " ");
+  };
+
+  // Initial inventory items (sorted newest first)
   const [inventory, setInventory] = useState(() => {
     const saved = localStorage.getItem("rjit_inventory");
-    return saved ? JSON.parse(saved) : [
-      { id: 1, item: "Desktop Computer", category: "Electronics", subcategory: "Computer", type: "i5 16GB", stock: 25, price: 45000, status: "Good" },
-      { id: 2, item: "Laser Printer", category: "Electronics", subcategory: "Printer", type: "LaserJet", stock: 4, price: 12000, status: "Low" },
-      { id: 3, item: "Office Chair", category: "Furniture", subcategory: "Chair", type: "Ergonomic Mesh", stock: 18, price: 3500, status: "Good" },
-      { id: 4, item: "Football", category: "Sports", subcategory: "Balls", type: "Leather size 5", stock: 10, price: 800, status: "Good" },
-      { id: 5, item: "Microscope", category: "Equipment", subcategory: "Lab Equipment", type: "Compound 1000x", stock: 15, price: 10000, status: "Good" },
-      { id: 6, item: "A4 Sheets", category: "Stationery", subcategory: "Paper", type: "80GSM White", stock: 350, price: 200, status: "Good" },
-      { id: 7, item: "Markers", category: "Stationery", subcategory: "Writing", type: "Whiteboard Blue", stock: 120, price: 50, status: "Good" },
-      { id: 8, item: "100 Page Register", category: "Stationery", subcategory: "Register", type: "100 Page", stock: 85, price: 60, status: "Good" },
-      { id: 9, item: "200 Page Register", category: "Stationery", subcategory: "Register", type: "200 Page", stock: 40, price: 100, status: "Good" },
-      { id: 10, item: "Study Desk", category: "Furniture", subcategory: "Desk", type: "Study Desk", stock: 30, price: 5000, status: "Good" },
-      { id: 11, item: "Bed (Iron Frame)", category: "Furniture", subcategory: "Bed", type: "Iron Frame Bed", stock: 50, price: 5000, status: "Good" },
-      { id: 12, item: "Reading Chair", category: "Furniture", subcategory: "Chair", type: "Reading Chair", stock: 80, price: 1500, status: "Good" },
-      { id: 13, item: "Executive Desk", category: "Furniture", subcategory: "Desk", type: "Executive Desk", stock: 15, price: 7000, status: "Good" },
-      { id: 14, item: "Wi-Fi Router", category: "Electronics", subcategory: "Router", type: "Dual Band Wi-Fi", stock: 5, price: 3000, status: "Good" },
-      { id: 15, item: "Barcode Scanner", category: "Electronics", subcategory: "Barcode Scanner", type: "Laser Scanner", stock: 3, price: 3000, status: "Good" }
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Sort newest first (by createdAt if available, else by id desc)
+      return [...parsed].sort((a, b) => {
+        if (a.createdAt && b.createdAt) return new Date(b.createdAt) - new Date(a.createdAt);
+        return b.id - a.id;
+      });
+    }
+    return [
+      { id: 1, item: "Desktop Computer", category: "Electronics", subcategory: "Computer", type: "i5 16GB", stock: 25, price: 45000, status: "Good", createdAt: "2026-06-01 09:00:00" },
+      { id: 2, item: "Laser Printer", category: "Electronics", subcategory: "Printer", type: "LaserJet", stock: 4, price: 12000, status: "Low", createdAt: "2026-06-01 09:05:00" },
+      { id: 3, item: "Office Chair", category: "Furniture", subcategory: "Chair", type: "Ergonomic Mesh", stock: 18, price: 3500, status: "Good", createdAt: "2026-06-01 09:10:00" },
+      { id: 4, item: "Football", category: "Sports", subcategory: "Balls", type: "Leather size 5", stock: 10, price: 800, status: "Good", createdAt: "2026-06-01 09:15:00" },
+      { id: 5, item: "Microscope", category: "Equipment", subcategory: "Lab Equipment", type: "Compound 1000x", stock: 15, price: 10000, status: "Good", createdAt: "2026-06-01 09:20:00" },
+      { id: 6, item: "A4 Sheets", category: "Stationery", subcategory: "Paper", type: "80GSM White", stock: 350, price: 200, status: "Good", createdAt: "2026-06-01 09:25:00" },
+      { id: 7, item: "Markers", category: "Stationery", subcategory: "Writing", type: "Whiteboard Blue", stock: 120, price: 50, status: "Good", createdAt: "2026-06-01 09:30:00" },
+      { id: 8, item: "100 Page Register", category: "Stationery", subcategory: "Register", type: "100 Page", stock: 85, price: 60, status: "Good", createdAt: "2026-06-01 09:35:00" },
+      { id: 9, item: "200 Page Register", category: "Stationery", subcategory: "Register", type: "200 Page", stock: 40, price: 100, status: "Good", createdAt: "2026-06-01 09:40:00" },
+      { id: 10, item: "Study Desk", category: "Furniture", subcategory: "Desk", type: "Study Desk", stock: 30, price: 5000, status: "Good", createdAt: "2026-06-01 09:45:00" },
+      { id: 11, item: "Bed (Iron Frame)", category: "Furniture", subcategory: "Bed", type: "Iron Frame Bed", stock: 50, price: 5000, status: "Good", createdAt: "2026-06-01 09:50:00" },
+      { id: 12, item: "Reading Chair", category: "Furniture", subcategory: "Chair", type: "Reading Chair", stock: 80, price: 1500, status: "Good", createdAt: "2026-06-01 09:55:00" },
+      { id: 13, item: "Executive Desk", category: "Furniture", subcategory: "Desk", type: "Executive Desk", stock: 15, price: 7000, status: "Good", createdAt: "2026-06-01 10:00:00" },
+      { id: 14, item: "Wi-Fi Router", category: "Electronics", subcategory: "Router", type: "Dual Band Wi-Fi", stock: 5, price: 3000, status: "Good", createdAt: "2026-06-01 10:05:00" },
+      { id: 15, item: "Barcode Scanner", category: "Electronics", subcategory: "Barcode Scanner", type: "Laser Scanner", stock: 3, price: 3000, status: "Good", createdAt: "2026-06-01 10:10:00" }
     ];
   });
 
@@ -491,6 +505,7 @@ export function StoreProvider({ children }) {
       );
 
       let updatedInventory;
+      const nowStr = getNowString();
       if (itemIndex !== -1) {
         updatedInventory = [...inventory];
         const updatedStock = updatedInventory[itemIndex].stock + order.quantity;
@@ -498,21 +513,26 @@ export function StoreProvider({ children }) {
           ...updatedInventory[itemIndex],
           stock: updatedStock,
           price: order.pricePerUnit || updatedInventory[itemIndex].price,
-          status: updatedStock <= (systemSettings.lowStockThreshold || 10) ? "Low" : updatedStock <= 15 ? "Medium" : "Good"
+          status: updatedStock <= (systemSettings.lowStockThreshold || 10) ? "Low" : updatedStock <= 15 ? "Medium" : "Good",
+          updatedAt: nowStr
         };
+        // Move updated item to front (most recent first)
+        const updatedItem = updatedInventory.splice(itemIndex, 1)[0];
+        updatedInventory = [updatedItem, ...updatedInventory];
       } else {
         // Create new item in inventory if not present
         const newItem = {
-          id: inventory.length + 1,
+          id: Date.now(),
           item: order.item,
           category: order.category,
           subcategory: order.subcategory,
           type: order.type,
           stock: order.quantity,
           price: order.pricePerUnit || 1000,
-          status: "Good"
+          status: "Good",
+          createdAt: nowStr
         };
-        updatedInventory = [...inventory, newItem];
+        updatedInventory = [newItem, ...inventory];
       }
       setInventory(updatedInventory);
       localStorage.setItem("rjit_inventory", JSON.stringify(updatedInventory));
@@ -635,6 +655,7 @@ export function StoreProvider({ children }) {
         (item.type || "").toLowerCase() === (itemDetails.type || "").toLowerCase()
     );
 
+    const nowStr = getNowString();
     let updatedInventory;
     if (existingIndex !== -1) {
       updatedInventory = [...inventory];
@@ -644,20 +665,25 @@ export function StoreProvider({ children }) {
         ...existingItem,
         stock: newStock,
         price: itemDetails.price || existingItem.price,
-        status: newStock <= (systemSettings.lowStockThreshold || 10) ? "Low" : newStock <= 15 ? "Medium" : "Good"
+        status: newStock <= (systemSettings.lowStockThreshold || 10) ? "Low" : newStock <= 15 ? "Medium" : "Good",
+        updatedAt: nowStr
       };
+      // Move updated item to front (most recent first)
+      const updatedItem = updatedInventory.splice(existingIndex, 1)[0];
+      updatedInventory = [updatedItem, ...updatedInventory];
     } else {
       const newItem = {
-        id: inventory.length + 1,
+        id: Date.now(),
         item: itemDetails.item,
         category: itemDetails.category,
         subcategory: itemDetails.subcategory,
         type: itemDetails.type || "Standard",
         stock: itemDetails.stock,
         price: itemDetails.price,
-        status: itemDetails.stock <= (systemSettings.lowStockThreshold || 10) ? "Low" : itemDetails.stock <= 15 ? "Medium" : "Good"
+        status: itemDetails.stock <= (systemSettings.lowStockThreshold || 10) ? "Low" : itemDetails.stock <= 15 ? "Medium" : "Good",
+        createdAt: nowStr
       };
-      updatedInventory = [...inventory, newItem];
+      updatedInventory = [newItem, ...inventory];
     }
     setInventory(updatedInventory);
     localStorage.setItem("rjit_inventory", JSON.stringify(updatedInventory));

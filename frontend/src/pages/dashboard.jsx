@@ -7,6 +7,8 @@ import RecentActivities from "../components/RecentActivities";
 import LowStock from "../components/LowStock";
 import QuickActions from "../components/QuickActions";
 import { useStore } from "../context/StoreContext";
+import FlashMessage from "../components/FlashMessage";
+import useFlash from "../components/useFlash";
 
 const formatDateTime = (dateTimeStr) => {
   if (!dateTimeStr) return "";
@@ -21,6 +23,7 @@ const formatDateTime = (dateTimeStr) => {
 
 export default function Dashboard() {
   const { currentUser, orders, inventory, systemSettings, approveOrder, rejectOrder } = useStore();
+  const { flashes, showFlash, dismissFlash } = useFlash();
 
   const totalAssets = inventory.reduce((acc, item) => acc + item.stock, 0);
   const inventoryValueVal = inventory.reduce((acc, item) => acc + (item.stock * item.price), 0);
@@ -40,6 +43,7 @@ export default function Dashboard() {
     <div className="bg-slate-100 min-h-screen text-slate-800 transition-colors duration-300">
 
       <Sidebar />
+      <FlashMessage flashes={flashes} onDismiss={dismissFlash} />
 
       <div className="ml-64 p-6">
 
@@ -105,13 +109,27 @@ export default function Dashboard() {
                         <td className="p-3.5 text-right">
                           <div className="flex gap-2 justify-end">
                             <button
-                              onClick={() => approveOrder(order.id)}
+                              onClick={() => {
+                                approveOrder(order.id);
+                                showFlash(
+                                  "success",
+                                  "Order Approved ✓",
+                                  `Order ${order.id} — ${order.quantity} × ${order.item} has been approved successfully.`
+                                );
+                              }}
                               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition shadow active:scale-95"
                             >
                               Approve
                             </button>
                             <button
-                              onClick={() => rejectOrder(order.id)}
+                              onClick={() => {
+                                rejectOrder(order.id);
+                                showFlash(
+                                  "error",
+                                  "Order Rejected",
+                                  `Order ${order.id} — ${order.item} has been rejected.`
+                                );
+                              }}
                               className="bg-red-500 hover:bg-red-650 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition shadow active:scale-95"
                             >
                               Reject
