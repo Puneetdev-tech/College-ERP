@@ -137,9 +137,9 @@ export default function ReceiveOrder() {
         {/* Metrics Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           
-          <div className="card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
+          <div className="group card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-amber-500 dark:bg-amber-400" />
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
               <FaClipboardCheck size={20} />
             </div>
             <div>
@@ -148,9 +148,9 @@ export default function ReceiveOrder() {
             </div>
           </div>
 
-          <div className="card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
+          <div className="group card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-green-650 dark:bg-green-500" />
-            <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:translate-x-2">
               <FaTruck size={20} />
             </div>
             <div>
@@ -159,9 +159,9 @@ export default function ReceiveOrder() {
             </div>
           </div>
 
-          <div className="card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
+          <div className="group card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-yellow-500 dark:bg-yellow-400" />
-            <div className="w-12 h-12 rounded-2xl bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-450 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-450 flex items-center justify-center transition-transform duration-[800ms] group-hover:scale-110 group-hover:rotate-180">
               <FaHourglassHalf size={20} />
             </div>
             <div>
@@ -262,7 +262,7 @@ export default function ReceiveOrder() {
                       <td className="p-4 min-w-[200px]">
                         <div className="flex items-center w-full">
                           <div className="flex flex-col items-center">
-                            <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-[8px] text-white font-bold" title="Order Placed">1</div>
+                            <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-[8px] text-white font-bold transition-transform duration-300 hover:scale-125 cursor-help" title="Order Placed">1</div>
                             <span className="text-[9px] text-slate-455 dark:text-slate-500 font-bold mt-1">Placed</span>
                           </div>
                           
@@ -275,7 +275,7 @@ export default function ReceiveOrder() {
                           }`} />
                           
                           <div className="flex flex-col items-center">
-                            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] text-white font-bold ${
+                            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] text-white font-bold transition-transform duration-300 hover:scale-125 cursor-help ${
                               order.status === "Approved" || order.status === "Received" 
                                 ? "bg-amber-500" 
                                 : order.status === "Rejected"
@@ -296,7 +296,7 @@ export default function ReceiveOrder() {
                           }`} />
 
                           <div className="flex flex-col items-center">
-                            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] text-white font-bold ${
+                            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] text-white font-bold transition-transform duration-300 hover:scale-125 cursor-help ${
                               order.status === "Received" ? "bg-emerald-500" : "bg-slate-350"
                             }`} title="Received in Store">3</div>
                             <span className="text-[9px] text-slate-455 dark:text-slate-500 font-bold mt-1 font-semibold">Received</span>
@@ -318,7 +318,7 @@ export default function ReceiveOrder() {
                           </span>
                         ) : order.status === "Pending" ? (
                           <span className="text-yellow-600 dark:text-yellow-400 font-bold text-xs inline-flex items-center gap-1.5 bg-yellow-50 dark:bg-yellow-950/20 px-3 py-1.5 rounded-full border border-yellow-150 dark:border-yellow-900/50">
-                            <FaHourglassHalf className="animate-spin duration-[4000ms]" /> Awaiting Appr.
+                            <FaHourglassHalf className="animate-spin" /> Awaiting Appr.
                           </span>
                         ) : order.status === "Rejected" ? (
                           <div className="flex flex-col items-center gap-2">
@@ -336,7 +336,7 @@ export default function ReceiveOrder() {
                           /* Approved: Pulsing animation button */
                           <button
                             onClick={() => handleOpenReceive(order)}
-                            className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold cursor-pointer transition shadow-md shadow-emerald-500/10 hover:shadow-lg active:scale-95 animate-pulse hover:animate-none flex items-center gap-1 text-xs"
+                            className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold cursor-pointer transition shadow-md shadow-emerald-500/10 hover:shadow-lg active:scale-95 animate-pulse hover:animate-none flex items-center gap-1 text-xs hover:scale-105 duration-200"
                           >
                             Receive Order
                           </button>

@@ -299,9 +299,19 @@ export function StoreProvider({ children }) {
   });
 
   const markAllRead = () => {
-    const updated = notifications.map(n => ({ ...n, read: true }));
-    setNotifications(updated);
-    localStorage.setItem("rjit_notifications", JSON.stringify(updated));
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, read: true }));
+      localStorage.setItem("rjit_notifications", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const markAsRead = (id) => {
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
+      localStorage.setItem("rjit_notifications", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const addNotification = (type, message, iconType, color) => {
@@ -715,6 +725,7 @@ export function StoreProvider({ children }) {
         updateApprovalSequence,
         notifications,
         markAllRead,
+        markAsRead,
         addNotification
       }}
     >

@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { FaBoxes, FaTruck, FaChartLine, FaArrowUp } from "react-icons/fa";
 import Sidebar from "../components/sidebar";
+import Navbar from "../components/Navbar";
 
 import { useStore } from "../context/StoreContext";
 
@@ -197,9 +198,10 @@ export default function Analytics() {
     <div className="bg-slate-50 min-h-screen text-slate-800">
       <Sidebar />
       <div className="ml-64 p-8">
+        <Navbar />
         
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 mt-8">
           <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-700 to-indigo-900 bg-clip-text text-transparent">
             Analytics Dashboard
           </h1>
@@ -273,78 +275,131 @@ export default function Analytics() {
               <p className="text-slate-400 text-sm">Active items allocated across the 8 college departments.</p>
             </div>
 
-            <div className="h-[380px] w-full flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  
-                  {/* SVG gradients for 3D depth styling */}
-                  <defs>
-                    <linearGradient id="gradientHostel" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#3b82f6" />
-                      <stop offset="100%" stopColor="#1d4ed8" />
-                    </linearGradient>
-                    <linearGradient id="gradientSports" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#10b981" />
-                      <stop offset="100%" stopColor="#047857" />
-                    </linearGradient>
-                    <linearGradient id="gradientLab" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#ef4444" />
-                      <stop offset="100%" stopColor="#b91c1c" />
-                    </linearGradient>
-                    <linearGradient id="gradientIT" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#8b5cf6" />
-                      <stop offset="100%" stopColor="#6d28d9" />
-                    </linearGradient>
-                    <linearGradient id="gradientLibrary" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#f59e0b" />
-                      <stop offset="100%" stopColor="#b45309" />
-                    </linearGradient>
-                    <linearGradient id="gradientOffice" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#14b8a6" />
-                      <stop offset="100%" stopColor="#0f766e" />
-                    </linearGradient>
-                    <linearGradient id="gradientMaintenance" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="100%" stopColor="#4338ca" />
-                    </linearGradient>
-                    <linearGradient id="gradientMedical" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#ec4899" />
-                      <stop offset="100%" stopColor="#be185d" />
-                    </linearGradient>
-                  </defs>
+            <div className="h-[380px] w-full flex flex-col md:flex-row items-center justify-between gap-4">
+              {/* Left Column: Pie Chart */}
+              <div className="w-full md:w-1/2 h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    
+                    {/* SVG gradients for 3D depth styling */}
+                    <defs>
+                      <linearGradient id="gradientHostel" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" />
+                        <stop offset="100%" stopColor="#1d4ed8" />
+                      </linearGradient>
+                      <linearGradient id="gradientSports" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#10b981" />
+                        <stop offset="100%" stopColor="#047857" />
+                      </linearGradient>
+                      <linearGradient id="gradientLab" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#ef4444" />
+                        <stop offset="100%" stopColor="#b91c1c" />
+                      </linearGradient>
+                      <linearGradient id="gradientIT" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#8b5cf6" />
+                        <stop offset="100%" stopColor="#6d28d9" />
+                      </linearGradient>
+                      <linearGradient id="gradientLibrary" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#f59e0b" />
+                        <stop offset="100%" stopColor="#b45309" />
+                      </linearGradient>
+                      <linearGradient id="gradientOffice" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#14b8a6" />
+                        <stop offset="100%" stopColor="#0f766e" />
+                      </linearGradient>
+                      <linearGradient id="gradientMaintenance" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#6366f1" />
+                        <stop offset="100%" stopColor="#4338ca" />
+                      </linearGradient>
+                      <linearGradient id="gradientMedical" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#ec4899" />
+                        <stop offset="100%" stopColor="#be185d" />
+                      </linearGradient>
+                    </defs>
 
-                  <Legend 
-                    verticalAlign="top" 
-                    align="center"
-                    iconType="circle"
-                    iconSize={8}
-                    wrapperStyle={{ paddingBottom: "25px" }}
-                  />
+                    <Pie
+                      activeIndex={activeIndex}
+                      activeShape={renderActiveShape}
+                      data={departmentData}
+                      dataKey="value"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={85}
+                      onMouseEnter={onPieEnter}
+                      onMouseLeave={onPieLeave}
+                      paddingAngle={3}
+                    >
+                      {departmentData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={DEPARTMENT_COLORS[index]}
+                          style={{ filter: "drop-shadow(0px 6px 10px rgba(0, 0, 0, 0.06))" }}
+                        />
+                      ))}
+                    </Pie>
+                    
+                    {activeIndex === -1 && (
+                      <>
+                        <text
+                          x="50%"
+                          y="47%"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="#94a3b8"
+                          className="font-bold text-[9px] uppercase tracking-wider"
+                        >
+                          Total Issued
+                        </text>
+                        <text
+                          x="50%"
+                          y="54%"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fill="#1e293b"
+                          className="font-black text-xl"
+                        >
+                          {departmentData.reduce((sum, item) => sum + item.value, 0)}
+                        </text>
+                      </>
+                    )}
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
 
-                  <Pie
-                    activeIndex={activeIndex}
-                    activeShape={renderActiveShape}
-                    data={departmentData}
-                    dataKey="value"
-                    cx="50%"
-                    cy="55%"
-                    innerRadius={70}
-                    outerRadius={95}
-                    onMouseEnter={onPieEnter}
-                    onMouseLeave={onPieLeave}
-                    paddingAngle={3}
-                  >
-                    {departmentData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={DEPARTMENT_COLORS[index]}
-                        style={{ filter: "drop-shadow(0px 8px 12px rgba(0, 0, 0, 0.08))" }}
-                      />
-                    ))}
-                  </Pie>
-                  
-                </PieChart>
-              </ResponsiveContainer>
+              {/* Right Column: Detailed interactive list to fill the card layout space */}
+              <div className="w-full md:w-1/2 space-y-2 max-h-[340px] overflow-y-auto pr-2">
+                {departmentData.map((item, index) => {
+                  const total = departmentData.reduce((sum, d) => sum + d.value, 0);
+                  const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : "0.0";
+                  const dotColors = ["#3b82f6", "#10b981", "#ef4444", "#8b5cf6", "#f59e0b", "#14b8a6", "#6366f1", "#ec4899"];
+
+                  return (
+                    <div 
+                      key={index} 
+                      className={`flex items-center justify-between p-2 rounded-xl border transition-all duration-200 ${
+                        activeIndex === index 
+                          ? "bg-slate-50 border-slate-200/80 shadow-sm scale-[1.02]" 
+                          : "border-transparent hover:bg-slate-50/50"
+                      }`}
+                      onMouseEnter={() => setActiveIndex(index)}
+                      onMouseLeave={onPieLeave}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div 
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: dotColors[index] }}
+                        />
+                        <span className="text-xs font-semibold text-slate-700 truncate">{item.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-right flex-shrink-0 ml-2">
+                        <span className="text-xs font-bold text-slate-800">{item.value} units</span>
+                        <span className="text-[10px] text-slate-450 font-bold">({percentage}%)</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

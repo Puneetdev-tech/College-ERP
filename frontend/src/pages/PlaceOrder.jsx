@@ -237,9 +237,9 @@ export default function PlaceOrder() {
               setShowModal(true);
               setOrderDate(getCurrentDateTimeString());
             }}
-            className="bg-blue-600 hover:bg-blue-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold px-6 py-3.5 rounded-2xl flex gap-2.5 items-center cursor-pointer shadow-lg shadow-blue-500/10 dark:shadow-cyan-500/10 active:scale-95 transition-all"
+            className="group bg-blue-600 hover:bg-blue-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold px-6 py-3.5 rounded-2xl flex gap-2.5 items-center cursor-pointer shadow-lg shadow-blue-500/10 dark:shadow-cyan-500/10 active:scale-95 transition-all"
           >
-            <FaPlus className="text-sm" />
+            <FaPlus className="text-sm transition-transform duration-300 group-hover:rotate-90" />
             Create Purchase Order
           </button>
         </div>
@@ -247,9 +247,9 @@ export default function PlaceOrder() {
         {/* Statistics Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           
-          <div className="card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
+          <div className="group card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-blue-600 dark:bg-blue-500" />
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
               <FaShoppingBag size={20} />
             </div>
             <div>
@@ -258,9 +258,9 @@ export default function PlaceOrder() {
             </div>
           </div>
 
-          <div className="card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
+          <div className="group card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-yellow-500 dark:bg-yellow-400 animate-pulse" />
-            <div className="w-12 h-12 rounded-2xl bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-450 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-450 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
               <FaClock size={20} />
             </div>
             <div>
@@ -269,9 +269,9 @@ export default function PlaceOrder() {
             </div>
           </div>
 
-          <div className="card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
+          <div className="group card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500 dark:bg-emerald-400" />
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
               <FaCheckDouble size={20} />
             </div>
             <div>
@@ -280,9 +280,9 @@ export default function PlaceOrder() {
             </div>
           </div>
 
-          <div className="card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
+          <div className="group card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600 dark:bg-indigo-500" />
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
               <FaWarehouse size={20} />
             </div>
             <div>
@@ -371,24 +371,26 @@ export default function PlaceOrder() {
                     >
                       <td className="p-4 text-sm font-semibold text-slate-600 dark:text-slate-400">#{order.id}</td>
                       <td className="p-4 text-sm font-medium text-slate-800 dark:text-slate-100">{order.supplier}</td>
-                      <td className="p-4 text-sm text-slate-700 dark:text-slate-300">
-                        <div className="font-bold">{order.item}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">{order.category} &gt; {order.subcategory}</div>
+                      <td className="p-4 text-sm">
+                        <div className="font-bold text-slate-800 dark:text-slate-100">{order.item}</div>
+                        <div className="text-[11px] text-slate-450 dark:text-slate-400 mt-0.5">{order.category} &gt; {order.subcategory}</div>
                       </td>
-                      <td className="p-4 text-sm text-slate-700 dark:text-slate-300 font-semibold">{order.department || "N/A"}</td>
+                      <td className="p-4 text-sm font-semibold text-slate-700 dark:text-slate-300">{order.department || "N/A"}</td>
                       <td className="p-4 text-sm text-slate-600 dark:text-slate-400">{order.faculty || "N/A"}</td>
-                      <td className="p-4 text-sm text-slate-500 dark:text-slate-400 font-mono text-xs">{order.type || "Standard"}</td>
-                      <td className="p-4 text-sm font-black text-slate-800 dark:text-slate-100">{order.quantity}</td>
+                      <td className="p-4 text-sm text-slate-700 dark:text-slate-300 font-medium">{order.type || "Standard"}</td>
+                      <td className="p-4 text-sm font-bold text-slate-800 dark:text-slate-100">{order.quantity}</td>
                       <td className="p-4 text-sm font-semibold text-slate-800 dark:text-slate-100">₹{order.pricePerUnit?.toLocaleString()}</td>
-                      <td className="p-4 text-sm font-black text-slate-800 dark:text-slate-105">₹{(order.pricePerUnit * order.quantity)?.toLocaleString()}</td>
-                      <td className="p-4 text-sm text-slate-500 dark:text-slate-400">{formatDateTime(order.orderDate)}</td>
+                      <td className="p-4 text-sm font-bold text-slate-850 dark:text-slate-100">₹{(order.pricePerUnit * order.quantity)?.toLocaleString()}</td>
+                      <td className="p-4 text-xs text-slate-500 dark:text-slate-400 font-medium">{formatDateTime(order.orderDate)}</td>
                       <td className="p-4 text-sm">
                         <span
                           className={`px-3 py-1.5 rounded-full text-xs font-bold border ${
                             order.status === "Pending"
                               ? "bg-yellow-50/80 border-yellow-250 text-yellow-600 dark:bg-yellow-950/20 dark:border-yellow-900 dark:text-yellow-400"
                               : order.status === "Approved"
-                              ? "bg-emerald-50/80 border-emerald-250 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900 dark:text-emerald-400"
+                              ? "bg-emerald-50/80 border-emerald-250 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900 dark:text-emerald-450"
+                              : order.status === "Rejected"
+                              ? "bg-rose-50/80 border-rose-250 text-rose-600 dark:bg-rose-950/20 dark:border-rose-900 dark:text-rose-455"
                               : "bg-blue-50/80 border-blue-250 text-blue-600 dark:bg-blue-950/20 dark:border-blue-900 dark:text-blue-400"
                           }`}
                         >
@@ -398,7 +400,7 @@ export default function PlaceOrder() {
                       <td className="p-4 text-center no-print">
                         <button
                           onClick={() => handleOpenTracking(order)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition shadow active:scale-95 whitespace-nowrap"
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition shadow hover:scale-105 active:scale-95 whitespace-nowrap duration-200"
                         >
                           Track & Print
                         </button>

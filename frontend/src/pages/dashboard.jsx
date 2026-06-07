@@ -158,7 +158,7 @@ export default function Dashboard() {
         {/* Monthly Analytics & Quick Actions Grid */}
         <div className="grid grid-cols-3 gap-6 mt-8">
           
-          <div className="col-span-2 bg-white rounded-2xl shadow-lg p-6">
+          <div className="col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
             <h2 className="text-xl font-bold mb-4">
               Monthly Inventory Activity
             </h2>

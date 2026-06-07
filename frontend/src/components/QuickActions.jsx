@@ -46,7 +46,7 @@ export default function QuickActions() {
   if (actions.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
 
       <h2 className="text-xl font-bold mb-4">
         Quick Actions
@@ -59,10 +59,10 @@ export default function QuickActions() {
           <button
             key={index}
             onClick={() => navigate(action.path)}
-            className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-xl hover:scale-105 active:scale-95 transition shadow-md cursor-pointer"
+            className="group bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-xl hover:scale-105 active:scale-95 transition shadow-md cursor-pointer"
           >
             <div className="flex flex-col items-center gap-2">
-              {action.icon}
+              <span className="text-xl transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">{action.icon}</span>
               <span className="text-sm font-medium">{action.title}</span>
             </div>
           </button>
