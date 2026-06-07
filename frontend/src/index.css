@@ -1,0 +1,311 @@
+@import "tailwindcss";
+
+:root {
+  --sidebar-width: 16rem; /* w-64 */
+}
+
+body.sidebar-collapsed {
+  --sidebar-width: 5rem; /* w-20 */
+}
+
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background-color: #f8fafc;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Animate the sidebar width dynamically */
+.sidebar-container {
+  width: var(--sidebar-width) !important;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Animate the content margin-left dynamically */
+.ml-64 {
+  margin-left: var(--sidebar-width) !important;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 3D Card Hover Effects */
+.card-3d {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease !important;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.card-3d:hover {
+  transform: translateY(-8px) scale(1.01) rotateX(1deg);
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.12) !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+/* Premium Sidebar Hover and Active States per Theme */
+/* Premium Sidebar Hover and Active States per Theme */
+/* LIGHT Sidebar */
+body:not(.dark) .sidebar-container {
+  background: linear-gradient(185deg, #1e3a8a 0%, #312e81 100%) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+}
+
+body:not(.dark) .sidebar-title {
+  color: #ffffff !important;
+}
+
+body:not(.dark) .sidebar-item {
+  color: rgba(255, 255, 255, 0.7) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body:not(.dark) .sidebar-item:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  transform: translateX(6px);
+}
+
+body:not(.dark) .sidebar-item.active {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.1) !important;
+  border-left: 4px solid #38bdf8 !important;
+  border-radius: 0 12px 12px 0 !important;
+}
+
+/* Light sidebar overrides to fix bottom elements */
+body:not(.dark) .sidebar-container .bg-slate-100\/60 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+body:not(.dark) .sidebar-container .text-slate-800 {
+  color: #ffffff !important;
+}
+body:not(.dark) .sidebar-container .text-slate-400 {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+body:not(.dark) .sidebar-container .text-blue-600 {
+  color: #38bdf8 !important;
+}
+body:not(.dark) .sidebar-container .text-rose-600 {
+  color: #fca5a5 !important;
+}
+body:not(.dark) .sidebar-container .text-rose-600:hover {
+  background-color: rgba(244, 63, 94, 0.15) !important;
+  color: #fee2e2 !important;
+}
+
+/* DARK Sidebar */
+body.dark .sidebar-container {
+  background: linear-gradient(135deg, #05070f 0%, #111326 100%) !important;
+  color: #cbd5e1 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.04) !important;
+  box-shadow: 4px 0 30px rgba(0, 0, 0, 0.4);
+}
+
+body.dark .sidebar-title {
+  color: #22d3ee !important;
+}
+
+body.dark .sidebar-item {
+  color: #94a3b8 !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.dark .sidebar-item:hover {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  color: #ffffff !important;
+  transform: translateX(6px);
+}
+
+body.dark .sidebar-item.active {
+  background-color: rgba(30, 41, 59, 0.45) !important;
+  color: #22d3ee !important;
+  font-weight: 600;
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.15) !important;
+  border-left: 4px solid #22d3ee !important;
+  border-radius: 0 12px 12px 0 !important;
+}
+
+/* Core Dark Mode Overrides - Premium Slate Navy theme with ambient neon glows */
+body.dark {
+  background-color: #0b101f !important; /* Rich deep slate navy */
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.06) 0%, transparent 45%),
+    radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.06) 0%, transparent 45%) !important;
+  background-attachment: fixed !important;
+  color: #cbd5e1 !important;
+}
+
+body.dark .card-3d:hover {
+  transform: translateY(-8px) scale(1.01) rotateX(1deg);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
+  border-color: rgba(34, 211, 238, 0.25) !important;
+}
+
+body.dark .bg-white {
+  background-color: #172033 !important; /* Clear high-contrast slate navy panel */
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.dark .bg-slate-100 {
+  background-color: transparent !important;
+}
+
+body.dark .bg-slate-50 {
+  background-color: #0d1324 !important;
+}
+
+body.dark .bg-slate-50\/50 {
+  background-color: rgba(13, 19, 36, 0.55) !important;
+}
+
+body.dark .text-slate-800, 
+body.dark .text-slate-700, 
+body.dark .text-slate-850,
+body.dark .text-slate-650,
+body.dark .text-slate-600 {
+  color: #f8fafc !important; /* Force highly readable clear white */
+}
+
+body.dark .text-slate-550,
+body.dark .text-slate-500,
+body.dark .text-slate-450,
+body.dark .text-slate-400 {
+  color: #94a3b8 !important; /* High contrast muted slate */
+}
+
+body.dark .border-slate-200, 
+body.dark .border-slate-150, 
+body.dark .border-slate-100,
+body.dark .border-slate-850 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.dark input, body.dark select, body.dark textarea {
+  background-color: #0d1324 !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.dark input:focus, body.dark select:focus, body.dark textarea:focus {
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2) !important;
+}
+
+body.dark input::placeholder {
+  color: #475569 !important;
+}
+
+/* Force table cells and headers styles in dark mode */
+body.dark table {
+  background-color: #172033 !important;
+}
+
+body.dark thead, body.dark tr.bg-slate-100 {
+  background-color: #0d1324 !important;
+}
+
+body.dark th {
+  color: #38bdf8 !important; /* Bright cyan column title details */
+  font-weight: 700 !important;
+}
+
+body.dark td {
+  color: #e2e8f0 !important; /* Muted clear text for cell details */
+}
+
+body.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+body.dark .divide-slate-150 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.dark tr:hover {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Sidebar Scrollbar Helper */
+.sidebar-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.sidebar-scrollbar {
+  -ms-overflow-style: none;  /* IE/Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Print Stylesheet */
+@media print {
+  /* Hide the rest of the application layout if print-report-layout is present */
+  body:has(.print-report-layout) #root {
+    display: none !important;
+  }
+
+  .print-report-layout {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background-color: white !important;
+    color: black !important;
+  }
+
+  .no-print,
+  .sidebar-container,
+  button,
+  select,
+  input,
+  header,
+  nav {
+    display: none !important;
+  }
+
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  .ml-64 {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+
+  .live-report-container {
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+/* Premium Interactive Table Headers & Rows */
+thead.interactive-thead {
+  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%) !important;
+}
+thead.interactive-thead th {
+  color: #ffffff !important;
+}
+
+body.dark thead.interactive-thead {
+  background: linear-gradient(135deg, #1e1b4b 0%, #1e3a8a 100%) !important;
+}
+body.dark thead.interactive-thead th {
+  color: #38bdf8 !important;
+}
+
+/* Hover scales and custom transitions for rows */
+.interactive-table-row {
+  transition: all 0.2s ease-in-out !important;
+}
+.interactive-table-row:hover {
+  background-color: rgba(79, 70, 229, 0.08) !important; /* soft indigo */
+  transform: translateY(-1px) scale-[1.002];
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+body.dark .interactive-table-row:hover {
+  background-color: rgba(34, 211, 238, 0.08) !important; /* soft cyan */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
