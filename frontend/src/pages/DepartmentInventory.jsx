@@ -21,13 +21,13 @@ import {
 
 // Map department names to header details
 const DEPT_ICONS = {
+  "Stationary": <FaPen />,
   "Hostel": <FaBed />,
   "Sports": <FaRunning />,
   "Laboratory": <FaFlask />,
   "IT Department": <FaDesktop />,
   "Library": <FaBook />,
   "Office": <FaBriefcase />,
-  "Maintenance": <FaWrench />,
   "Medical": <FaHeartbeat />
 };
 
@@ -43,13 +43,13 @@ const CATEGORY_STYLES = {
 };
 
 const DEPT_CATEGORIES = {
+  "Stationary": ["Stationery"],
   "Hostel": ["Furniture", "Electronics", "Cleaning"],
   "Sports": ["Sports"],
   "Laboratory": ["Equipment", "Stationery"],
   "IT Department": ["Electronics"],
   "Library": ["Furniture", "Electronics", "Stationery"],
   "Office": ["Furniture", "Stationery", "Electronics"],
-  "Maintenance": ["Equipment", "Cleaning"],
   "Medical": ["Equipment", "Cleaning"]
 };
 

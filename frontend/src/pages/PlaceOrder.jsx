@@ -19,13 +19,13 @@ import FlashMessage from "../components/FlashMessage";
 import useFlash from "../components/useFlash";
 
 const departmentsList = [
+  "Stationary",
   "Hostel",
   "Sports",
   "Laboratory",
   "IT Department",
   "Library",
   "Office",
-  "Maintenance",
   "Medical"
 ];
 

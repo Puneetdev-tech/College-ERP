@@ -8,7 +8,7 @@ import {
   FaDesktop,
   FaBook,
   FaBriefcase,
-  FaWrench,
+  FaPen,
   FaHeartbeat,
   FaList
 } from "react-icons/fa";
@@ -17,13 +17,13 @@ export default function Inventory() {
   const navigate = useNavigate();
 
   const departments = [
+    { name: "Stationary", icon: <FaPen />, desc: "Admin stationery, files, registers, folders, writing assets and stock registers.", color: "from-blue-600 to-indigo-750" },
     { name: "Hostel", icon: <FaBed />, desc: "Hostel rooms furniture, bedding, and lounge appliances.", color: "from-amber-500 to-orange-600" },
     { name: "Sports", icon: <FaRunning />, desc: "Sports kits, athletics gear, fitness assets, and court equipment.", color: "from-emerald-500 to-teal-600" },
     { name: "Laboratory", icon: <FaFlask />, desc: "Chemicals, glassware, microscopes, and scientific machinery.", color: "from-sky-500 to-blue-600" },
     { name: "IT Department", icon: <FaDesktop />, desc: "Desktop systems, router gateways, monitors, and peripherals.", color: "from-indigo-500 to-purple-600" },
     { name: "Library", icon: <FaBook />, desc: "Reference books, reading desks, catalogs, and study chairs.", color: "from-violet-500 to-fuchsia-600" },
     { name: "Office", icon: <FaBriefcase />, desc: "Admin stationery, files, storage cabinets, and desks.", color: "from-rose-500 to-pink-600" },
-    { name: "Maintenance", icon: <FaWrench />, desc: "Plumbing machinery, electrical toolkit sets, and cleaners.", color: "from-slate-600 to-slate-800" },
     { name: "Medical", icon: <FaHeartbeat />, desc: "First-aid boxes, checkup devices, and sanitization kits.", color: "from-red-500 to-rose-600" }
   ];
 

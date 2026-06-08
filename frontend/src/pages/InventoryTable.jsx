@@ -19,12 +19,35 @@ const formatDateTime = (dtStr) => {
   }
 };
 
+const CATEGORY_BADGES = {
+  "Furniture": "bg-amber-50 text-amber-700 border-amber-150",
+  "Electrical": "bg-yellow-50 text-yellow-700 border-yellow-150",
+  "Electronics": "bg-cyan-50 text-cyan-700 border-cyan-150",
+  "Cleaning": "bg-emerald-50 text-emerald-700 border-emerald-150",
+  "Stationery": "bg-blue-50 text-blue-700 border-blue-150",
+  "Equipment": "bg-indigo-50 text-indigo-700 border-indigo-150",
+  "Sports": "bg-orange-50 text-orange-700 border-orange-150",
+  "Miscellaneous": "bg-slate-50 text-slate-700 border-slate-200"
+};
+
+const DEPT_CATEGORIES = {
+  "Stationary": ["Stationery"],
+  "Hostel": ["Furniture", "Electronics", "Cleaning"],
+  "Sports": ["Sports"],
+  "Laboratory": ["Equipment", "Stationery"],
+  "IT Department": ["Electronics"],
+  "Library": ["Furniture", "Electronics", "Stationery"],
+  "Office": ["Furniture", "Stationery", "Electronics"],
+  "Medical": ["Equipment", "Cleaning"]
+};
+
 export default function InventoryTable() {
   const { inventory, addInventoryItem, systemSettings } = useStore();
   const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const paramCategory = searchParams.get("category");
+  const paramDepartment = searchParams.get("department");
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -84,11 +107,17 @@ export default function InventoryTable() {
     setShowModal(false);
   };
 
-  // Filter based on search query and optional category param
-  // Inventory is already sorted newest-first from context
+  // Filter based on search query, category, and department params
   const filteredInventory = inventory.filter((item) => {
     if (paramCategory && (item.category || "").toLowerCase() !== paramCategory.toLowerCase()) {
       return false;
+    }
+    if (paramDepartment) {
+      const allowedCategories = DEPT_CATEGORIES[paramDepartment] || [];
+      const itemCat = item.category || "";
+      if (!allowedCategories.some(c => c.toLowerCase() === itemCat.toLowerCase())) {
+        return false;
+      }
     }
     return (
       (item.item || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -98,11 +127,11 @@ export default function InventoryTable() {
     );
   });
 
-  // Dynamic metrics calculations
-  const totalItems = inventory.reduce((sum, item) => sum + item.stock, 0);
-  const totalValue = inventory.reduce((sum, item) => sum + item.stock * item.price, 0);
-  const lowStockCount = inventory.filter((item) => item.stock <= 4).length;
-  const categoriesCount = new Set(inventory.map((item) => item.category)).size;
+  // Dynamic metrics calculations based on filtered items
+  const totalItems = filteredInventory.reduce((sum, item) => sum + item.stock, 0);
+  const totalValue = filteredInventory.reduce((sum, item) => sum + item.stock * item.price, 0);
+  const lowStockCount = filteredInventory.filter((item) => item.stock <= 4).length;
+  const categoriesCount = new Set(filteredInventory.map((item) => item.category)).size;
 
   return (
     <div className="bg-slate-100 min-h-screen">
@@ -174,16 +203,44 @@ export default function InventoryTable() {
 
         {/* Search Bar & Filters */}
         <div className="bg-white rounded-2xl p-4 shadow-lg mb-6 no-print">
-          {paramCategory && (
-            <div className="mb-3 flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-3.5 py-1.5 rounded-xl text-xs font-bold w-fit animate-fadeIn">
-              <span>Category: <strong>{paramCategory}</strong></span>
-              <button
-                onClick={() => navigate("/inventory/items")}
-                className="hover:text-red-600 font-extrabold text-sm ml-2 transition cursor-pointer"
-                title="Clear Filter"
-              >
-                ×
-              </button>
+          {(paramDepartment || paramCategory) && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {paramDepartment && (
+                <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 px-3.5 py-1.5 rounded-xl text-xs font-bold w-fit animate-fadeIn">
+                  <span>Register: <strong>{paramDepartment}</strong></span>
+                  <button
+                    onClick={() => {
+                      if (paramCategory) {
+                        navigate(`/inventory/items?category=${paramCategory}`);
+                      } else {
+                        navigate("/inventory/items");
+                      }
+                    }}
+                    className="hover:text-red-650 font-extrabold text-sm ml-2 transition cursor-pointer"
+                    title="Clear Register Filter"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+              {paramCategory && (
+                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-3.5 py-1.5 rounded-xl text-xs font-bold w-fit animate-fadeIn">
+                  <span>Category: <strong>{paramCategory}</strong></span>
+                  <button
+                    onClick={() => {
+                      if (paramDepartment) {
+                        navigate(`/inventory/items?department=${paramDepartment}`);
+                      } else {
+                        navigate("/inventory/items");
+                      }
+                    }}
+                    className="hover:text-red-600 font-extrabold text-sm ml-2 transition cursor-pointer"
+                    title="Clear Category Filter"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
             </div>
           )}
           <div className="relative">
@@ -223,7 +280,9 @@ export default function InventoryTable() {
                     <div className="text-xs text-slate-400">Spec: {item.subcategory} - {item.type}</div>
                   </td>
                   <td className="p-4">
-                    <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-600">
+                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
+                      CATEGORY_BADGES[item.category] || "bg-blue-50 text-blue-600 border-blue-150"
+                    }`}>
                       {item.category}
                     </span>
                   </td>

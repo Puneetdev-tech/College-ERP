@@ -1,11 +1,20 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function CategoryCard({ name, icon, color }) {
   const navigate = useNavigate();
+  const { department } = useParams();
+
+  const handleNavigate = () => {
+    if (department) {
+      navigate(`/inventory/items?category=${name}&department=${department}`);
+    } else {
+      navigate(`/inventory/items?category=${name}`);
+    }
+  };
 
   return (
     <div
-      onClick={() => navigate(`/inventory/items?category=${name}`)}
+      onClick={handleNavigate}
       className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition duration-300 cursor-pointer flex items-center gap-4 border border-slate-200/50 hover:border-blue-300"
     >
       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border ${color || "bg-blue-50 text-blue-600 border-blue-100"}`}>

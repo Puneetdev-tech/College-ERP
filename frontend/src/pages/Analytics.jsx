@@ -20,13 +20,13 @@ import { useStore } from "../context/StoreContext";
 
 // Baseline mappings to carry over initial mock data offsets
 const baseDepartmentData = {
+  Stationary: 280,
   Hostel: 320,
   Sports: 210,
   Laboratory: 450,
   "IT Department": 580,
   Library: 190,
   Office: 150,
-  Maintenance: 280,
   Medical: 120
 };
 
@@ -48,13 +48,13 @@ const baseFrequentItems = {
 
 // Gradients mappings for the 8 departments
 const DEPARTMENT_COLORS = [
+  "url(#gradientStationary)",
   "url(#gradientHostel)",
   "url(#gradientSports)",
   "url(#gradientLab)",
   "url(#gradientIT)",
   "url(#gradientLibrary)",
   "url(#gradientOffice)",
-  "url(#gradientMaintenance)",
   "url(#gradientMedical)"
 ];
 
@@ -283,6 +283,10 @@ export default function Analytics() {
                     
                     {/* SVG gradients for 3D depth styling */}
                     <defs>
+                      <linearGradient id="gradientStationary" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#4f46e5" />
+                        <stop offset="100%" stopColor="#4338ca" />
+                      </linearGradient>
                       <linearGradient id="gradientHostel" x1="0" y1="0" x2="1" y2="1">
                         <stop offset="0%" stopColor="#3b82f6" />
                         <stop offset="100%" stopColor="#1d4ed8" />
@@ -306,10 +310,6 @@ export default function Analytics() {
                       <linearGradient id="gradientOffice" x1="0" y1="0" x2="1" y2="1">
                         <stop offset="0%" stopColor="#14b8a6" />
                         <stop offset="100%" stopColor="#0f766e" />
-                      </linearGradient>
-                      <linearGradient id="gradientMaintenance" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#6366f1" />
-                        <stop offset="100%" stopColor="#4338ca" />
                       </linearGradient>
                       <linearGradient id="gradientMedical" x1="0" y1="0" x2="1" y2="1">
                         <stop offset="0%" stopColor="#ec4899" />
@@ -372,7 +372,7 @@ export default function Analytics() {
                 {departmentData.map((item, index) => {
                   const total = departmentData.reduce((sum, d) => sum + d.value, 0);
                   const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : "0.0";
-                  const dotColors = ["#3b82f6", "#10b981", "#ef4444", "#8b5cf6", "#f59e0b", "#14b8a6", "#6366f1", "#ec4899"];
+                  const dotColors = ["#4f46e5", "#3b82f6", "#10b981", "#ef4444", "#8b5cf6", "#f59e0b", "#14b8a6", "#ec4899"];
 
                   return (
                     <div 

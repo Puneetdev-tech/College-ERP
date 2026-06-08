@@ -20,13 +20,13 @@ import Navbar from "../components/Navbar";
 
 // Department to Category mapping for purchase orders filtering
 const DEPT_CATEGORIES = {
+  Stationary: ["Stationery"],
   Hostel: ["Furniture", "Electronics"],
   Sports: ["Sports"],
   Laboratory: ["Equipment", "Stationery"],
   "IT Department": ["Electronics"],
   Library: ["Furniture", "Electronics"],
   Office: ["Furniture", "Electronics"],
-  Maintenance: ["Equipment"],
   Medical: ["Equipment"]
 };
 
@@ -138,13 +138,13 @@ export default function Reports() {
   ];
 
   const departmentsList = [
+    "Stationary",
     "Hostel",
     "Sports",
     "Laboratory",
     "IT Department",
     "Library",
     "Office",
-    "Maintenance",
     "Medical"
   ];
 
