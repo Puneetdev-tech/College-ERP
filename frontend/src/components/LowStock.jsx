@@ -7,7 +7,7 @@ export default function LowStock() {
   const lowStockItems = inventory.filter((item) => item.stock <= threshold);
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
       <h2 className="text-xl font-bold mb-4 text-red-650 flex items-center gap-2">
         <span>Low Stock Alerts</span>
         {lowStockItems.length > 0 && (

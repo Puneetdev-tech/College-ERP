@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import {
   FaFileExcel,
   FaBuilding,
@@ -19,13 +20,13 @@ import Navbar from "../components/Navbar";
 
 // Department to Category mapping for purchase orders filtering
 const DEPT_CATEGORIES = {
+  Stationary: ["Stationery"],
   Hostel: ["Furniture", "Electronics"],
   Sports: ["Sports"],
   Laboratory: ["Equipment", "Stationery"],
   "IT Department": ["Electronics"],
   Library: ["Furniture", "Electronics"],
   Office: ["Furniture", "Electronics"],
-  Maintenance: ["Equipment"],
   Medical: ["Equipment"]
 };
 
@@ -137,13 +138,13 @@ export default function Reports() {
   ];
 
   const departmentsList = [
+    "Stationary",
     "Hostel",
     "Sports",
     "Laboratory",
     "IT Department",
     "Library",
     "Office",
-    "Maintenance",
     "Medical"
   ];
 
@@ -530,6 +531,135 @@ export default function Reports() {
         )}
 
       </div>
+
+      {activeReportType && createPortal(
+        <div className="hidden print-report-layout p-8 bg-white text-black font-sans min-h-screen">
+          {/* Header Banners */}
+          <div className="flex justify-between items-center border-b-2 border-slate-300 pb-4 mb-6">
+            {collegeInfo?.logo ? (
+              <img src={collegeInfo.logo} alt="College Logo" className="w-20 h-20 object-contain" />
+            ) : (
+              <div className="w-20 h-20 border border-slate-300 flex items-center justify-center font-black text-2xl bg-blue-900 text-white rounded">
+                {collegeInfo?.name ? collegeInfo.name[0] : "C"}
+              </div>
+            )}
+            <div className="text-right">
+              <h1 className="text-2xl font-bold">{collegeInfo?.name || "RJ Institute of Technology"}</h1>
+              <p className="text-xs text-slate-500">{collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
+              <p className="text-xs text-slate-500">Phone: {collegeInfo?.phone || "+91 11 2690 7400"} | Email: {collegeInfo?.email || "info@rjit.edu.in"}</p>
+              <p className="text-xs text-slate-500">Website: {collegeInfo?.website || "www.rjit.edu.in"}</p>
+            </div>
+          </div>
+
+          {/* Title and Date Range */}
+          <div className="text-center mb-8">
+            <h2 className="text-xl font-bold uppercase tracking-wider text-slate-800">
+              {activeReportType === "department" ? `${selectedDepartment} Department Report` : activeReportType === "category" ? `${selectedCategory} Category Report` : "Monthly Audit Report"}
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Date Range: {startDate} to {endDate}
+            </p>
+          </div>
+
+          {/* 1. DISBURSED LOGS PREVIEW */}
+          {includeIssued && (
+            <div className="mb-8">
+              <h3 className="font-bold text-slate-850 text-sm mb-3 uppercase tracking-wider border-b pb-1 border-slate-200">
+                Stock Disbursement Ledger ({filteredIssued.length} transaction logs)
+              </h3>
+              <table className="w-full border-collapse border border-slate-200 text-xs text-left">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-slate-200">
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Item Details</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Category</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Department</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Faculty</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Qty</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Issue Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredIssued.length > 0 ? (
+                    filteredIssued.map((log) => (
+                      <tr key={log.id} className="border-b border-slate-200">
+                        <td className="p-2 border border-slate-200 font-semibold">{log.item} ({log.type})</td>
+                        <td className="p-2 border border-slate-200">{log.category}</td>
+                        <td className="p-2 border border-slate-200">{log.department}</td>
+                        <td className="p-2 border border-slate-200">{log.faculty}</td>
+                        <td className="p-2 border border-slate-200 font-bold">{log.quantity}</td>
+                        <td className="p-2 border border-slate-200">{log.date}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="p-4 text-center text-slate-400 italic">
+                        No disbursed assets found in this configuration range.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* 2. ORDER SHIPMENTS PREVIEW */}
+          {includeOrdered && (
+            <div className="mb-8">
+              <h3 className="font-bold text-slate-850 text-sm mb-3 uppercase tracking-wider border-b pb-1 border-slate-200">
+                Purchase Order Shipments Registry ({filteredOrders.length} records)
+              </h3>
+              <table className="w-full border-collapse border border-slate-200 text-xs text-left">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-slate-200">
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Item Details</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Supplier</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Category</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Qty</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Per Unit</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Total Cost</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Order Date</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOrders.length > 0 ? (
+                    filteredOrders.map((order) => (
+                      <tr key={order.id} className="border-b border-slate-200">
+                        <td className="p-2 border border-slate-200 font-semibold">{order.item} ({order.type})</td>
+                        <td className="p-2 border border-slate-200">{order.supplier}</td>
+                        <td className="p-2 border border-slate-200">{order.category}</td>
+                        <td className="p-2 border border-slate-200 font-bold">{order.quantity}</td>
+                        <td className="p-2 border border-slate-200">₹{order.pricePerUnit?.toLocaleString()}</td>
+                        <td className="p-2 border border-slate-200 font-bold">₹{(order.pricePerUnit * order.quantity)?.toLocaleString()}</td>
+                        <td className="p-2 border border-slate-200">{order.orderDate}</td>
+                        <td className="p-2 border border-slate-200 font-bold">{order.status}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="8" className="p-4 text-center text-slate-400 italic">
+                        No purchase shipments found in this configuration range.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Official Seal / Sign-off block at bottom */}
+          <div className="pt-10 flex justify-between items-center text-xs border-t border-slate-200 dark:border-slate-800 mt-8">
+            <div className="text-slate-400 font-bold uppercase tracking-wider">
+              Generated by: {collegeInfo?.name || "RJIT STORE SYSTEM"}
+            </div>
+            <div className="text-center border-t border-slate-350 pt-2 w-48 text-slate-650 font-bold uppercase">
+              Authorized Signature
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 }
