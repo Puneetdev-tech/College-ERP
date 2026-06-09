@@ -67,14 +67,14 @@ export default function ReceiveOrder() {
     setErrorMsg("");
   };
 
-  const handleConfirmReceive = (e) => {
+  const handleConfirmReceive = async (e) => {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
 
     if (!selectedOrder) return;
 
-    const res = receiveOrderItem(selectedOrder.id, receiveDate.replace("T", " "));
+    const res = await receiveOrderItem(selectedOrder.id, receiveDate.replace("T", " "));
     if (res.success) {
       const msg = `Order #${selectedOrder.id} received — ${selectedOrder.quantity} × ${selectedOrder.item} stocked successfully.`;
       setSuccessMsg(`Order #${selectedOrder.id} received successfully! Stock levels updated.`);

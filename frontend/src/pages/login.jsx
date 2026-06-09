@@ -25,7 +25,7 @@ export default function Login() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     if (e) e.preventDefault();
     setError("");
 
@@ -34,7 +34,7 @@ export default function Login() {
       return;
     }
 
-    const res = login(email.trim(), password);
+    const res = await login(email.trim(), password);
     if (res.success) {
       navigate("/dashboard");
     } else {
@@ -42,9 +42,9 @@ export default function Login() {
     }
   };
 
-  const handleQuickLogin = (quickEmail, quickPassword) => {
+  const handleQuickLogin = async (quickEmail, quickPassword) => {
     setError("");
-    const res = login(quickEmail, quickPassword);
+    const res = await login(quickEmail, quickPassword);
     if (res.success) {
       navigate("/dashboard");
     } else {

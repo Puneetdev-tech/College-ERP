@@ -10,725 +10,375 @@ export const ROLE_DEFAULT_PERMISSIONS = {
   "Account Office": ["Dashboard", "Reports", "Notifications"]
 };
 
-const DEFAULT_USERS = [
-  {
-    id: 1,
-    name: "Rahul Sharma",
-    email: "rahul@rjit.edu.in",
-    password: "admin",
-    role: "Admin",
-    status: "Active",
-    permissions: ROLE_DEFAULT_PERMISSIONS["Admin"],
-    photo: ""
-  },
-  {
-    id: 2,
-    name: "Priya Singh",
-    email: "priya@rjit.edu.in",
-    password: "manager",
-    role: "Store Manager",
-    status: "Active",
-    permissions: ROLE_DEFAULT_PERMISSIONS["Store Manager"],
-    photo: ""
-  },
-  {
-    id: 3,
-    name: "Amit Verma",
-    email: "amit@rjit.edu.in",
-    password: "officer",
-    role: "Purchase Officer",
-    status: "Active",
-    permissions: ROLE_DEFAULT_PERMISSIONS["Purchase Officer"],
-    photo: ""
-  },
-  {
-    id: 4,
-    name: "Dr. Roy",
-    email: "principal@rjit.edu.in",
-    password: "principal",
-    role: "Principal",
-    status: "Active",
-    permissions: ROLE_DEFAULT_PERMISSIONS["Principal"],
-    photo: ""
-  },
-  {
-    id: 5,
-    name: "Sanjay Mehta",
-    email: "accounts@rjit.edu.in",
-    password: "accounts",
-    role: "Account Office",
-    status: "Active",
-    permissions: ROLE_DEFAULT_PERMISSIONS["Account Office"],
-    photo: ""
-  }
-];
+const API_URL = "http://localhost:5000/api";
 
 export function StoreProvider({ children }) {
-  // User management states
-  const [usersList, setUsersList] = useState(() => {
-    const saved = localStorage.getItem("rjit_users");
-    return saved ? JSON.parse(saved) : DEFAULT_USERS;
-  });
-
+  const [usersList, setUsersList] = useState([]);
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem("rjit_currentUser");
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [systemSettings, setSystemSettings] = useState(() => {
-    const saved = localStorage.getItem("rjit_settings");
-    const defaultSettings = {
-      lowStockThreshold: 10,
-      theme: "light",
-      collegeInfo: {
-        name: "RJ Institute of Technology",
-        logo: "/rjit_logo.png",
-        address: "123 Campus Lane, Okhla, New Delhi",
-        phone: "+91 11 2690 7400",
-        email: "info@rjit.edu.in",
-        website: "www.rjit.edu.in"
-      }
-    };
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (!parsed.collegeInfo) parsed.collegeInfo = defaultSettings.collegeInfo;
-        if (!parsed.collegeInfo.logo) parsed.collegeInfo.logo = "/rjit_logo.png";
-        return parsed;
-      } catch (e) {
-        return defaultSettings;
-      }
+  const [systemSettings, setSystemSettings] = useState({
+    lowStockThreshold: 10,
+    theme: "light",
+    collegeInfo: {
+      name: "RJ Institute of Technology",
+      logo: "/rjit_logo.png",
+      address: "123 Campus Lane, Okhla, New Delhi",
+      phone: "+91 11 2690 7400",
+      email: "info@rjit.edu.in",
+      website: "www.rjit.edu.in"
     }
-    return defaultSettings;
   });
 
-  const updateSystemSettings = (newSettings) => {
-    // Force light theme
-    const forcedSettings = { ...newSettings, theme: "light" };
-    setSystemSettings(forcedSettings);
-    localStorage.setItem("rjit_settings", JSON.stringify(forcedSettings));
+  const [inventory, setInventory] = useState([]);
+  const [issuedStock, setIssuedStock] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [approvalSequence, setApprovalSequence] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+
+  // Common API Fetch Helper
+  const apiFetch = async (path, options = {}) => {
+    const token = localStorage.getItem("rjit_token");
+    const headers = {
+      ...options.headers
+    };
+
+    if (!(options.body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers
+      });
+
+      if (response.status === 401) {
+        // Auto-logout
+        logout();
+        return { success: false, message: "Session expired. Please login again!" };
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error(`API Error on ${path}:`, error);
+      return { success: false, message: error.message || "Network error" };
+    }
   };
 
-  useEffect(() => {
-    // Force light theme always
-    document.body.classList.remove("dark");
-  }, []);
+  // Fetch individual resources
+  const fetchSettings = async () => {
+    const res = await apiFetch("/settings");
+    if (res && res.success && res.settings) {
+      setSystemSettings(res.settings);
+    }
+  };
 
-  const login = (email, password) => {
-    const user = usersList.find(
-      (u) => (u.email || "").toLowerCase() === (email || "").toLowerCase() && u.password === password
-    );
-    if (!user) {
-      return { success: false, message: "Invalid email or password!" };
+  const fetchUsers = async () => {
+    const res = await apiFetch("/users");
+    if (res && res.success && res.users) {
+      setUsersList(res.users);
     }
-    if (user.status !== "Active") {
-      return { success: false, message: "Your account is inactive. Contact Admin!" };
+  };
+
+  const fetchInventory = async () => {
+    const res = await apiFetch("/inventory");
+    if (res && res.success && res.items) {
+      setInventory(res.items);
     }
-    setCurrentUser(user);
-    localStorage.setItem("rjit_currentUser", JSON.stringify(user));
-    localStorage.setItem("userRole", user.role); // compatibility with old sidebar
-    return { success: true };
+  };
+
+  const fetchIssues = async () => {
+    const res = await apiFetch("/issues");
+    if (res && res.success && res.issues) {
+      setIssuedStock(res.issues);
+    }
+  };
+
+  const fetchOrders = async () => {
+    const res = await apiFetch("/orders");
+    if (res && res.success && res.orders) {
+      setOrders(res.orders);
+    }
+  };
+
+  const fetchApprovalSequence = async () => {
+    const res = await apiFetch("/users/approval-sequence");
+    if (res && res.success && res.sequence) {
+      // Store just the array of userIds for state compatibility if needed,
+      // but let's keep it as is. In the frontend, approvalSequence is stored as:
+      // array of user IDs: e.g. [5, 4]
+      const ids = res.sequence.map(item => item.userId);
+      setApprovalSequence(ids);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    const res = await apiFetch("/notifications");
+    if (res && res.success && res.notifications) {
+      setNotifications(res.notifications);
+    }
+  };
+
+  const refreshAllData = async () => {
+    if (!localStorage.getItem("rjit_token")) return;
+    await Promise.all([
+      fetchSettings(),
+      fetchUsers(),
+      fetchInventory(),
+      fetchIssues(),
+      fetchOrders(),
+      fetchApprovalSequence(),
+      fetchNotifications()
+    ]);
+  };
+
+  // Poll for notifications and updates every 10 seconds on LAN
+  useEffect(() => {
+    if (currentUser) {
+      refreshAllData();
+      const interval = setInterval(() => {
+        refreshAllData();
+      }, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser]);
+
+  // Auth Operations
+  const login = async (email, password) => {
+    const res = await apiFetch("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password })
+    });
+
+    if (res && res.success) {
+      localStorage.setItem("rjit_token", res.token);
+      localStorage.setItem("rjit_currentUser", JSON.stringify(res.user));
+      localStorage.setItem("userRole", res.user.role);
+      setCurrentUser(res.user);
+      return { success: true };
+    }
+
+    return { success: false, message: res ? res.message : "Login failed!" };
   };
 
   const logout = () => {
-    setCurrentUser(null);
+    localStorage.removeItem("rjit_token");
     localStorage.removeItem("rjit_currentUser");
     localStorage.removeItem("userRole");
+    setCurrentUser(null);
   };
 
-  const addUser = (newUser) => {
-    const exists = usersList.some(u => (u.email || "").toLowerCase() === (newUser.email || "").toLowerCase());
-    if (exists) {
-      return { success: false, message: "Email is already registered!" };
+  // User Management Operations
+  const addUser = async (newUser) => {
+    const res = await apiFetch("/users", {
+      method: "POST",
+      body: JSON.stringify(newUser)
+    });
+
+    if (res && res.success) {
+      await fetchUsers();
+      return { success: true, user: res.user };
     }
-    const userWithId = {
-      ...newUser,
-      id: newUser.id || Date.now(),
-    };
-    const updated = [...usersList, userWithId];
-    setUsersList(updated);
-    localStorage.setItem("rjit_users", JSON.stringify(updated));
-    return { success: true, user: userWithId };
+    return { success: false, message: res ? res.message : "Failed to add user" };
   };
 
-  const updateUser = (id, updatedFields) => {
-    const updated = usersList.map((u) => {
-      if (u.id === id) {
-        const updatedUser = { ...u, ...updatedFields };
-        if (currentUser && currentUser.id === id) {
-          setCurrentUser(updatedUser);
-          localStorage.setItem("rjit_currentUser", JSON.stringify(updatedUser));
-          localStorage.setItem("userRole", updatedUser.role);
+  const updateUser = async (id, updatedFields) => {
+    const res = await apiFetch(`/users/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(updatedFields)
+    });
+
+    if (res && res.success) {
+      await fetchUsers();
+      // If updating self, sync current user state
+      if (currentUser && currentUser.id === id) {
+        const updatedUser = { ...currentUser, ...updatedFields };
+        // Delete password from stored user details
+        delete updatedUser.password;
+        localStorage.setItem("rjit_currentUser", JSON.stringify(updatedUser));
+        if (updatedFields.role) {
+          localStorage.setItem("userRole", updatedFields.role);
         }
-        return updatedUser;
+        setCurrentUser(updatedUser);
       }
-      return u;
-    });
-    setUsersList(updated);
-    localStorage.setItem("rjit_users", JSON.stringify(updated));
-    return { success: true };
-  };
-
-  const deleteUser = (id) => {
-    const updated = usersList.filter((u) => u.id !== id);
-    setUsersList(updated);
-    localStorage.setItem("rjit_users", JSON.stringify(updated));
-    if (currentUser && currentUser.id === id) {
-      logout();
-    }
-    return { success: true };
-  };
-
-  // Helper: get current local datetime string
-  const getNowString = () => {
-    const tzOffset = new Date().getTimezoneOffset() * 60000;
-    return new Date(Date.now() - tzOffset).toISOString().slice(0, 19).replace("T", " ");
-  };
-
-  // Initial inventory items (sorted newest first)
-  const [inventory, setInventory] = useState(() => {
-    const saved = localStorage.getItem("rjit_inventory");
-    
-    // Define the new default stationery items
-    const newStationeryItems = [
-      { id: 101, item: "A4 size paper Rim", category: "Stationery", subcategory: "A4 size paper Rim", type: "Rim", stock: 250, price: 320, status: "Good", createdAt: "2026-06-01 09:25:00" },
-      { id: 102, item: "Add Gel pen", category: "Stationery", subcategory: "Add Gel pen", type: "Blue/Black", stock: 120, price: 15, status: "Good", createdAt: "2026-06-01 09:26:00" },
-      { id: 103, item: "Add gel refill", category: "Stationery", subcategory: "Add gel refill", type: "0.5mm", stock: 200, price: 5, status: "Good", createdAt: "2026-06-01 09:27:00" },
-      { id: 104, item: "Cell AAA", category: "Stationery", subcategory: "Cell AAA", type: "Alkaline", stock: 80, price: 15, status: "Good", createdAt: "2026-06-01 09:28:00" },
-      { id: 105, item: "Cell AA", category: "Stationery", subcategory: "Cell AA", type: "Alkaline", stock: 90, price: 15, status: "Good", createdAt: "2026-06-01 09:29:00" },
-      { id: 106, item: "Envelope small brown", category: "Stationery", subcategory: "Envelope small brown", type: "Brown paper", stock: 350, price: 3, status: "Good", createdAt: "2026-06-01 09:30:00" },
-      { id: 107, item: "File flag", category: "Stationery", subcategory: "File flag", type: "Sticky", stock: 500, price: 2, status: "Good", createdAt: "2026-06-01 09:31:00" },
-      { id: 108, item: "Highlighter", category: "Stationery", subcategory: "Highlighter", type: "Neon Pack", stock: 110, price: 25, status: "Good", createdAt: "2026-06-01 09:32:00" },
-      { id: 109, item: "Liquid gum", category: "Stationery", subcategory: "Liquid gum", type: "50ml", stock: 75, price: 18, status: "Good", createdAt: "2026-06-01 09:33:00" },
-      { id: 110, item: "Notice board pin", category: "Stationery", subcategory: "Notice board pin", type: "Push pin", stock: 400, price: 1, status: "Good", createdAt: "2026-06-01 09:34:00" },
-      { id: 111, item: "Register", category: "Stationery", subcategory: "Register", type: "Standard", stock: 125, price: 80, status: "Good", createdAt: "2026-06-01 09:35:00" },
-      { id: 112, item: "Staff attendance register", category: "Stationery", subcategory: "Staff attendance register", type: "Ledger", stock: 20, price: 150, status: "Good", createdAt: "2026-06-01 09:36:00" },
-      { id: 113, item: "Student attendance register", category: "Stationery", subcategory: "Student attendance register", type: "Ledger", stock: 45, price: 150, status: "Good", createdAt: "2026-06-01 09:37:00" },
-      { id: 114, item: "Use and throw pen", category: "Stationery", subcategory: "Use and throw pen", type: "Blue", stock: 1000, price: 5, status: "Good", createdAt: "2026-06-01 09:38:00" },
-      { id: 115, item: "White board marker", category: "Stationery", subcategory: "White board marker", type: "Black/Blue", stock: 150, price: 35, status: "Good", createdAt: "2026-06-01 09:39:00" },
-      { id: 116, item: "Whitener pen", category: "Stationery", subcategory: "Whitener pen", type: "Correction Pen", stock: 65, price: 30, status: "Good", createdAt: "2026-06-01 09:40:00" },
-      { id: 117, item: "File cover J-280", category: "Stationery", subcategory: "File cover J-280", type: "Plastic J-280", stock: 250, price: 22, status: "Good", createdAt: "2026-06-01 09:41:00" }
-    ];
-
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Migrate if user has old stationery list (check by checking one unique new item)
-      const hasNewItem = parsed.some(item => item.item === "File cover J-280");
-      if (!hasNewItem) {
-        const filtered = parsed.filter(item => item.category !== "Stationery");
-        const migrated = [...filtered, ...newStationeryItems];
-        localStorage.setItem("rjit_inventory", JSON.stringify(migrated));
-        return migrated.sort((a, b) => {
-          if (a.createdAt && b.createdAt) return new Date(b.createdAt) - new Date(a.createdAt);
-          return b.id - a.id;
-        });
-      }
-      return [...parsed].sort((a, b) => {
-        if (a.createdAt && b.createdAt) return new Date(b.createdAt) - new Date(a.createdAt);
-        return b.id - a.id;
-      });
-    }
-
-    return [
-      { id: 1, item: "Desktop Computer", category: "Electronics", subcategory: "Computer", type: "i5 16GB", stock: 25, price: 45000, status: "Good", createdAt: "2026-06-01 09:00:00" },
-      { id: 2, item: "Laser Printer", category: "Electronics", subcategory: "Printer", type: "LaserJet", stock: 4, price: 12000, status: "Low", createdAt: "2026-06-01 09:05:00" },
-      { id: 3, item: "Office Chair", category: "Furniture", subcategory: "Chair", type: "Ergonomic Mesh", stock: 18, price: 3500, status: "Good", createdAt: "2026-06-01 09:10:00" },
-      { id: 4, item: "Football", category: "Sports", subcategory: "Balls", type: "Leather size 5", stock: 10, price: 800, status: "Good", createdAt: "2026-06-01 09:15:00" },
-      { id: 5, item: "Microscope", category: "Equipment", subcategory: "Lab Equipment", type: "Compound 1000x", stock: 15, price: 10000, status: "Good", createdAt: "2026-06-01 09:20:00" },
-      ...newStationeryItems,
-      { id: 10, item: "Study Desk", category: "Furniture", subcategory: "Desk", type: "Study Desk", stock: 30, price: 5000, status: "Good", createdAt: "2026-06-01 09:45:00" },
-      { id: 11, item: "Bed (Iron Frame)", category: "Furniture", subcategory: "Bed", type: "Iron Frame Bed", stock: 50, price: 5000, status: "Good", createdAt: "2026-06-01 09:50:00" },
-      { id: 12, item: "Reading Chair", category: "Furniture", subcategory: "Chair", type: "Reading Chair", stock: 80, price: 1500, status: "Good", createdAt: "2026-06-01 09:55:00" },
-      { id: 13, item: "Executive Desk", category: "Furniture", subcategory: "Desk", type: "Executive Desk", stock: 15, price: 7000, status: "Good", createdAt: "2026-06-01 10:00:00" },
-      { id: 14, item: "Wi-Fi Router", category: "Electronics", subcategory: "Router", type: "Dual Band Wi-Fi", stock: 5, price: 3000, status: "Good", createdAt: "2026-06-01 10:05:00" },
-      { id: 15, item: "Barcode Scanner", category: "Electronics", subcategory: "Barcode Scanner", type: "Laser Scanner", stock: 3, price: 3000, status: "Good", createdAt: "2026-06-01 10:10:00" }
-    ];
-  });
-
-  // Initial issued stock log
-  const [issuedStock, setIssuedStock] = useState(() => {
-    const saved = localStorage.getItem("rjit_issuedStock");
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 1,
-        item: "Desktop Computer",
-        category: "Electronics",
-        subcategory: "Computer",
-        type: "i5 16GB",
-        department: "IT Department",
-        faculty: "Mr. Sharma",
-        quantity: 5,
-        date: "2026-06-01 10:30 AM"
-      },
-      {
-        id: 2,
-        item: "Projector",
-        category: "Electronics",
-        subcategory: "Projector",
-        type: "Full HD 4K",
-        department: "Laboratory",
-        faculty: "Dr. Singh",
-        quantity: 2,
-        date: "2026-06-03 02:15 PM"
-      }
-    ];
-  });
-
-  // Approval sequence (list of user IDs in sequence)
-  const [approvalSequence, setApprovalSequence] = useState(() => {
-    const saved = localStorage.getItem("rjit_approvalSequence");
-    return saved ? JSON.parse(saved) : [5, 4]; // Accounts Office then Principal by default
-  });
-
-  const updateApprovalSequence = (newSeq) => {
-    setApprovalSequence(newSeq);
-    localStorage.setItem("rjit_approvalSequence", JSON.stringify(newSeq));
-  };
-
-  // Notifications State
-  const [notifications, setNotifications] = useState(() => {
-    const saved = localStorage.getItem("rjit_notifications");
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 1,
-        type: "Low Stock",
-        message: "A4 Sheets stock below minimum level",
-        time: "10 minutes ago",
-        read: false,
-        color: "bg-red-100 text-red-800",
-        iconType: "low-stock"
-      },
-      {
-        id: 2,
-        type: "Stock Received",
-        message: "20 Desktop Computers received",
-        time: "1 hour ago",
-        read: false,
-        color: "bg-green-100 text-green-800",
-        iconType: "received"
-      },
-      {
-        id: 3,
-        type: "Stock Issued",
-        message: "5 Projectors issued to Laboratory",
-        time: "3 hours ago",
-        read: false,
-        color: "bg-blue-100 text-blue-800",
-        iconType: "issued"
-      },
-      {
-        id: 4,
-        type: "Purchase Order",
-        message: "New Purchase Order PO001 created",
-        time: "Yesterday",
-        read: false,
-        color: "bg-yellow-100 text-yellow-800",
-        iconType: "order"
-      }
-    ];
-  });
-
-  const markAllRead = () => {
-    setNotifications(prev => {
-      const updated = prev.map(n => ({ ...n, read: true }));
-      localStorage.setItem("rjit_notifications", JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const markAsRead = (id) => {
-    setNotifications(prev => {
-      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
-      localStorage.setItem("rjit_notifications", JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const addNotification = (type, message, iconType, color) => {
-    const newNotif = {
-      id: Date.now(),
-      type,
-      message,
-      time: "Just now",
-      read: false,
-      color: color || "bg-blue-100 text-blue-800",
-      iconType: iconType || "info"
-    };
-    setNotifications(prev => {
-      const updated = [newNotif, ...prev];
-      localStorage.setItem("rjit_notifications", JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  // Initial placed & received orders log
-  const [orders, setOrders] = useState(() => {
-    const saved = localStorage.getItem("rjit_orders");
-    if (saved) return JSON.parse(saved);
-
-    // Initial default orders matching the default sequence [5, 4]
-    return [
-      {
-        id: "PO001",
-        supplier: "HP Technologies",
-        item: "Desktop Computer",
-        category: "Electronics",
-        subcategory: "Computer",
-        type: "i5 16GB",
-        quantity: 20,
-        pricePerUnit: 45000,
-        status: "Pending",
-        orderDate: "2026-06-02 10:00 AM",
-        department: "IT Department",
-        faculty: "Mr. Sharma",
-        placedBy: "Mr. Sharma",
-        approvalChain: [
-          { userId: 5, name: "Sanjay Mehta", role: "Account Office", status: "Pending", approvedAt: null },
-          { userId: 4, name: "Dr. Roy", role: "Principal", status: "Pending", approvedAt: null }
-        ]
-      },
-      {
-        id: "PO002",
-        supplier: "Dell India",
-        item: "Laser Printer",
-        category: "Electronics",
-        subcategory: "Printer",
-        type: "LaserJet",
-        quantity: 10,
-        pricePerUnit: 12000,
-        status: "Approved",
-        orderDate: "2026-06-03 02:30 PM",
-        department: "Laboratory",
-        faculty: "Dr. Singh",
-        placedBy: "Dr. Singh",
-        approvalChain: [
-          { userId: 5, name: "Sanjay Mehta", role: "Account Office", status: "Approved", approvedAt: "2026-06-03 03:00 PM" },
-          { userId: 4, name: "Dr. Roy", role: "Principal", status: "Approved", approvedAt: "2026-06-03 04:30 PM" }
-        ]
-      }
-    ];
-  });
-
-  // Helper action: Issue Stock
-  const issueStockItem = (details) => {
-    // 1. Look up matching item in inventory (case-insensitive check for type)
-    const matchingItemIndex = inventory.findIndex(
-      (item) =>
-        (item.category || "").toLowerCase() === (details.category || "").toLowerCase() &&
-        (item.subcategory || "").toLowerCase() === (details.subcategory || "").toLowerCase() &&
-        (item.type || "").toLowerCase() === (details.type || "").toLowerCase()
-    );
-
-    if (matchingItemIndex === -1) {
-      return { success: false, message: "Item type not found in inventory stock!" };
-    }
-
-    const item = inventory[matchingItemIndex];
-    if (item.stock < details.quantity) {
-      return { success: false, message: `Insufficient stock! Only ${item.stock} units available.` };
-    }
-
-    // 2. Update stock count
-    const updatedInventory = [...inventory];
-    const updatedStock = item.stock - details.quantity;
-    updatedInventory[matchingItemIndex] = {
-      ...item,
-      stock: updatedStock,
-      status: updatedStock <= (systemSettings.lowStockThreshold || 10) ? "Low" : updatedStock <= 15 ? "Medium" : "Good"
-    };
-
-    setInventory(updatedInventory);
-    localStorage.setItem("rjit_inventory", JSON.stringify(updatedInventory));
-
-    // Low stock trigger notification
-    if (updatedStock <= (systemSettings.lowStockThreshold || 10)) {
-      addNotification(
-        "Low Stock Alert",
-        `${item.item} (${item.type}) stock is below threshold! Remaining: ${updatedStock}`,
-        "low-stock",
-        "bg-red-100 text-red-800"
-      );
-    }
-
-    // 3. Log issue event
-    const newIssue = {
-      id: issuedStock.length + 1,
-      item: `${details.subcategory} - ${details.type}`,
-      category: details.category,
-      subcategory: details.subcategory,
-      type: details.type,
-      department: details.department,
-      faculty: details.faculty,
-      quantity: details.quantity,
-      date: details.date // Formatted date string
-    };
-
-    const updatedIssued = [newIssue, ...issuedStock];
-    setIssuedStock(updatedIssued);
-    localStorage.setItem("rjit_issuedStock", JSON.stringify(updatedIssued));
-
-    addNotification(
-      "Stock Issued",
-      `${details.quantity} ${details.subcategory} (${details.type}) issued to ${details.department}`,
-      "issued",
-      "bg-blue-100 text-blue-800"
-    );
-
-    return { success: true };
-  };
-
-  // Helper action: Place Purchase Order
-  const placeOrderItem = (details) => {
-    // Generate approval chain based on the current configuration
-    const activeSeq = approvalSequence.length > 0 ? approvalSequence : [5, 4];
-    const chain = activeSeq.map((userId) => {
-      const user = usersList.find((u) => u.id === userId);
-      return {
-        userId: userId,
-        name: user ? user.name : "System Approver",
-        role: user ? user.role : "Approver",
-        status: "Pending",
-        approvedAt: null
-      };
-    });
-
-    const newOrder = {
-      id: `PO00${orders.length + 1}`,
-      supplier: details.supplier,
-      item: details.item,
-      category: details.category,
-      subcategory: details.subcategory,
-      type: details.type,
-      quantity: details.quantity,
-      pricePerUnit: details.pricePerUnit || 1000,
-      status: "Pending",
-      orderDate: details.orderDate,
-      department: details.department,
-      faculty: details.faculty,
-      placedBy: currentUser ? currentUser.name : details.faculty,
-      approvalChain: chain
-    };
-
-    const updated = [newOrder, ...orders];
-    setOrders(updated);
-    localStorage.setItem("rjit_orders", JSON.stringify(updated));
-
-    addNotification(
-      "Purchase Order",
-      `New Purchase Order ${newOrder.id} created by ${newOrder.placedBy} for ${newOrder.quantity} ${newOrder.item} - Total: ₹${(newOrder.quantity * newOrder.pricePerUnit).toLocaleString()} (₹${newOrder.pricePerUnit.toLocaleString()}/unit)`,
-      "order",
-      "bg-yellow-100 text-yellow-800"
-    );
-
-    return { success: true };
-  };
-
-  // Helper action: Receive Order (Update status & increase stock count)
-  const receiveOrderItem = (orderId, receiveDate) => {
-    const orderIndex = orders.findIndex((o) => o.id === orderId);
-    if (orderIndex === -1) return { success: false, message: "Order not found!" };
-
-    const order = orders[orderIndex];
-    if (order.status === "Approved" || order.status === "Pending" || order.status === "Received") {
-      // 1. Mark order as Received
-      const updatedOrders = [...orders];
-      updatedOrders[orderIndex] = { ...order, status: "Received", receiveDate: receiveDate };
-      setOrders(updatedOrders);
-      localStorage.setItem("rjit_orders", JSON.stringify(updatedOrders));
-
-      // 2. Increase inventory stock
-      const itemIndex = inventory.findIndex(
-        (item) =>
-          (item.category || "").toLowerCase() === (order.category || "").toLowerCase() &&
-          (item.subcategory || "").toLowerCase() === (order.subcategory || "").toLowerCase() &&
-          (item.type || "").toLowerCase() === (order.type || "").toLowerCase()
-      );
-
-      let updatedInventory;
-      const nowStr = getNowString();
-      if (itemIndex !== -1) {
-        updatedInventory = [...inventory];
-        const updatedStock = updatedInventory[itemIndex].stock + order.quantity;
-        updatedInventory[itemIndex] = {
-          ...updatedInventory[itemIndex],
-          stock: updatedStock,
-          price: order.pricePerUnit || updatedInventory[itemIndex].price,
-          status: updatedStock <= (systemSettings.lowStockThreshold || 10) ? "Low" : updatedStock <= 15 ? "Medium" : "Good",
-          updatedAt: nowStr
-        };
-        // Move updated item to front (most recent first)
-        const updatedItem = updatedInventory.splice(itemIndex, 1)[0];
-        updatedInventory = [updatedItem, ...updatedInventory];
-      } else {
-        // Create new item in inventory if not present
-        const newItem = {
-          id: Date.now(),
-          item: order.item,
-          category: order.category,
-          subcategory: order.subcategory,
-          type: order.type,
-          stock: order.quantity,
-          price: order.pricePerUnit || 1000,
-          status: "Good",
-          createdAt: nowStr
-        };
-        updatedInventory = [newItem, ...inventory];
-      }
-      setInventory(updatedInventory);
-      localStorage.setItem("rjit_inventory", JSON.stringify(updatedInventory));
-
-      addNotification(
-        "Stock Received",
-        `${order.quantity} units of ${order.item} (${order.type}) received for ${order.department} - Total Value: ₹${(order.quantity * (order.pricePerUnit || 1000)).toLocaleString()}`,
-        "received",
-        "bg-green-100 text-green-800"
-      );
-
       return { success: true };
     }
-    return { success: false, message: "Order cannot be received!" };
+    return { success: false, message: res ? res.message : "Failed to update user" };
   };
 
-  const approveOrder = (orderId) => {
-    const updated = orders.map((o) => {
-      if (o.id !== orderId) return o;
+  const deleteUser = async (id) => {
+    const res = await apiFetch(`/users/${id}`, {
+      method: "DELETE"
+    });
 
-      const chain = o.approvalChain || [];
-      const nextStepIndex = chain.findIndex((step) => step.status === "Pending");
-      if (nextStepIndex === -1) return o;
-
-      const updatedChain = [...chain];
-      const approverName = currentUser ? currentUser.name : updatedChain[nextStepIndex].name;
-      const approverRole = currentUser ? currentUser.role : updatedChain[nextStepIndex].role;
-      
-      const tzOffset = new Date().getTimezoneOffset() * 60000;
-      const formattedDate = new Date(Date.now() - tzOffset).toISOString().slice(0, 19).replace("T", " ");
-
-      updatedChain[nextStepIndex] = {
-        ...updatedChain[nextStepIndex],
-        name: approverName,
-        role: approverRole,
-        status: "Approved",
-        approvedAt: formattedDate
-      };
-
-      // Check if there are any remaining steps in the chain
-      const nextPendingIndex = updatedChain.findIndex((step) => step.status === "Pending");
-      const isCompleted = nextPendingIndex === -1;
-
-      addNotification(
-        "Order Approved",
-        `Order ${orderId} (${o.quantity} ${o.item}, Total: ₹${(o.quantity * o.pricePerUnit).toLocaleString()}) approved by ${approverName} (${approverRole})`,
-        "order",
-        "bg-green-100 text-green-800"
-      );
-
-      if (isCompleted) {
-        addNotification(
-          "Order Completed",
-          `Order ${orderId} (${o.quantity} ${o.item}, Total: ₹${(o.quantity * o.pricePerUnit).toLocaleString()}) is fully approved and ready for stock receipt!`,
-          "received",
-          "bg-emerald-100 text-emerald-800"
-        );
+    if (res && res.success) {
+      await fetchUsers();
+      if (currentUser && currentUser.id === id) {
+        logout();
       }
-
-      return {
-        ...o,
-        status: isCompleted ? "Approved" : "Pending",
-        approvalChain: updatedChain
-      };
-    });
-
-    setOrders(updated);
-    localStorage.setItem("rjit_orders", JSON.stringify(updated));
-    return { success: true };
-  };
-
-  const rejectOrder = (orderId) => {
-    const updated = orders.map((o) => {
-      if (o.id !== orderId) return o;
-
-      const chain = o.approvalChain || [];
-      const nextStepIndex = chain.findIndex((step) => step.status === "Pending");
-      if (nextStepIndex === -1) return o;
-
-      const updatedChain = [...chain];
-      const approverName = currentUser ? currentUser.name : updatedChain[nextStepIndex].name;
-      const approverRole = currentUser ? currentUser.role : updatedChain[nextStepIndex].role;
-
-      const tzOffset = new Date().getTimezoneOffset() * 60000;
-      const formattedDate = new Date(Date.now() - tzOffset).toISOString().slice(0, 19).replace("T", " ");
-
-      updatedChain[nextStepIndex] = {
-        ...updatedChain[nextStepIndex],
-        name: approverName,
-        role: approverRole,
-        status: "Rejected",
-        approvedAt: formattedDate
-      };
-
-      addNotification(
-        "Order Rejected",
-        `Order ${orderId} (${o.quantity} ${o.item}, Total: ₹${(o.quantity * o.pricePerUnit).toLocaleString()}) was rejected by ${approverName} (${approverRole})`,
-        "low-stock",
-        "bg-red-100 text-red-800"
-      );
-
-      return {
-        ...o,
-        status: "Rejected",
-        approvalChain: updatedChain
-      };
-    });
-
-    setOrders(updated);
-    localStorage.setItem("rjit_orders", JSON.stringify(updated));
-    return { success: true };
-  };
-
-  // Helper action: Add Inventory Item
-  const addInventoryItem = (itemDetails) => {
-    const existingIndex = inventory.findIndex(
-      (item) =>
-        (item.category || "").toLowerCase() === (itemDetails.category || "").toLowerCase() &&
-        (item.subcategory || "").toLowerCase() === (itemDetails.subcategory || "").toLowerCase() &&
-        (item.type || "").toLowerCase() === (itemDetails.type || "").toLowerCase()
-    );
-
-    const nowStr = getNowString();
-    let updatedInventory;
-    if (existingIndex !== -1) {
-      updatedInventory = [...inventory];
-      const existingItem = updatedInventory[existingIndex];
-      const newStock = existingItem.stock + itemDetails.stock;
-      updatedInventory[existingIndex] = {
-        ...existingItem,
-        stock: newStock,
-        price: itemDetails.price || existingItem.price,
-        status: newStock <= (systemSettings.lowStockThreshold || 10) ? "Low" : newStock <= 15 ? "Medium" : "Good",
-        updatedAt: nowStr
-      };
-      // Move updated item to front (most recent first)
-      const updatedItem = updatedInventory.splice(existingIndex, 1)[0];
-      updatedInventory = [updatedItem, ...updatedInventory];
-    } else {
-      const newItem = {
-        id: Date.now(),
-        item: itemDetails.item,
-        category: itemDetails.category,
-        subcategory: itemDetails.subcategory,
-        type: itemDetails.type || "Standard",
-        stock: itemDetails.stock,
-        price: itemDetails.price,
-        status: itemDetails.stock <= (systemSettings.lowStockThreshold || 10) ? "Low" : itemDetails.stock <= 15 ? "Medium" : "Good",
-        createdAt: nowStr
-      };
-      updatedInventory = [newItem, ...inventory];
+      return { success: true };
     }
-    setInventory(updatedInventory);
-    localStorage.setItem("rjit_inventory", JSON.stringify(updatedInventory));
-    return { success: true };
+    return { success: false, message: res ? res.message : "Failed to delete user" };
   };
+
+  // Inventory Operations
+  const addInventoryItem = async (itemDetails) => {
+    const res = await apiFetch("/inventory", {
+      method: "POST",
+      body: JSON.stringify(itemDetails)
+    });
+
+    if (res && res.success) {
+      await fetchInventory();
+      return { success: true };
+    }
+    return { success: false, message: res ? res.message : "Failed to add inventory item" };
+  };
+
+  // Issue Operations
+  const issueStockItem = async (details) => {
+    const res = await apiFetch("/issues", {
+      method: "POST",
+      body: JSON.stringify(details)
+    });
+
+    if (res && res.success) {
+      await Promise.all([fetchInventory(), fetchIssues(), fetchNotifications()]);
+      return { success: true };
+    }
+    return { success: false, message: res ? res.message : "Failed to issue stock" };
+  };
+
+  // Order Operations
+  const placeOrderItem = async (details) => {
+    const res = await apiFetch("/orders", {
+      method: "POST",
+      body: JSON.stringify(details)
+    });
+
+    if (res && res.success) {
+      await Promise.all([fetchOrders(), fetchNotifications()]);
+      return { success: true };
+    }
+    return { success: false, message: res ? res.message : "Failed to place purchase order" };
+  };
+
+  const receiveOrderItem = async (orderId, receiveDate) => {
+    const res = await apiFetch(`/orders/${orderId}/receive`, {
+      method: "POST",
+      body: JSON.stringify({ receiveDate })
+    });
+
+    if (res && res.success) {
+      await Promise.all([fetchOrders(), fetchInventory(), fetchNotifications()]);
+      return { success: true };
+    }
+    return { success: false, message: res ? res.message : "Failed to receive order" };
+  };
+
+  const approveOrder = async (orderId) => {
+    const res = await apiFetch(`/orders/${orderId}/approve`, {
+      method: "POST"
+    });
+
+    if (res && res.success) {
+      await Promise.all([fetchOrders(), fetchNotifications()]);
+      return { success: true };
+    }
+    return { success: false, message: res ? res.message : "Failed to approve order" };
+  };
+
+  const rejectOrder = async (orderId) => {
+    const res = await apiFetch(`/orders/${orderId}/reject`, {
+      method: "POST"
+    });
+
+    if (res && res.success) {
+      await Promise.all([fetchOrders(), fetchNotifications()]);
+      return { success: true };
+    }
+    return { success: false, message: res ? res.message : "Failed to reject order" };
+  };
+
+  // Settings & Sequence Configuration
+  const updateSystemSettings = async (newSettings) => {
+    const res = await apiFetch("/settings", {
+      method: "PUT",
+      body: JSON.stringify(newSettings)
+    });
+
+    if (res && res.success) {
+      setSystemSettings(res.settings);
+      return { success: true };
+    }
+    return { success: false, message: res ? res.message : "Failed to update settings" };
+  };
+
+  const updateApprovalSequence = async (newSeq) => {
+    const res = await apiFetch("/users/approval-sequence", {
+      method: "PUT",
+      body: JSON.stringify({ userIds: newSeq })
+    });
+
+    if (res && res.success) {
+      await fetchApprovalSequence();
+      return { success: true };
+    }
+    return { success: false, message: res ? res.message : "Failed to update approval sequence" };
+  };
+
+  // Notifications Operations
+  const markAllRead = async () => {
+    const res = await apiFetch("/notifications/read-all", {
+      method: "PUT"
+    });
+    if (res && res.success) {
+      await fetchNotifications();
+    }
+  };
+
+  const markAsRead = async (id) => {
+    const res = await apiFetch(`/notifications/${id}/read`, {
+      method: "PUT"
+    });
+    if (res && res.success) {
+      await fetchNotifications();
+    }
+  };
+
+  const addNotification = async (type, message, iconType, color) => {
+    const res = await apiFetch("/notifications", {
+      method: "POST",
+      body: JSON.stringify({ type, message, iconType, color })
+    });
+    if (res && res.success) {
+      await fetchNotifications();
+    }
+  };
+
+  // Load initial settings on mount (even if not authenticated, e.g. for college logo/name on login page)
+  useEffect(() => {
+    // Check if token exists, if so do initial load
+    const token = localStorage.getItem("rjit_token");
+    if (token) {
+      refreshAllData();
+    } else {
+      // Just load settings for logo/name
+      apiFetch("/settings").then((res) => {
+        if (res && res.success && res.settings) {
+          setSystemSettings(res.settings);
+        }
+      });
+    }
+  }, []);
 
   return (
     <StoreContext.Provider
@@ -756,7 +406,8 @@ export function StoreProvider({ children }) {
         notifications,
         markAllRead,
         markAsRead,
-        addNotification
+        addNotification,
+        refreshAllData // Expose refresh helper
       }}
     >
       {children}

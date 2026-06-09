@@ -60,7 +60,7 @@ export default function InventoryTable() {
   const [itemType, setItemType] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSaveItem = (e) => {
+  const handleSaveItem = async (e) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -82,7 +82,7 @@ export default function InventoryTable() {
       return;
     }
 
-    addInventoryItem({
+    const res = await addInventoryItem({
       item: itemName.trim(),
       category: category.trim(),
       subcategory: subcategory.trim(),
@@ -91,12 +91,17 @@ export default function InventoryTable() {
       price: price
     });
 
-    // Show flash notification
-    showFlash(
-      "success",
-      "Item Added to Inventory",
-      `${itemName.trim()} (×${qty}) has been added to inventory successfully.`
-    );
+    if (res.success) {
+      // Show flash notification
+      showFlash(
+        "success",
+        "Item Added to Inventory",
+        `${itemName.trim()} (×${qty}) has been added to inventory successfully.`
+      );
+    } else {
+      setErrorMsg(res.message || "Failed to save item");
+      return;
+    }
 
     setItemName("");
     setCategory("");

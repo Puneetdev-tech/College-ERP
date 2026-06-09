@@ -1,0 +1,117 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String   @unique
+  password    String   // bcrypt hashed
+  role        String   // "Admin" | "Store Manager" | "Purchase Officer" | "Principal" | "Account Office" | custom
+  status      String   @default("Active") // "Active" | "Inactive"
+  permissions String[] // array of permission strings
+  phone       String?
+  photo       String?  // base64 or URL
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  placedOrders   Order[]        @relation("PlacedBy")
+  approvalSteps  ApprovalStep[]
+  issuedItems    IssueLog[]
+}
+
+model SystemSettings {
+  id               Int    @id @default(1)
+  lowStockThreshold Int   @default(10)
+  collegeName      String @default("RJ Institute of Technology")
+  collegeLogo      String @default("/rjit_logo.png")
+  collegeAddress   String @default("")
+  collegePhone     String @default("")
+  collegeEmail     String @default("")
+  collegeWebsite   String @default("")
+}
+
+model ApprovalSequence {
+  id       Int @id @default(autoincrement())
+  userId   Int
+  position Int  // order in the chain (1 = first approver)
+}
+
+model InventoryItem {
+  id          Int      @id @default(autoincrement())
+  item        String
+  category    String
+  subcategory String
+  type        String   @default("Standard")
+  stock       Int      @default(0)
+  price       Float    @default(0)
+  status      String   @default("Good") // "Good" | "Medium" | "Low"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Order {
+  id           String   @id  // e.g. "PO001"
+  supplier     String
+  item         String
+  category     String
+  subcategory  String
+  type         String   @default("Standard")
+  quantity     Int
+  pricePerUnit Float    @default(0)
+  status       String   @default("Pending") // "Pending" | "Approved" | "Rejected" | "Received"
+  orderDate    DateTime @default(now())
+  receiveDate  DateTime?
+  department   String
+  faculty      String
+  placedById   Int?
+  placedByName String
+  placedBy     User?    @relation("PlacedBy", fields: [placedById], references: [id])
+  approvalChain ApprovalStep[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ApprovalStep {
+  id         Int      @id @default(autoincrement())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id])
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  name       String
+  role       String
+  status     String   @default("Pending") // "Pending" | "Approved" | "Rejected"
+  approvedAt DateTime?
+  position   Int      // step order in chain
+}
+
+model IssueLog {
+  id          Int      @id @default(autoincrement())
+  item        String
+  category    String
+  subcategory String
+  type        String
+  department  String
+  faculty     String
+  quantity    Int
+  issuedById  Int?
+  issuedBy    User?    @relation(fields: [issuedById], references: [id])
+  date        DateTime @default(now())
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  type      String   // "Low Stock", "Stock Received", "Stock Issued", "Purchase Order", "Order Approved", etc.
+  message   String
+  iconType  String   @default("info")
+  color     String   @default("bg-blue-100 text-blue-800")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

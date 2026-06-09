@@ -109,28 +109,36 @@ export default function Dashboard() {
                         <td className="p-3.5 text-right">
                           <div className="flex gap-2 justify-end">
                             <button
-                              onClick={() => {
-                                approveOrder(order.id);
-                                showFlash(
-                                  "success",
-                                  "Order Approved ✓",
-                                  `Order ${order.id} — ${order.quantity} × ${order.item} has been approved successfully.`
-                                );
+                              onClick={async () => {
+                                const res = await approveOrder(order.id);
+                                if (res.success) {
+                                  showFlash(
+                                    "success",
+                                    "Order Approved ✓",
+                                    `Order ${order.id} — ${order.quantity} × ${order.item} has been approved successfully.`
+                                  );
+                                } else {
+                                  showFlash("error", "Approval Failed", res.message || "Failed to approve order.");
+                                }
                               }}
                               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition shadow active:scale-95"
                             >
                               Approve
                             </button>
                             <button
-                              onClick={() => {
-                                rejectOrder(order.id);
-                                showFlash(
-                                  "error",
-                                  "Order Rejected",
-                                  `Order ${order.id} — ${order.item} has been rejected.`
-                                );
+                              onClick={async () => {
+                                const res = await rejectOrder(order.id);
+                                if (res.success) {
+                                  showFlash(
+                                    "error",
+                                    "Order Rejected",
+                                    `Order ${order.id} — ${order.item} has been rejected.`
+                                  );
+                                } else {
+                                  showFlash("error", "Rejection Failed", res.message || "Failed to reject order.");
+                                }
                               }}
-                              className="bg-red-500 hover:bg-red-650 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition shadow active:scale-95"
+                              className="bg-red-50 hover:bg-red-650 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition shadow active:scale-95"
                             >
                               Reject
                             </button>

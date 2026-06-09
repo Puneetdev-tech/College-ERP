@@ -92,7 +92,7 @@ export default function IssueStock() {
   const availableStock = matchingItem ? matchingItem.stock : 0;
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -126,7 +126,7 @@ export default function IssueStock() {
     const formattedDate = formatDateTime(issueDate);
 
     // Trigger context action
-    const res = issueStockItem({
+    const res = await issueStockItem({
       category,
       subcategory,
       type: type.trim(),

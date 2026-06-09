@@ -112,7 +112,7 @@ export default function PlaceOrder() {
     setCustomSubcat("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -145,7 +145,7 @@ export default function PlaceOrder() {
       return;
     }
 
-    placeOrderItem({
+    const res = await placeOrderItem({
       supplier: supplier.trim(),
       item: item.trim(),
       category: category.trim(),
@@ -158,12 +158,17 @@ export default function PlaceOrder() {
       faculty: faculty.trim()
     });
 
-    // Flash message
-    showFlash(
-      "success",
-      "Purchase Order Placed",
-      `Order for ${qty} × ${item.trim()} placed successfully and sent for approval.`
-    );
+    if (res.success) {
+      // Flash message
+      showFlash(
+        "success",
+        "Purchase Order Placed",
+        `Order for ${qty} × ${item.trim()} placed successfully and sent for approval.`
+      );
+    } else {
+      setErrorMsg(res.message || "Failed to place order");
+      return;
+    }
 
     setSupplier("");
     setItem("");

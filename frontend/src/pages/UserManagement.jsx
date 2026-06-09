@@ -90,7 +90,7 @@ export default function UserManagement() {
     setShowModal(true);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -125,7 +125,7 @@ export default function UserManagement() {
 
     if (!isEditMode) {
       userData.password = password.trim();
-      const res = addUser(userData);
+      const res = await addUser(userData);
       if (!res.success) {
         setErrorMsg(res.message);
         return;
@@ -134,16 +134,23 @@ export default function UserManagement() {
       if (password.trim()) {
         userData.password = password.trim();
       }
-      updateUser(editingUserId, userData);
+      const res = await updateUser(editingUserId, userData);
+      if (!res.success) {
+        setErrorMsg(res.message);
+        return;
+      }
     }
 
     resetForm();
     setShowModal(false);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm("Are you sure you want to delete this user?")) {
-      deleteUser(id);
+      const res = await deleteUser(id);
+      if (!res.success) {
+        alert(res.message || "Failed to delete user");
+      }
     }
   };
 
@@ -279,13 +286,13 @@ export default function UserManagement() {
                           </div>
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 if (idx === 0) return;
                                 const newSeq = [...approvalSequence];
                                 const temp = newSeq[idx];
                                 newSeq[idx] = newSeq[idx - 1];
                                 newSeq[idx - 1] = temp;
-                                updateApprovalSequence(newSeq);
+                                await updateApprovalSequence(newSeq);
                               }}
                               disabled={idx === 0}
                               className="text-slate-400 hover:text-slate-700 text-xs font-bold disabled:opacity-30 p-1 bg-slate-100 hover:bg-slate-200 rounded cursor-pointer transition"
@@ -294,13 +301,13 @@ export default function UserManagement() {
                               ▲
                             </button>
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 if (idx === approvalSequence.length - 1) return;
                                 const newSeq = [...approvalSequence];
                                 const temp = newSeq[idx];
                                 newSeq[idx] = newSeq[idx + 1];
                                 newSeq[idx + 1] = temp;
-                                updateApprovalSequence(newSeq);
+                                await updateApprovalSequence(newSeq);
                               }}
                               disabled={idx === approvalSequence.length - 1}
                               className="text-slate-400 hover:text-slate-700 text-xs font-bold disabled:opacity-30 p-1 bg-slate-100 hover:bg-slate-200 rounded cursor-pointer transition"
@@ -309,9 +316,9 @@ export default function UserManagement() {
                               ▼
                             </button>
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 const newSeq = approvalSequence.filter((_, i) => i !== idx);
-                                updateApprovalSequence(newSeq);
+                                await updateApprovalSequence(newSeq);
                               }}
                               className="text-red-500 hover:text-red-700 p-1 bg-red-50 hover:bg-red-100 rounded cursor-pointer transition"
                               title="Remove Step"
@@ -379,7 +386,7 @@ export default function UserManagement() {
                     </p>
                     
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         const selectEl = document.getElementById("approverSelect");
                         const selectedIdStr = selectEl?.value;
                         if (!selectedIdStr) return;
@@ -388,7 +395,7 @@ export default function UserManagement() {
                           alert("This user is already in the approval chain sequence!");
                           return;
                         }
-                        updateApprovalSequence([...approvalSequence, selectedId]);
+                        await updateApprovalSequence([...approvalSequence, selectedId]);
                         selectEl.value = "";
                       }}
                       className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition cursor-pointer active:scale-95 text-center text-xs"
@@ -478,7 +485,7 @@ export default function UserManagement() {
                       )}
                     </div>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         setNewApprError("");
                         if (!newApprName.trim() || !newApprEmail.trim() || !newApprPassword.trim()) {
                           setNewApprError("All fields are required!");
@@ -495,9 +502,7 @@ export default function UserManagement() {
                           return;
                         }
                         
-                        const generatedId = Date.now();
                         const newUserObj = {
-                          id: generatedId,
                           name: newApprName.trim(),
                           email: newApprEmail.trim(),
                           password: newApprPassword.trim(),
@@ -506,13 +511,13 @@ export default function UserManagement() {
                           permissions: ROLE_DEFAULT_PERMISSIONS[finalRole] || []
                         };
                         
-                        const res = addUser(newUserObj);
+                        const res = await addUser(newUserObj);
                         if (!res.success) {
                           setNewApprError(res.message);
                           return;
                         }
                         
-                        updateApprovalSequence([...approvalSequence, generatedId]);
+                        await updateApprovalSequence([...approvalSequence, res.user.id]);
                         
                         setNewApprName("");
                         setNewApprEmail("");

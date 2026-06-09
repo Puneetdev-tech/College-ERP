@@ -60,12 +60,35 @@ export default function VerifyOTP() {
     inputRefs.current[nextFocusIndex]?.focus();
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const otpString = otp.join("");
     if (otpString.length < 6) return;
-    
-    navigate("/reset-password");
+
+    const email = localStorage.getItem("reset_email");
+    if (!email) {
+      alert("No reset session found. Please request a new OTP.");
+      navigate("/forgot-password");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp: otpString })
+      });
+      const data = await response.json();
+      if (data.success) {
+        localStorage.setItem("reset_otp", otpString);
+        navigate("/reset-password");
+      } else {
+        alert(data.message || "Invalid OTP code!");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error contacting backend server");
+    }
   };
 
   return (
@@ -156,7 +179,30 @@ export default function VerifyOTP() {
               <span>Back to Login</span>
             </button>
             <button
-              onClick={() => alert("OTP Resent successfully!")}
+              onClick={async () => {
+                const email = localStorage.getItem("reset_email");
+                if (!email) {
+                  alert("No reset session found. Please enter email again.");
+                  navigate("/forgot-password");
+                  return;
+                }
+                try {
+                  const response = await fetch("http://localhost:5000/api/auth/forgot-password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email })
+                  });
+                  const data = await response.json();
+                  if (data.success) {
+                    alert(`[LAN Demo Mode] OTP resent. Your new OTP code is: ${data.otp}`);
+                  } else {
+                    alert(data.message || "Failed to resend OTP");
+                  }
+                } catch (error) {
+                  console.error(error);
+                  alert("Error contacting backend server");
+                }
+              }}
               className="inline-flex items-center gap-2 text-cyan-300 hover:text-white text-sm font-semibold transition-all duration-300 hover:underline cursor-pointer"
             >
               <FaUndo className="text-xs" />

@@ -58,30 +58,29 @@ export default function Settings() {
     }
   };
 
-  const handleUpdateProfile = (e) => {
+  const handleUpdateProfile = async (e) => {
     e.preventDefault();
     if (currentUser) {
-      updateUser(currentUser.id, {
+      const res = await updateUser(currentUser.id, {
         name: profileName,
         email: profileEmail,
         phone: profilePhone,
         photo: profilePhoto
       });
-      triggerSuccess("Profile updated successfully!");
+      if (res.success) {
+        triggerSuccess("Profile updated successfully!");
+      } else {
+        alert(res.message || "Failed to update profile");
+      }
     }
   };
 
-  const handleChangePassword = (e) => {
+  const handleChangePassword = async (e) => {
     e.preventDefault();
     setPasswordError("");
 
     if (!currentPassword || !newPassword || !confirmPassword) {
       setPasswordError("All password fields are required!");
-      return;
-    }
-
-    if (currentPassword !== currentUser.password) {
-      setPasswordError("Current password incorrect!");
       return;
     }
 
@@ -95,14 +94,22 @@ export default function Settings() {
       return;
     }
 
-    updateUser(currentUser.id, { password: newPassword });
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    triggerSuccess("Password changed successfully!");
+    const res = await updateUser(currentUser.id, { 
+      password: newPassword,
+      currentPassword 
+    });
+
+    if (res.success) {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      triggerSuccess("Password changed successfully!");
+    } else {
+      setPasswordError(res.message || "Failed to change password");
+    }
   };
 
-  const handleSaveSystemSettings = (e) => {
+  const handleSaveSystemSettings = async (e) => {
     if (e) e.preventDefault();
     
     // Apply theme changes to document body instantly
@@ -116,7 +123,7 @@ export default function Settings() {
     };
     applyTheme(theme);
 
-    updateSystemSettings({
+    const res = await updateSystemSettings({
       lowStockThreshold: parseInt(lowStockThreshold) || 10,
       theme,
       collegeInfo: {
@@ -129,7 +136,11 @@ export default function Settings() {
       }
     });
 
-    triggerSuccess("Settings and configurations saved!");
+    if (res.success) {
+      triggerSuccess("Settings and configurations saved!");
+    } else {
+      alert(res.message || "Failed to save settings");
+    }
   };
 
   const triggerSuccess = (msg) => {
