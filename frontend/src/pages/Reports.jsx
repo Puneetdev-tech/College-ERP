@@ -250,7 +250,7 @@ export default function Reports() {
       // Section 1: Stock Disbursement
       if (includeIssued) {
         const bannerRow = worksheet.getRow(currentRow);
-        bannerRow.values = ["STOCK DISBURSEMENT LEDGER"];
+        bannerRow.getCell(1).value = "STOCK DISBURSEMENT LEDGER";
         worksheet.mergeCells(`A${currentRow}:I${currentRow}`);
         bannerRow.height = 25;
         const bannerCell = bannerRow.getCell(1);
@@ -273,19 +273,20 @@ export default function Reports() {
         currentRow++;
 
         targetIssued.forEach(log => {
-          const price = getIssuedItemPrice(log);
-          const total = log.quantity * price;
+          const qty = Number(log.quantity) || 0;
+          const price = Number(getIssuedItemPrice(log)) || 0;
+          const total = qty * price;
           const row = worksheet.getRow(currentRow);
           row.values = [
-            log.item,
-            log.type,
-            log.category,
-            log.department,
-            log.faculty,
-            Number(log.quantity),
-            log.date,
-            Number(price),
-            Number(total)
+            log.item || "",
+            log.type || "",
+            log.category || "",
+            log.department || "",
+            log.faculty || "",
+            qty,
+            log.date || "",
+            price,
+            total
           ];
           row.height = 20;
 
@@ -298,9 +299,9 @@ export default function Reports() {
           row.getCell(6).numFmt = "#,##0";
           row.getCell(7).alignment = { vertical: "middle", horizontal: "center" };
           row.getCell(8).alignment = { vertical: "middle", horizontal: "right" };
-          row.getCell(8).numFmt = "₹#,##0.00";
+          row.getCell(8).numFmt = '"₹"#,##0.00';
           row.getCell(9).alignment = { vertical: "middle", horizontal: "right" };
-          row.getCell(9).numFmt = "₹#,##0.00";
+          row.getCell(9).numFmt = '"₹"#,##0.00';
 
           for (let c = 1; c <= 9; c++) {
             row.getCell(c).border = borderStyle;
@@ -315,7 +316,7 @@ export default function Reports() {
       // Section 2: Purchase Shipments
       if (includeOrdered) {
         const bannerRow = worksheet.getRow(currentRow);
-        bannerRow.values = ["PURCHASE ORDER SHIPMENTS REGISTRY"];
+        bannerRow.getCell(1).value = "PURCHASE ORDER SHIPMENTS REGISTRY";
         worksheet.mergeCells(`A${currentRow}:I${currentRow}`);
         bannerRow.height = 25;
         const bannerCell = bannerRow.getCell(1);
@@ -338,18 +339,20 @@ export default function Reports() {
         currentRow++;
 
         targetOrders.forEach(order => {
-          const total = order.pricePerUnit * order.quantity;
+          const qty = Number(order.quantity) || 0;
+          const price = Number(order.pricePerUnit) || 0;
+          const total = qty * price;
           const row = worksheet.getRow(currentRow);
           row.values = [
-            order.item,
-            order.type,
-            order.supplier,
-            order.category,
-            Number(order.quantity),
-            Number(order.pricePerUnit),
-            Number(total),
-            order.orderDate,
-            order.status
+            order.item || "",
+            order.type || "",
+            order.supplier || "",
+            order.category || "",
+            qty,
+            price,
+            total,
+            order.orderDate || "",
+            order.status || ""
           ];
           row.height = 20;
 
@@ -360,9 +363,9 @@ export default function Reports() {
           row.getCell(5).alignment = { vertical: "middle", horizontal: "right" };
           row.getCell(5).numFmt = "#,##0";
           row.getCell(6).alignment = { vertical: "middle", horizontal: "right" };
-          row.getCell(6).numFmt = "₹#,##0.00";
+          row.getCell(6).numFmt = '"₹"#,##0.00';
           row.getCell(7).alignment = { vertical: "middle", horizontal: "right" };
-          row.getCell(7).numFmt = "₹#,##0.00";
+          row.getCell(7).numFmt = '"₹"#,##0.00';
           row.getCell(8).alignment = { vertical: "middle", horizontal: "center" };
           row.getCell(9).alignment = { vertical: "middle", horizontal: "center" };
           row.getCell(9).font = { name: "Calibri", size: 10, bold: true };

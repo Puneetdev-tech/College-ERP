@@ -386,7 +386,7 @@ export default function Maintenance() {
       titleRow.getCell(1).font = { name: "Calibri", size: 16, bold: true, color: { argb: "FFFFFFFF" } };
       titleRow.getCell(1).alignment = { vertical: "middle", horizontal: "center" };
       for (let c = 1; c <= 7; c++) {
-        titleRow.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF7C3AED" } }; // Purple theme
+        titleRow.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E3A8A" } }; // Blue theme
       }
       worksheet.getRow(1).height = 40;
 
@@ -416,10 +416,10 @@ export default function Maintenance() {
       const reportNameRow = worksheet.getRow(4);
       reportNameRow.getCell(1).value = "FACILITY MAINTENANCE REPORT";
       worksheet.mergeCells("A4:G4");
-      reportNameRow.getCell(1).font = { name: "Calibri", size: 13, bold: true, color: { argb: "FF6D28D9" } };
+      reportNameRow.getCell(1).font = { name: "Calibri", size: 13, bold: true, color: { argb: "FF1E40AF" } };
       reportNameRow.getCell(1).alignment = { vertical: "middle", horizontal: "center" };
       for (let c = 1; c <= 7; c++) {
-        reportNameRow.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF5F3FF" } };
+        reportNameRow.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEFF6FF" } };
       }
       worksheet.getRow(4).height = 30;
 
@@ -453,7 +453,7 @@ export default function Maintenance() {
       }
 
       // Summary Statistics (KPI Block)
-      worksheet.getRow(7).values = ["Summary Statistics"];
+      worksheet.getRow(7).getCell(1).value = "Summary Statistics";
       worksheet.mergeCells("A7:C7");
       worksheet.getRow(7).getCell(1).font = { name: "Calibri", size: 11, bold: true, color: { argb: "FF0F172A" } };
       worksheet.getRow(7).getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
@@ -479,7 +479,7 @@ export default function Maintenance() {
         row.getCell(3).font = { name: "Calibri", size: 10, bold: true };
         row.getCell(3).alignment = { horizontal: stat[2] === "INR" ? "right" : "center" };
         if (stat[2] === "INR") {
-          row.getCell(3).numFmt = "₹#,##0.00";
+          row.getCell(3).numFmt = '"₹"#,##0.00';
         }
         
         statRowIndex++;
@@ -487,7 +487,7 @@ export default function Maintenance() {
 
       // Space before asset inventory
       let startTableIndex = 14;
-      worksheet.getRow(startTableIndex).values = ["Asset Inventory Details"];
+      worksheet.getRow(startTableIndex).getCell(1).value = "Asset Inventory Details";
       worksheet.mergeCells(`A${startTableIndex}:G${startTableIndex}`);
       worksheet.getRow(startTableIndex).getCell(1).font = { name: "Calibri", size: 11, bold: true, color: { argb: "FF0F172A" } };
       worksheet.getRow(startTableIndex).getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
@@ -513,7 +513,7 @@ export default function Maintenance() {
       for (let c = 1; c <= 7; c++) {
         const cell = headerRow.getCell(c);
         cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF7C3AED" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E3A8A" } };
         cell.alignment = { vertical: "middle", horizontal: "center" };
         cell.border = borderStyle;
       }
@@ -530,16 +530,16 @@ export default function Maintenance() {
         row.getCell(3).alignment = { vertical: "middle", horizontal: "center" };
         
         row.getCell(4).alignment = { vertical: "middle", horizontal: "right" };
-        row.getCell(4).numFmt = "₹#,##0.00";
+        row.getCell(4).numFmt = '"₹"#,##0.00';
 
         row.getCell(5).alignment = { vertical: "middle", horizontal: "center" };
         row.getCell(5).numFmt = "#,##0";
 
         row.getCell(6).alignment = { vertical: "middle", horizontal: "right" };
-        row.getCell(6).numFmt = "₹#,##0.00";
+        row.getCell(6).numFmt = '"₹"#,##0.00';
 
         row.getCell(7).alignment = { vertical: "middle", horizontal: "right" };
-        row.getCell(7).numFmt = "₹#,##0.00";
+        row.getCell(7).numFmt = '"₹"#,##0.00';
 
         for (let c = 1; c <= 7; c++) {
           row.getCell(c).border = borderStyle;
@@ -683,7 +683,7 @@ export default function Maintenance() {
       titleRow.getCell(1).font = { name: "Calibri", size: 16, bold: true, color: { argb: "FFFFFFFF" } };
       titleRow.getCell(1).alignment = { vertical: "middle", horizontal: "center" };
       for (let c = 1; c <= 7; c++) {
-        titleRow.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF7C3AED" } }; // Purple theme
+        titleRow.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E3A8A" } }; // Blue theme
       }
       worksheet.getRow(1).height = 40;
 
@@ -713,10 +713,10 @@ export default function Maintenance() {
       const assetBannerRow = worksheet.getRow(4);
       assetBannerRow.getCell(1).value = `MAINTENANCE LOG REGISTRY - ${unit.name.toUpperCase()}`;
       worksheet.mergeCells("A4:G4");
-      assetBannerRow.getCell(1).font = { name: "Calibri", size: 12, bold: true, color: { argb: "FF6D28D9" } };
+      assetBannerRow.getCell(1).font = { name: "Calibri", size: 12, bold: true, color: { argb: "FF1E40AF" } };
       assetBannerRow.getCell(1).alignment = { vertical: "middle", horizontal: "center" };
       for (let c = 1; c <= 7; c++) {
-        assetBannerRow.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF5F3FF" } };
+        assetBannerRow.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEFF6FF" } };
       }
       worksheet.getRow(4).height = 30;
 
@@ -769,7 +769,7 @@ export default function Maintenance() {
       for (let c = 1; c <= 7; c++) {
         const cell = headerRow.getCell(c);
         cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF7C3AED" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E3A8A" } };
         cell.alignment = { vertical: "middle", horizontal: "center" };
         cell.border = borderStyle;
       }
@@ -796,10 +796,10 @@ export default function Maintenance() {
         row.getCell(3).numFmt = "#,##0";
 
         row.getCell(4).alignment = { vertical: "middle", horizontal: "right" };
-        row.getCell(4).numFmt = "₹#,##0.00";
+        row.getCell(4).numFmt = '"₹"#,##0.00';
 
         row.getCell(5).alignment = { vertical: "middle", horizontal: "right" };
-        row.getCell(5).numFmt = "₹#,##0.00";
+        row.getCell(5).numFmt = '"₹"#,##0.00';
 
         row.getCell(6).alignment = { vertical: "middle", horizontal: "left" };
         row.getCell(7).alignment = { vertical: "middle", horizontal: "left" };
