@@ -36,7 +36,7 @@ const formatDateTime = (dateTimeStr) => {
 };
 
 export default function IssueStock() {
-  const { inventory, issuedStock, issueStockItem } = useStore();
+  const { inventory, issuedStock, issueStockItem, inventoryCategories } = useStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamVal = searchParams.get("search") || "";
 
@@ -53,7 +53,7 @@ export default function IssueStock() {
   const [subcategory, setSubcategory] = useState("Computer");
   const [type, setType] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [department, setDepartment] = useState("IT Department");
+  const [department, setDepartment] = useState("IT,CSE");
   const [faculty, setFaculty] = useState("");
   const [issueDate, setIssueDate] = useState(getCurrentDateTimeString());
 
@@ -152,16 +152,7 @@ export default function IssueStock() {
     }
   };
 
-  const departmentsList = [
-    "Stationary",
-    "Hostel",
-    "Sports",
-    "Laboratory",
-    "IT Department",
-    "Library",
-    "Office",
-    "Medical"
-  ];
+  const departmentsList = inventoryCategories.map(c => c.name);
 
   // Metrics
   const totalDisbursedQty = issuedStock.reduce((acc, log) => acc + log.quantity, 0);

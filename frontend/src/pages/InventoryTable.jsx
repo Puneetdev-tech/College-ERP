@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { FaPlus, FaSearch, FaFilePdf, FaClock } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaPlus, FaSearch, FaFilePdf, FaClock, FaChevronDown, FaChevronRight, FaHistory, FaFilter } from "react-icons/fa";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
 import Sidebar from "../components/sidebar";
@@ -31,9 +31,18 @@ const CATEGORY_BADGES = {
 };
 
 const DEPT_CATEGORIES = {
+  // New Categories
   "Stationary": ["Stationery"],
-  "Hostel": ["Furniture", "Electronics", "Cleaning"],
+  "Sanitory": ["Cleaning"],
+  "Electrical": ["Electrical"],
+  "Electronics": ["Electronics"],
   "Sports": ["Sports"],
+  "Furniture": ["Furniture"],
+  "IT,CSE": ["Electronics"],
+  "laboratory": ["Equipment", "Stationery"],
+
+  // Old Departments (backward compatibility)
+  "Hostel": ["Furniture", "Electronics", "Cleaning"],
   "Laboratory": ["Equipment", "Stationery"],
   "IT Department": ["Electronics"],
   "Library": ["Furniture", "Electronics", "Stationery"],
@@ -42,7 +51,7 @@ const DEPT_CATEGORIES = {
 };
 
 export default function InventoryTable() {
-  const { inventory, addInventoryItem, systemSettings } = useStore();
+  const { inventory, addInventoryItem, systemSettings, orders } = useStore();
   const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -50,6 +59,21 @@ export default function InventoryTable() {
   const paramDepartment = searchParams.get("department");
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState({});
+  const [expandedItems, setExpandedItems] = useState({});
+  
+  // Filtering & Sorting States
+  const [showFiltersPanel, setShowFiltersPanel] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("default");
+
+  const toggleGroup = (key) => {
+    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const toggleItem = (id) => {
+    setExpandedItems((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Add Item Form states
   const [itemName, setItemName] = useState("");
@@ -119,6 +143,13 @@ export default function InventoryTable() {
         return false;
       }
     }
+    
+    // Status Filter
+    const itemStatus = item.status || (item.stock <= 4 ? "Low" : item.stock <= 10 ? "Medium" : "Good");
+    if (statusFilter !== "all" && itemStatus !== statusFilter) {
+      return false;
+    }
+
     return (
       (item.item || "").toLowerCase().includes(search.toLowerCase()) ||
       (item.category || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -126,6 +157,104 @@ export default function InventoryTable() {
       (item.type || "").toLowerCase().includes(search.toLowerCase())
     );
   });
+
+  // Grouping logic for items in filteredInventory
+  // Group by item.subcategory (case-insensitive key normalization, e.g., "chair" or "desk")
+  const groupedInventory = {};
+  filteredInventory.forEach((item) => {
+    const rawSubcategory = item.subcategory || "Other";
+    const subcatKey = rawSubcategory.trim().toLowerCase();
+    if (!groupedInventory[subcatKey]) {
+      groupedInventory[subcatKey] = {
+        key: subcatKey,
+        subcategory: rawSubcategory,
+        category: item.category,
+        items: [],
+        totalStock: 0,
+        totalValue: 0,
+        minPrice: Infinity,
+        maxPrice: -Infinity,
+        status: "Good",
+        updatedAt: null,
+        createdAt: null,
+      };
+    }
+
+    const group = groupedInventory[subcatKey];
+    group.items.push(item);
+    group.totalStock += item.stock;
+    group.totalValue += item.stock * item.price;
+    if (item.price < group.minPrice) group.minPrice = item.price;
+    if (item.price > group.maxPrice) group.maxPrice = item.price;
+
+    // Date calculations
+    if (item.updatedAt) {
+      if (!group.updatedAt || new Date(item.updatedAt.replace(" ", "T")) > new Date(group.updatedAt.replace(" ", "T"))) {
+        group.updatedAt = item.updatedAt;
+      }
+    }
+    if (item.createdAt) {
+      if (!group.createdAt || new Date(item.createdAt.replace(" ", "T")) > new Date(group.createdAt.replace(" ", "T"))) {
+        group.createdAt = item.createdAt;
+      }
+    }
+  });
+
+  // Post-process statuses and prices for each group
+  Object.values(groupedInventory).forEach((group) => {
+    let hasLow = false;
+    let hasMedium = false;
+    group.items.forEach((it) => {
+      if (it.status === "Low" || it.stock <= 4) {
+        hasLow = true;
+      } else if (it.status === "Medium" || it.stock <= 10) {
+        hasMedium = true;
+      }
+    });
+    group.status = hasLow ? "Low" : hasMedium ? "Medium" : "Good";
+  });
+
+  const groupsList = Object.values(groupedInventory);
+  groupsList.sort((a, b) => {
+    if (sortBy === "name-asc") {
+      return a.subcategory.localeCompare(b.subcategory);
+    }
+    if (sortBy === "name-desc") {
+      return b.subcategory.localeCompare(a.subcategory);
+    }
+    if (sortBy === "stock-desc") {
+      return b.totalStock - a.totalStock;
+    }
+    if (sortBy === "stock-asc") {
+      return a.totalStock - b.totalStock;
+    }
+    if (sortBy === "value-desc") {
+      return b.totalValue - a.totalValue;
+    }
+    if (sortBy === "value-asc") {
+      return a.totalValue - b.totalValue;
+    }
+
+    const dateA = a.updatedAt || a.createdAt || "";
+    const dateB = b.updatedAt || b.createdAt || "";
+    if (dateA && dateB) {
+      return new Date(dateB.replace(" ", "T")) - new Date(dateA.replace(" ", "T"));
+    }
+    if (dateA) return -1;
+    if (dateB) return 1;
+    return a.subcategory.localeCompare(b.subcategory);
+  });
+
+  // Query order history matching item category, subcategory and specification (type)
+  const getOrderHistory = (item) => {
+    if (!orders) return [];
+    return orders.filter(
+      (order) =>
+        (order.category || "").toLowerCase() === (item.category || "").toLowerCase() &&
+        (order.subcategory || "").toLowerCase() === (item.subcategory || "").toLowerCase() &&
+        (order.type || "").toLowerCase() === (item.type || "").toLowerCase()
+    );
+  };
 
   // Dynamic metrics calculations based on filtered items
   const totalItems = filteredInventory.reduce((sum, item) => sum + item.stock, 0);
@@ -179,25 +308,25 @@ export default function InventoryTable() {
         </div>
 
         {/* Dynamic Metric Cards */}
-        <div className="grid grid-cols-4 gap-6 mb-6 no-print">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 no-print">
           <div className="bg-white p-5 rounded-2xl shadow-lg">
-            <h3 className="text-gray-500 font-medium">Total Items</h3>
-            <p className="text-3xl font-extrabold text-blue-700 mt-1">{totalItems}</p>
+            <h3 className="text-gray-500 font-medium text-xs sm:text-sm">Total Items</h3>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-blue-700 mt-1">{totalItems}</p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl shadow-lg">
-            <h3 className="text-gray-500 font-medium">Total Value</h3>
-            <p className="text-3xl font-extrabold text-green-600 mt-1">₹{totalValue.toLocaleString("en-IN")}</p>
+            <h3 className="text-gray-500 font-medium text-xs sm:text-sm">Total Value</h3>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-green-600 mt-1">₹{totalValue.toLocaleString("en-IN")}</p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl shadow-lg">
-            <h3 className="text-gray-500 font-medium">Low Stock</h3>
-            <p className="text-3xl font-extrabold text-red-600 mt-1">{lowStockCount}</p>
+            <h3 className="text-gray-500 font-medium text-xs sm:text-sm">Low Stock</h3>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-red-600 mt-1">{lowStockCount}</p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl shadow-lg">
-            <h3 className="text-gray-500 font-medium">Categories</h3>
-            <p className="text-3xl font-extrabold text-purple-600 mt-1">{categoriesCount}</p>
+            <h3 className="text-gray-500 font-medium text-xs sm:text-sm">Categories</h3>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-purple-600 mt-1">{categoriesCount}</p>
           </div>
         </div>
 
@@ -243,80 +372,299 @@ export default function InventoryTable() {
               )}
             </div>
           )}
-          <div className="relative">
-            <FaSearch className="absolute left-4 top-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search Inventory..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 py-3 rounded-xl bg-slate-100 outline-none"
-            />
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <FaSearch className="absolute left-4 top-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search Inventory..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-12 py-3.5 rounded-xl bg-slate-100 outline-none text-sm font-medium"
+              />
+            </div>
+            <button
+              onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+              className={`px-5 py-3 border rounded-xl flex items-center gap-1.5 font-bold cursor-pointer shadow-sm transition text-xs select-none ${
+                showFiltersPanel || statusFilter !== "all" || sortBy !== "default"
+                  ? "bg-blue-50 border-blue-300 text-blue-600"
+                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-55"
+              }`}
+            >
+              <FaFilter className="text-xs" />
+              <span>Filter</span>
+            </button>
           </div>
+
+          {/* Sliding Filters Panel */}
+          {showFiltersPanel && (
+            <div className="bg-slate-50 border border-slate-200/70 p-4 rounded-2xl mt-4 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4 animate-slide-down">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Stock Status Filter
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-slate-650 cursor-pointer font-semibold"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="Good">🟢 Good (Stock &gt; 10)</option>
+                  <option value="Medium">🟡 Medium (Stock 5 to 10)</option>
+                  <option value="Low">🔴 Low (Stock &le; 4)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Sort Categories By
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-slate-650 cursor-pointer font-semibold"
+                >
+                  <option value="default">Default (Recent Activity)</option>
+                  <option value="name-asc">🔤 Category Name: A to Z</option>
+                  <option value="name-desc">🔤 Category Name: Z to A</option>
+                  <option value="stock-desc">📦 Aggregate Stock: High to Low</option>
+                  <option value="stock-asc">📦 Aggregate Stock: Low to High</option>
+                  <option value="value-desc">💰 Valuation: High to Low</option>
+                  <option value="value-asc">💰 Valuation: Low to High</option>
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Inventory List Table */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden overflow-x-auto">
+          <table className="w-full min-w-[800px]">
             <thead className="bg-blue-700 text-white">
               <tr>
                 <th className="p-4 text-left">Item Details</th>
                 <th className="p-4 text-left">Category</th>
                 <th className="p-4 text-left">Stock</th>
                 <th className="p-4 text-left">Unit Price</th>
+                <th className="p-4 text-left">Total Price</th>
                 <th className="p-4 text-left">Status</th>
                 <th className="p-4 text-left">Date Added / Updated</th>
               </tr>
             </thead>
 
             <tbody>
-              {filteredInventory.map((item) => (
-                <tr
-                  key={item.id}
-                  className="border-b hover:bg-slate-50"
-                >
-                  <td className="p-4">
-                    <div className="font-bold text-slate-800">{item.item}</div>
-                    <div className="text-xs text-slate-400">Spec: {item.subcategory} - {item.type}</div>
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
-                      CATEGORY_BADGES[item.category] || "bg-blue-50 text-blue-600 border-blue-150"
-                    }`}>
-                      {item.category}
-                    </span>
-                  </td>
-                  <td className="p-4 font-bold text-slate-700">{item.stock}</td>
-                  <td className="p-4 text-slate-600">₹{item.price.toLocaleString("en-IN")}</td>
-                  <td className="p-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-white font-semibold text-xs
-                      ${
-                        item.status === "Good"
-                          ? "bg-green-500"
-                          : item.status === "Medium"
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
-                      }`}
+              {groupsList.map((group) => {
+                const isGroupExpanded = !!(expandedGroups[group.key] || search.trim().length > 0);
+                const minP = group.minPrice;
+                const maxP = group.maxPrice;
+                const priceDisplay = minP === maxP 
+                  ? `₹${minP.toLocaleString("en-IN")}` 
+                  : `₹${minP.toLocaleString("en-IN")} - ₹${maxP.toLocaleString("en-IN")}`;
+
+                // Sort items inside the group by activity date or name
+                const sortedItems = [...group.items].sort((a, b) => {
+                  const dateA = a.updatedAt || a.createdAt || "";
+                  const dateB = b.updatedAt || b.createdAt || "";
+                  if (dateA && dateB) {
+                    return new Date(dateB.replace(" ", "T")) - new Date(dateA.replace(" ", "T"));
+                  }
+                  if (dateA) return -1;
+                  if (dateB) return 1;
+                  return a.item.localeCompare(b.item);
+                });
+
+                return (
+                  <React.Fragment key={group.key}>
+                    {/* Parent Row */}
+                    <tr
+                      className="border-b bg-slate-50/50 hover:bg-slate-100/50 transition duration-150 cursor-pointer"
+                      onClick={() => toggleGroup(group.key)}
                     >
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                      <FaClock className="text-slate-400 flex-shrink-0" />
-                      <span>
-                        {item.updatedAt
-                          ? <><span className="text-blue-500 font-semibold">Updated: </span>{formatDateTime(item.updatedAt)}</>
-                          : item.createdAt
-                          ? formatDateTime(item.createdAt)
-                          : "—"
-                        }
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      <td className="p-4">
+                        <div className="flex items-center gap-2 font-bold text-slate-800">
+                          {isGroupExpanded ? (
+                            <FaChevronDown className="text-blue-600 flex-shrink-0 text-sm" />
+                          ) : (
+                            <FaChevronRight className="text-slate-400 flex-shrink-0 text-sm" />
+                          )}
+                          <span className="capitalize">{group.subcategory}</span>
+                          <span className="ml-2 text-[10px] font-bold text-slate-500 bg-slate-200/60 border border-slate-300/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            {group.items.length} spec{group.items.length > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
+                          CATEGORY_BADGES[group.category] || "bg-blue-50 text-blue-600 border-blue-150"
+                        }`}>
+                          {group.category}
+                        </span>
+                      </td>
+                      <td className="p-4 font-extrabold text-slate-700">{group.totalStock}</td>
+                      <td className="p-4 text-slate-600 font-medium">{priceDisplay}</td>
+                      <td className="p-4 font-extrabold text-slate-800">₹{group.totalValue.toLocaleString("en-IN")}</td>
+                      <td className="p-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-white font-semibold text-xs
+                          ${
+                            group.status === "Good"
+                              ? "bg-green-500"
+                              : group.status === "Medium"
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
+                          }`}
+                        >
+                          {group.status}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                          <FaClock className="text-slate-400 flex-shrink-0" />
+                          <span>
+                            {group.updatedAt
+                              ? <><span className="text-blue-500 font-semibold">Updated: </span>{formatDateTime(group.updatedAt)}</>
+                              : group.createdAt
+                              ? formatDateTime(group.createdAt)
+                              : "—"
+                            }
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Child Rows (Specifications) */}
+                    {isGroupExpanded &&
+                      sortedItems.map((item) => {
+                        const isItemExpanded = !!expandedItems[item.id];
+                        return (
+                          <React.Fragment key={item.id}>
+                            <tr
+                              className="border-b border-slate-100 hover:bg-slate-50 transition cursor-pointer select-none bg-slate-50/20"
+                              onClick={(e) => {
+                                toggleItem(item.id);
+                              }}
+                            >
+                              <td className="p-4 pl-10">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-1.5 h-6 bg-blue-300 rounded-full flex-shrink-0" />
+                                  <div>
+                                    <div className="font-bold text-slate-850 flex items-center gap-2">
+                                      <span>{item.item}</span>
+                                      <span className="text-xs text-slate-400 font-normal font-mono bg-slate-100 border px-1.5 py-0.5 rounded">
+                                        Spec: {item.type}
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 mt-0.5 font-medium hover:text-indigo-650 transition flex items-center gap-1">
+                                      <FaHistory className="text-slate-350" />
+                                      <span>Click to view order history</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-4 text-xs text-slate-450 pl-6 font-medium">
+                                {item.category}
+                              </td>
+                              <td className="p-4 font-bold text-slate-650">{item.stock}</td>
+                              <td className="p-4 text-slate-600">₹{item.price.toLocaleString("en-IN")}</td>
+                              <td className="p-4 font-bold text-slate-700">₹{(item.stock * item.price).toLocaleString("en-IN")}</td>
+                              <td className="p-4">
+                                <span
+                                  className={`px-2.5 py-0.5 rounded-full text-white font-semibold text-[10px]
+                                  ${
+                                    item.status === "Good"
+                                      ? "bg-green-500/85"
+                                      : item.status === "Medium"
+                                      ? "bg-yellow-500/85"
+                                      : "bg-red-500/85"
+                                  }`}
+                                >
+                                  {item.status}
+                                </span>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                                  <FaClock className="text-slate-350 flex-shrink-0" />
+                                  <span>
+                                    {item.updatedAt
+                                      ? <><span className="text-blue-400 font-semibold">Updated: </span>{formatDateTime(item.updatedAt)}</>
+                                      : item.createdAt
+                                      ? formatDateTime(item.createdAt)
+                                      : "—"
+                                    }
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+
+                            {/* Nested Order History */}
+                            {isItemExpanded && (
+                              <tr className="bg-slate-100/30">
+                                <td colSpan={7} className="p-4 pl-12 pr-6">
+                                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
+                                      <FaHistory className="text-indigo-500 text-sm" />
+                                      <h4 className="font-bold text-xs text-slate-800 uppercase tracking-wide">
+                                        Order history for <span className="text-indigo-600">{item.item}</span> — {item.type}
+                                      </h4>
+                                    </div>
+
+                                    {getOrderHistory(item).length > 0 ? (
+                                      <div className="relative border-l-2 border-indigo-100 pl-4 ml-2 space-y-4 py-1">
+                                        {getOrderHistory(item).map((order) => (
+                                          <div
+                                            key={order.id}
+                                            className="relative before:absolute before:-left-[21px] before:top-1.5 before:w-2.5 before:h-2.5 before:rounded-full before:bg-indigo-400 before:border-2 before:border-white animate-fadeIn"
+                                          >
+                                            <div className="flex flex-wrap justify-between items-start gap-2 text-xs">
+                                              <div>
+                                                <div className="flex items-center gap-2">
+                                                  <span className="font-bold text-slate-700">Order Ref: #{order.id}</span>
+                                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                                    order.status === "Received" ? "bg-green-50 border-green-200 text-green-700" :
+                                                    order.status === "Approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
+                                                    order.status === "Rejected" ? "bg-rose-50 border-rose-250 text-rose-700" :
+                                                    "bg-yellow-50 border-yellow-200 text-yellow-700"
+                                                  }`}>
+                                                    {order.status}
+                                                  </span>
+                                                </div>
+                                                <p className="text-slate-500 mt-1">
+                                                  Supplier: <strong className="text-slate-700">{order.supplier}</strong>
+                                                </p>
+                                                <p className="text-slate-400 text-[10px] mt-0.5">
+                                                  Requested by {order.faculty || order.placedBy || "Store"} for {order.department}
+                                                </p>
+                                              </div>
+                                              <div className="text-right">
+                                                <p className="font-bold text-slate-700">
+                                                  {order.quantity} unit{order.quantity > 1 ? "s" : ""} @ ₹{order.pricePerUnit?.toLocaleString("en-IN")}/unit
+                                                </p>
+                                                <p className="font-extrabold text-indigo-650 text-sm mt-0.5">
+                                                  Total: ₹{(order.quantity * (order.pricePerUnit || 0)).toLocaleString("en-IN")}
+                                                </p>
+                                                <p className="text-slate-400 text-[10px] font-mono mt-1">
+                                                  Date Placed: {formatDateTime(order.orderDate)}
+                                                </p>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="text-center py-4 text-xs font-semibold text-slate-400 italic">
+                                        No purchase orders found for this specification.
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>

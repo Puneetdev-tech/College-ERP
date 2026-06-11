@@ -148,7 +148,7 @@ export default function Dashboard() {
 
 
         {/* Stat Cards Grid */}
-        <div className="grid grid-cols-4 gap-6 mt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
           <StatCard title="Total Assets" value={totalAssets.toString()} />
           <StatCard title="Inventory Value" value={inventoryValue} />
           <StatCard title="Pending Orders" value={pendingOrdersCount.toString()} />
@@ -156,9 +156,9 @@ export default function Dashboard() {
         </div>
 
         {/* Monthly Analytics & Quick Actions Grid */}
-        <div className="grid grid-cols-3 gap-6 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
           
-          <div className="col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+          <div className="col-span-1 lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
             <h2 className="text-xl font-bold mb-4">
               Monthly Inventory Activity
             </h2>
@@ -170,7 +170,7 @@ export default function Dashboard() {
         </div>
 
         {/* Bottom Widgets */}
-        <div className="grid grid-cols-2 gap-6 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
           <RecentActivities />
           <LowStock />
         </div>

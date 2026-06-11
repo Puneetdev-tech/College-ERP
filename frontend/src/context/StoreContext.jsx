@@ -3,10 +3,10 @@ import { createContext, useContext, useState, useEffect } from "react";
 const StoreContext = createContext();
 
 export const ROLE_DEFAULT_PERMISSIONS = {
-  "Admin": ["Dashboard", "Inventory", "Place Order", "Receive Order", "Issue Stock", "Analytics", "Reports", "Notifications", "Users", "Settings"],
-  "Store Manager": ["Dashboard", "Inventory", "Receive Order", "Issue Stock", "Reports", "Notifications"],
+  "Admin": ["Dashboard", "Inventory", "Place Order", "Receive Order", "Issue Stock", "Analytics", "Reports", "Notifications", "Users", "Settings", "Maintenance"],
+  "Store Manager": ["Dashboard", "Inventory", "Receive Order", "Issue Stock", "Reports", "Notifications", "Maintenance"],
   "Purchase Officer": ["Dashboard", "Place Order", "Receive Order", "Reports", "Notifications"],
-  "Principal": ["Dashboard", "Analytics", "Reports"],
+  "Principal": ["Dashboard", "Analytics", "Reports", "Maintenance"],
   "Account Office": ["Dashboard", "Reports", "Notifications"]
 };
 
@@ -67,12 +67,35 @@ export function StoreProvider({ children }) {
   // User management states
   const [usersList, setUsersList] = useState(() => {
     const saved = localStorage.getItem("rjit_users");
-    return saved ? JSON.parse(saved) : DEFAULT_USERS;
+    let users = saved ? JSON.parse(saved) : DEFAULT_USERS;
+    let migrated = false;
+    users = users.map(u => {
+      const defaultPerms = ROLE_DEFAULT_PERMISSIONS[u.role] || [];
+      if (defaultPerms.includes("Maintenance") && !u.permissions?.includes("Maintenance")) {
+        migrated = true;
+        return { ...u, permissions: [...(u.permissions || []), "Maintenance"] };
+      }
+      return u;
+    });
+    if (migrated) {
+      localStorage.setItem("rjit_users", JSON.stringify(users));
+    }
+    return users;
   });
 
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem("rjit_currentUser");
-    return saved ? JSON.parse(saved) : null;
+    if (saved) {
+      const user = JSON.parse(saved);
+      const defaultPerms = ROLE_DEFAULT_PERMISSIONS[user.role] || [];
+      if (defaultPerms.includes("Maintenance") && !user.permissions?.includes("Maintenance")) {
+        const updatedUser = { ...user, permissions: [...(user.permissions || []), "Maintenance"] };
+        localStorage.setItem("rjit_currentUser", JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+      return user;
+    }
+    return null;
   });
 
   const [systemSettings, setSystemSettings] = useState(() => {
@@ -210,19 +233,119 @@ export function StoreProvider({ children }) {
       { id: 117, item: "File cover J-280", category: "Stationery", subcategory: "File cover J-280", type: "Plastic J-280", stock: 250, price: 22, status: "Good", createdAt: "2026-06-01 09:41:00" }
     ];
 
+    // Define new default Sanitary items
+    const newSanitoryItems = [
+      { id: 201, item: "Nariyal Jharu", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 50, price: 40, status: "Good", createdAt: "2026-06-01 10:20:00" },
+      { id: 202, item: "Phenyl", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 30, price: 80, status: "Good", createdAt: "2026-06-01 10:21:00" },
+      { id: 203, item: "Acid", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 20, price: 60, status: "Good", createdAt: "2026-06-01 10:22:00" },
+      { id: 204, item: "Naphthalene Ball", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 100, price: 50, status: "Good", createdAt: "2026-06-01 10:23:00" },
+      { id: 205, item: "Washing Powder / Surf", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 40, price: 120, status: "Good", createdAt: "2026-06-01 10:24:00" },
+      { id: 206, item: "Odonil", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 60, price: 45, status: "Good", createdAt: "2026-06-01 10:25:00" },
+      { id: 207, item: "Pocha Pad Without Frame", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 30, price: 90, status: "Good", createdAt: "2026-06-01 10:26:00" },
+      { id: 208, item: "Lifebuoy Soap / Hand Wash", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 80, price: 35, status: "Good", createdAt: "2026-06-01 10:27:00" },
+      { id: 209, item: "Phool Jharu", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 40, price: 60, status: "Good", createdAt: "2026-06-01 10:28:00" },
+      { id: 210, item: "Harpic Blue", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 50, price: 95, status: "Good", createdAt: "2026-06-01 10:29:00" },
+      { id: 211, item: "Complete Pocha Pad with Iron Rod", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 15, price: 250, status: "Good", createdAt: "2026-06-01 10:30:00" },
+      { id: 212, item: "Dettol Soap", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 100, price: 40, status: "Good", createdAt: "2026-06-01 10:31:00" },
+      { id: 213, item: "Room Freshener", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 25, price: 150, status: "Good", createdAt: "2026-06-01 10:32:00" },
+      { id: 214, item: "Colour Naphthalene Ball", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 80, price: 60, status: "Good", createdAt: "2026-06-01 10:33:00" },
+      { id: 215, item: "Colin", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 30, price: 110, status: "Good", createdAt: "2026-06-01 10:34:00" },
+      { id: 216, item: "Dusting Cloth", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 150, price: 20, status: "Good", createdAt: "2026-06-01 10:35:00" },
+      { id: 217, item: "Pocha Pad Cloth / Hand Pocha", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 100, price: 30, status: "Good", createdAt: "2026-06-01 10:36:00" },
+      { id: 218, item: "Wiper", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 35, price: 85, status: "Good", createdAt: "2026-06-01 10:37:00" },
+      { id: 219, item: "Toilet Brush", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 40, price: 45, status: "Good", createdAt: "2026-06-01 10:38:00" },
+      { id: 220, item: "Bamboo Stick", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 50, price: 35, status: "Good", createdAt: "2026-06-01 10:39:00" },
+      { id: 221, item: "Colour Harpic (Toilet Flush)", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 45, price: 105, status: "Good", createdAt: "2026-06-01 10:40:00" },
+      { id: 222, item: "Dustbin Capacity 660 Ltr", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 5, price: 4500, status: "Good", createdAt: "2026-06-01 10:41:00" },
+      { id: 223, item: "Dustbin Capacity 120 Ltr", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 10, price: 1500, status: "Good", createdAt: "2026-06-01 10:42:00" },
+      { id: 224, item: "White Phenyl", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 40, price: 90, status: "Good", createdAt: "2026-06-01 10:43:00" },
+      { id: 225, item: "Hydrochloride", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 15, price: 180, status: "Good", createdAt: "2026-06-01 10:44:00" },
+      { id: 226, item: "Sanitizer", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 60, price: 120, status: "Good", createdAt: "2026-06-01 10:45:00" },
+      { id: 227, item: "Mask NGS", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 200, price: 15, status: "Good", createdAt: "2026-06-01 10:46:00" },
+      { id: 228, item: "Disposable Mask", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 500, price: 4, status: "Good", createdAt: "2026-06-01 10:47:00" },
+      { id: 229, item: "Disposable Gloves", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 300, price: 6, status: "Good", createdAt: "2026-06-01 10:48:00" },
+      { id: 230, item: "Sanitizer Bottle 500 ml", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 80, price: 150, status: "Good", createdAt: "2026-06-01 10:49:00" },
+      { id: 231, item: "Sintex Tank 500 Ltr with Stand", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 2, price: 6500, status: "Good", createdAt: "2026-06-01 10:50:00" },
+      { id: 232, item: "Fitted Foot Iron Box with Green Mat", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 5, price: 1200, status: "Good", createdAt: "2026-06-01 10:51:00" },
+      { id: 233, item: "Sanitizer Stand", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 8, price: 850, status: "Good", createdAt: "2026-06-01 10:52:00" },
+      { id: 234, item: "Urinal Pipe", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 25, price: 75, status: "Good", createdAt: "2026-06-01 10:53:00" },
+      { id: 235, item: "Net Patti", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 60, price: 40, status: "Good", createdAt: "2026-06-01 10:54:00" },
+      { id: 236, item: "Jala Cleaner Buchhi Tor Pot", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 15, price: 180, status: "Good", createdAt: "2026-06-01 10:55:00" },
+      { id: 237, item: "Dustpan Plastic", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 40, price: 65, status: "Good", createdAt: "2026-06-01 10:56:00" },
+      { id: 238, item: "PVC Pipe 1 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 50, price: 120, status: "Good", createdAt: "2026-06-01 10:57:00" },
+      { id: 239, item: "PVC Socket 1 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 100, price: 15, status: "Good", createdAt: "2026-06-01 10:58:00" },
+      { id: 240, item: "Solution for Fixing PVC Pipe 100 ml", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 30, price: 55, status: "Good", createdAt: "2026-06-01 10:59:00" },
+      { id: 241, item: "PVC T 1 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 60, price: 25, status: "Good", createdAt: "2026-06-01 11:00:00" },
+      { id: 242, item: "Valve 1 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 35, price: 180, status: "Good", createdAt: "2026-06-01 11:01:00" },
+      { id: 243, item: "Nozzle 1 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 40, price: 45, status: "Good", createdAt: "2026-06-01 11:02:00" },
+      { id: 244, item: "FTA 1 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 80, price: 20, status: "Good", createdAt: "2026-06-01 11:03:00" },
+      { id: 245, item: "MTA 1 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 80, price: 20, status: "Good", createdAt: "2026-06-01 11:04:00" },
+      { id: 246, item: "Reducer 1.5 x 0.5 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 45, price: 35, status: "Good", createdAt: "2026-06-01 11:05:00" },
+      { id: 247, item: "MTA 1.5 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 50, price: 30, status: "Good", createdAt: "2026-06-01 11:06:00" },
+      { id: 248, item: "PVC Pipe 1.5 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 40, price: 180, status: "Good", createdAt: "2026-06-01 11:07:00" },
+      { id: 249, item: "Union 1.5 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 30, price: 65, status: "Good", createdAt: "2026-06-01 11:08:00" },
+      { id: 250, item: "Angle Cock Steel", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 25, price: 220, status: "Good", createdAt: "2026-06-01 11:09:00" },
+      { id: 251, item: "Teflon Tape No. 1", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 150, price: 15, status: "Good", createdAt: "2026-06-01 11:10:00" },
+      { id: 252, item: "Teflon Tape No. 2", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 150, price: 25, status: "Good", createdAt: "2026-06-01 11:11:00" },
+      { id: 253, item: "Plug 0.5 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 100, price: 12, status: "Good", createdAt: "2026-06-01 11:12:00" },
+      { id: 254, item: "Steel Tape", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 15, price: 150, status: "Good", createdAt: "2026-06-01 11:13:00" },
+      { id: 255, item: "PVC Tape", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 80, price: 18, status: "Good", createdAt: "2026-06-01 11:14:00" },
+      { id: 256, item: "Kabje (Hinges) 5 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 60, price: 45, status: "Good", createdAt: "2026-06-01 11:15:00" },
+      { id: 257, item: "Wooden Screw 1.5 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 400, price: 2, status: "Good", createdAt: "2026-06-01 11:16:00" },
+      { id: 258, item: "Wooden Screw 2 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 400, price: 3, status: "Good", createdAt: "2026-06-01 11:17:00" },
+      { id: 259, item: "Daksar Foot Valve Complete", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 8, price: 350, status: "Good", createdAt: "2026-06-01 11:18:00" },
+      { id: 260, item: "Section Pipe (Foot Valve Pipe) 2 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 15, price: 280, status: "Good", createdAt: "2026-06-01 11:19:00" },
+      { id: 261, item: "Foam Pipe for Garden 1.25 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 20, price: 350, status: "Good", createdAt: "2026-06-01 11:20:00" },
+      { id: 262, item: "HDPE PVC Pipe 1.25 Inch", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 25, price: 450, status: "Good", createdAt: "2026-06-01 11:21:00" },
+      { id: 263, item: "Frame", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 12, price: 180, status: "Good", createdAt: "2026-06-01 11:22:00" },
+      { id: 264, item: "Dettol Spray", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 40, price: 160, status: "Good", createdAt: "2026-06-01 11:23:00" },
+      { id: 265, item: "Hit Spray", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 35, price: 140, status: "Good", createdAt: "2026-06-01 11:24:00" },
+      { id: 266, item: "Lizol 180 ml", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 70, price: 55, status: "Good", createdAt: "2026-06-01 11:25:00" },
+      { id: 267, item: "Lifebuoy Soap", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 120, price: 35, status: "Good", createdAt: "2026-06-01 11:26:00" },
+      { id: 268, item: "Caustic Soda Powder", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 50, price: 45, status: "Good", createdAt: "2026-06-01 11:27:00" },
+      { id: 269, item: "Hand Wash", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 90, price: 90, status: "Good", createdAt: "2026-06-01 11:28:00" },
+      { id: 270, item: "Fevicol", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 30, price: 85, status: "Good", createdAt: "2026-06-01 11:29:00" },
+      { id: 271, item: "Chappa Kundi Aluminium", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 20, price: 120, status: "Good", createdAt: "2026-06-01 11:30:00" },
+      { id: 272, item: "PVC Gitti", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 500, price: 1, status: "Good", createdAt: "2026-06-01 11:31:00" },
+      { id: 273, item: "Aluminium Washer for Wash Basin", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 150, price: 5, status: "Good", createdAt: "2026-06-01 11:32:00" },
+      { id: 274, item: "M.S. Socket for Wash Basin", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 45, price: 45, status: "Good", createdAt: "2026-06-01 11:33:00" },
+      { id: 275, item: "Chuna", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 100, price: 10, status: "Good", createdAt: "2026-06-01 11:34:00" },
+      { id: 276, item: "Paint (Black)", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 15, price: 250, status: "Good", createdAt: "2026-06-01 11:35:00" },
+      { id: 277, item: "Paint (White)", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 15, price: 250, status: "Good", createdAt: "2026-06-01 11:36:00" },
+      { id: 278, item: "Termite Medicine", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 20, price: 380, status: "Good", createdAt: "2026-06-01 11:37:00" },
+      { id: 279, item: "Hand Compression Sprayer 5 Ltr", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 4, price: 1200, status: "Good", createdAt: "2026-06-01 11:38:00" }
+    ];
+
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Migrate if user has old stationery list (check by checking one unique new item)
-      const hasNewItem = parsed.some(item => item.item === "File cover J-280");
-      if (!hasNewItem) {
-        const filtered = parsed.filter(item => item.category !== "Stationery");
-        const migrated = [...filtered, ...newStationeryItems];
+      // Migrate if user has old stationery list (check by checking count of stationery items with IDs 101 to 117)
+      const stationeryCount = parsed.filter(item => item.id >= 101 && item.id <= 117).length;
+      // Migrate if user has old sanitary list (check by checking count of sanitary items with IDs 201 to 279)
+      const sanitoryCount = parsed.filter(item => item.id >= 201 && item.id <= 279).length;
+      
+      let migrated = parsed;
+      let needSave = false;
+
+      if (stationeryCount !== 17) {
+        const filtered = migrated.filter(item => item.category !== "Stationery" && !(item.id >= 101 && item.id <= 117));
+        migrated = [...filtered, ...newStationeryItems];
+        needSave = true;
+      }
+
+      if (sanitoryCount !== 79) {
+        const filtered = migrated.filter(item => item.category !== "Sanitory" && !(item.id >= 201 && item.id <= 279));
+        migrated = [...filtered, ...newSanitoryItems];
+        needSave = true;
+      }
+
+      if (needSave) {
         localStorage.setItem("rjit_inventory", JSON.stringify(migrated));
         return migrated.sort((a, b) => {
           if (a.createdAt && b.createdAt) return new Date(b.createdAt) - new Date(a.createdAt);
           return b.id - a.id;
         });
       }
+
       return [...parsed].sort((a, b) => {
         if (a.createdAt && b.createdAt) return new Date(b.createdAt) - new Date(a.createdAt);
         return b.id - a.id;
@@ -236,6 +359,7 @@ export function StoreProvider({ children }) {
       { id: 4, item: "Football", category: "Sports", subcategory: "Balls", type: "Leather size 5", stock: 10, price: 800, status: "Good", createdAt: "2026-06-01 09:15:00" },
       { id: 5, item: "Microscope", category: "Equipment", subcategory: "Lab Equipment", type: "Compound 1000x", stock: 15, price: 10000, status: "Good", createdAt: "2026-06-01 09:20:00" },
       ...newStationeryItems,
+      ...newSanitoryItems,
       { id: 10, item: "Study Desk", category: "Furniture", subcategory: "Desk", type: "Study Desk", stock: 30, price: 5000, status: "Good", createdAt: "2026-06-01 09:45:00" },
       { id: 11, item: "Bed (Iron Frame)", category: "Furniture", subcategory: "Bed", type: "Iron Frame Bed", stock: 50, price: 5000, status: "Good", createdAt: "2026-06-01 09:50:00" },
       { id: 12, item: "Reading Chair", category: "Furniture", subcategory: "Chair", type: "Reading Chair", stock: 80, price: 1500, status: "Good", createdAt: "2026-06-01 09:55:00" },
@@ -730,6 +854,383 @@ export function StoreProvider({ children }) {
     return { success: true };
   };
 
+  // Maintenance logs state
+  const [maintenanceLogs, setMaintenanceLogs] = useState(() => {
+    const saved = localStorage.getItem("rjit_maintenanceLogs");
+    if (saved) return JSON.parse(saved);
+    
+    return [
+      {
+        id: "ro-1",
+        name: "CV RAMAN RO",
+        category: "RO",
+        location: "C.V. Raman Hostel",
+        initialPrice: 15000,
+        installDate: "2025-01-10",
+        status: "Active",
+        history: [
+          { id: "h-1-1", partRepaired: "Membrane Filter", quantity: 1, pricePerQty: 1500, totalAmount: 1500, date: "2025-08-12", technician: "Rakesh Verma", notes: "Routine membrane replacement" },
+          { id: "h-1-2", partRepaired: "Pre-Filter Spun", quantity: 2, pricePerQty: 250, totalAmount: 500, date: "2026-03-10", technician: "Amit Sharma", notes: "Replaced dirty filter cartridges" }
+        ]
+      },
+      {
+        id: "ro-2",
+        name: "ABDUL KALAM RO",
+        category: "RO",
+        location: "Abdul Kalam Block",
+        initialPrice: 16500,
+        installDate: "2025-02-15",
+        status: "Active",
+        history: [
+          { id: "h-2-1", partRepaired: "Booster Pump 75 GPD", quantity: 1, pricePerQty: 2200, totalAmount: 2200, date: "2025-11-20", technician: "Rajesh Kumar", notes: "Pump pressure was low" },
+          { id: "h-2-2", partRepaired: "Activated Carbon Filter", quantity: 1, pricePerQty: 450, totalAmount: 450, date: "2026-04-05", technician: "Rajesh Kumar", notes: "Scheduled maintenance" }
+        ]
+      },
+      {
+        id: "ro-3",
+        name: "KALPANA CHAWLA RO",
+        category: "RO",
+        location: "Kalpana Chawla Hostel",
+        initialPrice: 15000,
+        installDate: "2025-01-20",
+        status: "Active",
+        history: [
+          { id: "h-3-1", partRepaired: "SMPS Power Adapter", quantity: 1, pricePerQty: 800, totalAmount: 800, date: "2025-09-05", technician: "Vijay Singh", notes: "Adapter burned due to voltage fluctuation" }
+        ]
+      },
+      {
+        id: "ro-4",
+        name: "RO NEAR CIVIL LAB",
+        category: "RO",
+        location: "Civil Engineering Lab Block",
+        initialPrice: 18000,
+        installDate: "2024-11-05",
+        status: "Active",
+        history: [
+          { id: "h-4-1", partRepaired: "UV Lamp", quantity: 1, pricePerQty: 650, totalAmount: 650, date: "2025-06-12", technician: "Amit Sharma", notes: "Choke and lamp replacement" },
+          { id: "h-4-2", partRepaired: "Sediment Filter", quantity: 2, pricePerQty: 300, totalAmount: 600, date: "2025-12-18", technician: "Suresh Pal", notes: "Annual filter replacement" }
+        ]
+      },
+      {
+        id: "ro-5",
+        name: "1ST FLOOR RO",
+        category: "RO",
+        location: "Main Building - 1st Floor",
+        initialPrice: 14500,
+        installDate: "2025-03-01",
+        status: "Active",
+        history: [
+          { id: "h-5-1", partRepaired: "Solenoid Valve", quantity: 1, pricePerQty: 400, totalAmount: 400, date: "2025-10-14", technician: "Vijay Singh", notes: "Water leakage issue resolved" }
+        ]
+      },
+      {
+        id: "ro-6",
+        name: "2ND FLOOR RO",
+        category: "RO",
+        location: "Main Building - 2nd Floor",
+        initialPrice: 14500,
+        installDate: "2025-03-01",
+        status: "Active",
+        history: [
+          { id: "h-6-1", partRepaired: "FR (Flow Restrictor)", quantity: 1, pricePerQty: 150, totalAmount: 150, date: "2025-10-15", technician: "Vijay Singh", notes: "Replaced flow restrictor" }
+        ]
+      },
+      {
+        id: "ro-7",
+        name: "RO INFRONT OF WORKSHOP",
+        category: "RO",
+        location: "Mechanical Workshop Gate",
+        initialPrice: 20000,
+        installDate: "2024-08-20",
+        status: "Active",
+        history: [
+          { id: "h-7-1", partRepaired: "RO Membrane & Carbon Filter", quantity: 1, pricePerQty: 2100, totalAmount: 2100, date: "2025-05-22", technician: "Rakesh Verma", notes: "Complete filter service" },
+          { id: "h-7-2", partRepaired: "Pre-Filter Spun", quantity: 3, pricePerQty: 250, totalAmount: 750, date: "2026-01-10", technician: "Amit Sharma", notes: "Workshop dust caused fast clogging" }
+        ]
+      },
+      {
+        id: "ro-8",
+        name: "LIBRARY RO",
+        category: "RO",
+        location: "Central Library Ground Floor",
+        initialPrice: 15500,
+        installDate: "2024-12-10",
+        status: "Active",
+        history: [
+          { id: "h-8-1", partRepaired: "TDS Controller Valve", quantity: 1, pricePerQty: 350, totalAmount: 350, date: "2025-07-08", technician: "Suresh Pal", notes: "Adjusted TDS level to 120" }
+        ]
+      }
+    ];
+  });
+
+  const addMaintenanceLog = (roId, log) => {
+    setMaintenanceLogs(prev => {
+      const updated = prev.map(ro => {
+        if (ro.id === roId) {
+          const totalAmount = parseInt(log.quantity || 1) * parseFloat(log.pricePerQty || 0);
+          const newLog = {
+            id: `h-${roId.replace("ro-", "")}-${Date.now()}`,
+            partRepaired: log.partRepaired,
+            quantity: parseInt(log.quantity || 1),
+            pricePerQty: parseFloat(log.pricePerQty || 0),
+            totalAmount: totalAmount,
+            date: log.date || new Date().toISOString().split("T")[0],
+            technician: log.technician || "General Technician",
+            notes: log.notes || ""
+          };
+          return {
+            ...ro,
+            history: [newLog, ...ro.history]
+          };
+        }
+        return ro;
+      });
+      localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Dynamic Inventory Categories/Departments
+  const [inventoryCategories, setInventoryCategories] = useState(() => {
+    const saved = localStorage.getItem("rjit_inventoryCategories");
+    const defaultCategories = [
+      { id: "stationary", name: "Stationary", icon: "FaPen", desc: "Admin stationery, files, registers, folders, writing assets and stock registers.", color: "from-blue-600 to-indigo-750" },
+      { id: "sanitory", name: "Sanitory", icon: "FaBroom", desc: "Sanitation items, cleaning supplies, soaps, brushes, and hygiene products.", color: "from-teal-500 to-emerald-600" },
+      { id: "electrical", name: "Electrical", icon: "FaBolt", desc: "Electrical bulbs, tube lights, wires, sockets, and switchboards.", color: "from-amber-500 to-orange-600" },
+      { id: "electronics", name: "Electronics", icon: "FaDesktop", desc: "Desktop computers, monitors, printers, scanners, and UPS units.", color: "from-sky-500 to-blue-600" },
+      { id: "sports", name: "Sports", icon: "FaRunning", desc: "Sports kits, athletics gear, fitness assets, and court equipment.", color: "from-rose-500 to-pink-600" },
+      { id: "furniture", name: "Furniture", icon: "FaChair", desc: "Beds, wardrobes, tables, office chairs, desks, and cupboards.", color: "from-yellow-600 to-amber-700" },
+      { id: "it_cse", name: "IT,CSE", icon: "FaDesktop", desc: "Servers, routers, access points, coding lab components and systems.", color: "from-indigo-500 to-purple-650" },
+      { id: "laboratory", name: "laboratory", icon: "FaFlask", desc: "Glassware, scientific machinery, chemicals and compound microscopes.", color: "from-violet-500 to-fuchsia-600" }
+    ];
+
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const hasSanitory = parsed.some(c => c.id === "sanitory");
+      if (!hasSanitory) {
+        const updated = [...parsed, defaultCategories.find(c => c.id === "sanitory")].filter(Boolean);
+        localStorage.setItem("rjit_inventoryCategories", JSON.stringify(updated));
+        return updated;
+      }
+      return parsed;
+    }
+    return defaultCategories;
+  });
+
+  const [inventorySubcategories, setInventorySubcategories] = useState(() => {
+    const saved = localStorage.getItem("rjit_inventorySubcategories");
+    const defaultSubcategories = [
+      { categoryId: "stationary", name: "Stationery" },
+      { categoryId: "sanitory", name: "Cleaning" },
+      { categoryId: "electrical", name: "Electrical" },
+      { categoryId: "electronics", name: "Electronics" },
+      { categoryId: "sports", name: "Sports" },
+      { categoryId: "furniture", name: "Furniture" },
+      { categoryId: "it_cse", name: "Electronics" },
+      { categoryId: "laboratory", name: "Equipment" },
+      { categoryId: "laboratory", name: "Stationery" }
+    ];
+
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const hasSanitorySub = parsed.some(s => s.categoryId === "sanitory" && s.name === "Cleaning");
+      if (!hasSanitorySub) {
+        const updated = [...parsed, { categoryId: "sanitory", name: "Cleaning" }];
+        localStorage.setItem("rjit_inventorySubcategories", JSON.stringify(updated));
+        return updated;
+      }
+      return parsed;
+    }
+    return defaultSubcategories;
+  });
+
+  const addInventoryCategory = (category) => {
+    setInventoryCategories(prev => {
+      const id = category.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      const exists = prev.some(c => c.id === id);
+      if (exists) return prev;
+      const updated = [...prev, {
+        id,
+        name: category.name,
+        icon: category.icon || "FaBoxes",
+        desc: category.desc || "Dynamic category",
+        color: category.color || "from-blue-500 to-indigo-600"
+      }];
+      localStorage.setItem("rjit_inventoryCategories", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const deleteInventoryCategory = (categoryId) => {
+    setInventoryCategories(prev => {
+      const updated = prev.filter(c => c.id !== categoryId);
+      localStorage.setItem("rjit_inventoryCategories", JSON.stringify(updated));
+      return updated;
+    });
+    // Also cleanup subcategories
+    setInventorySubcategories(prev => {
+      const updated = prev.filter(s => s.categoryId !== categoryId);
+      localStorage.setItem("rjit_inventorySubcategories", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const addInventorySubcategory = (categoryId, name) => {
+    setInventorySubcategories(prev => {
+      const exists = prev.some(s => s.categoryId === categoryId && s.name.toLowerCase() === name.toLowerCase());
+      if (exists) return prev;
+      const updated = [...prev, { categoryId, name }];
+      localStorage.setItem("rjit_inventorySubcategories", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const deleteInventorySubcategory = (categoryId, name) => {
+    setInventorySubcategories(prev => {
+      const updated = prev.filter(s => !(s.categoryId === categoryId && s.name === name));
+      localStorage.setItem("rjit_inventorySubcategories", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Dynamic Maintenance Categories
+  const [maintenanceCategories, setMaintenanceCategories] = useState(() => {
+    const saved = localStorage.getItem("rjit_maintenanceCategories");
+    if (saved) return JSON.parse(saved);
+    return [
+      { id: "RO", name: "RO (Water Purifiers)", icon: "FaTint" },
+      { id: "AC", name: "Air Conditioners", icon: "FaWrench" },
+      { id: "DG", name: "Diesel Generators", icon: "FaTools" }
+    ];
+  });
+
+  const addMaintenanceCategory = (name, icon) => {
+    setMaintenanceCategories(prev => {
+      const id = name.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+      const exists = prev.some(c => c.id === id);
+      if (exists) return prev;
+      const updated = [...prev, { id, name, icon: icon || "FaTools" }];
+      localStorage.setItem("rjit_maintenanceCategories", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const deleteMaintenanceCategory = (id) => {
+    setMaintenanceCategories(prev => {
+      const updated = prev.filter(c => c.id !== id);
+      localStorage.setItem("rjit_maintenanceCategories", JSON.stringify(updated));
+      return updated;
+    });
+    // Also cleanup associated units/logs in maintenanceLogs
+    setMaintenanceLogs(prev => {
+      const updated = prev.filter(ro => ro.category !== id);
+      localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const addMaintenanceSubcategory = (category, name, location, initialPrice, installDate) => {
+    setMaintenanceLogs(prev => {
+      const id = `maint-${category.toLowerCase()}-${Date.now()}`;
+      const newRo = {
+        id,
+        name,
+        category,
+        location: location || "Campus",
+        initialPrice: parseFloat(initialPrice || 0),
+        installDate: installDate || new Date().toISOString().split("T")[0],
+        status: "Active",
+        history: []
+      };
+      const updated = [...prev, newRo];
+      localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const deleteMaintenanceSubcategory = (itemId) => {
+    setMaintenanceLogs(prev => {
+      const updated = prev.filter(ro => ro.id !== itemId);
+      localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const updateMaintenanceLog = (roId, logId, updatedLog) => {
+    setMaintenanceLogs(prev => {
+      const updated = prev.map(ro => {
+        if (ro.id === roId) {
+          const updatedHistory = (ro.history || []).map(h => {
+            if (h.id === logId) {
+              const qty = parseInt(updatedLog.quantity || 1);
+              const price = parseFloat(updatedLog.pricePerQty || 0);
+              return {
+                ...h,
+                ...updatedLog,
+                quantity: qty,
+                pricePerQty: price,
+                totalAmount: qty * price
+              };
+            }
+            return h;
+          });
+          return { ...ro, history: updatedHistory };
+        }
+        return ro;
+      });
+      localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const deleteMaintenanceLog = (roId, logId) => {
+    setMaintenanceLogs(prev => {
+      const updated = prev.map(ro => {
+        if (ro.id === roId) {
+          return {
+            ...ro,
+            history: (ro.history || []).filter(h => h.id !== logId)
+          };
+        }
+        return ro;
+      });
+      localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const updateMaintenanceUnitStatus = (roId, status) => {
+    setMaintenanceLogs(prev => {
+      const updated = prev.map(ro => {
+        if (ro.id === roId) {
+          return { ...ro, status };
+        }
+        return ro;
+      });
+      localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const updateMaintenanceUnitDetails = (roId, details) => {
+    setMaintenanceLogs(prev => {
+      const updated = prev.map(ro => {
+        if (ro.id === roId) {
+          return {
+            ...ro,
+            name: details.name,
+            location: details.location,
+            initialPrice: parseFloat(details.initialPrice || 0),
+            installDate: details.installDate
+          };
+        }
+        return ro;
+      });
+      localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -756,7 +1257,24 @@ export function StoreProvider({ children }) {
         notifications,
         markAllRead,
         markAsRead,
-        addNotification
+        addNotification,
+        maintenanceLogs,
+        addMaintenanceLog,
+        inventoryCategories,
+        inventorySubcategories,
+        addInventoryCategory,
+        deleteInventoryCategory,
+        addInventorySubcategory,
+        deleteInventorySubcategory,
+        maintenanceCategories,
+        addMaintenanceCategory,
+        deleteMaintenanceCategory,
+        addMaintenanceSubcategory,
+        deleteMaintenanceSubcategory,
+        updateMaintenanceLog,
+        deleteMaintenanceLog,
+        updateMaintenanceUnitStatus,
+        updateMaintenanceUnitDetails
       }}
     >
       {children}

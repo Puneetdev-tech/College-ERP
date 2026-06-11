@@ -21,13 +21,13 @@ import { useStore } from "../context/StoreContext";
 // Baseline mappings to carry over initial mock data offsets
 const baseDepartmentData = {
   Stationary: 280,
-  Hostel: 320,
+  Sanitory: 120,
+  Electrical: 150,
+  Electronics: 320,
   Sports: 210,
-  Laboratory: 450,
-  "IT Department": 580,
-  Library: 190,
-  Office: 150,
-  Medical: 120
+  Furniture: 190,
+  "IT,CSE": 580,
+  laboratory: 450
 };
 
 const baseCategoryData = {
@@ -144,8 +144,18 @@ export default function Analytics() {
 
   // 1. Dynamic Department Usage (base mock values + dynamically issued quantities)
   const departmentData = Object.keys(baseDepartmentData).map((dept) => {
+    const matchDept = (logDept) => {
+      if (!logDept) return false;
+      if (logDept.toLowerCase() === dept.toLowerCase()) return true;
+      if (dept === "IT,CSE" && logDept === "IT Department") return true;
+      if (dept === "Sanitory" && (logDept === "Hostel" || logDept === "Medical")) return true;
+      if (dept === "Furniture" && (logDept === "Library" || logDept === "Office")) return true;
+      if (dept === "laboratory" && logDept === "Laboratory") return true;
+      return false;
+    };
+
     const issuedQty = issuedStock
-      .filter((log) => log.department === dept)
+      .filter((log) => matchDept(log.department))
       .reduce((sum, log) => sum + log.quantity, 0);
     return { name: dept, value: baseDepartmentData[dept] + issuedQty };
   });
@@ -209,7 +219,7 @@ export default function Analytics() {
         </div>
 
         {/* Metric Cards */}
-        <div className="grid grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           
           <div className="bg-white p-6 rounded-2xl shadow-md border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition duration-300 relative overflow-hidden group">
             <div className="absolute right-0 top-0 w-24 h-24 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-110 transition duration-300" />
@@ -264,7 +274,7 @@ export default function Analytics() {
         </div>
 
         {/* Charts Container */}
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Department Usage Pie Chart */}
           <div className="bg-white rounded-3xl p-6 shadow-md border border-slate-100 flex flex-col">

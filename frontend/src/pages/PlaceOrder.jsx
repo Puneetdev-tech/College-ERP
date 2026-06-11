@@ -18,16 +18,7 @@ import Navbar from "../components/Navbar";
 import FlashMessage from "../components/FlashMessage";
 import useFlash from "../components/useFlash";
 
-const departmentsList = [
-  "Stationary",
-  "Hostel",
-  "Sports",
-  "Laboratory",
-  "IT Department",
-  "Library",
-  "Office",
-  "Medical"
-];
+
 
 const getCurrentDateTimeString = () => {
   const now = new Date();
@@ -47,7 +38,8 @@ const formatDateTime = (dateTimeStr) => {
 };
 
 export default function PlaceOrder() {
-  const { inventory, orders, placeOrderItem, systemSettings } = useStore();
+  const { inventory, orders, placeOrderItem, systemSettings, inventoryCategories } = useStore();
+  const departmentsList = inventoryCategories.map(c => c.name);
   const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamVal = searchParams.get("search") || "";
@@ -89,7 +81,7 @@ export default function PlaceOrder() {
   const [quantity, setQuantity] = useState("");
   const [pricePerUnit, setPricePerUnit] = useState("");
   const [orderDate, setOrderDate] = useState(getCurrentDateTimeString());
-  const [department, setDepartment] = useState("IT Department");
+  const [department, setDepartment] = useState("IT,CSE");
   const [faculty, setFaculty] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 

@@ -57,15 +57,15 @@ export default function StatCard({ title, value }) {
         y: -4,
       }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className="group bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden cursor-pointer"
+      className="group bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-4 sm:p-6 shadow-sm flex items-center gap-3 sm:gap-4 relative overflow-hidden cursor-pointer"
     >
       <div className={`absolute top-0 left-0 w-2 h-full ${meta.accentLine}`} />
-      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12 ${meta.bgColor} ${meta.iconColor}`}>
+      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12 ${meta.bgColor} ${meta.iconColor}`}>
         {meta.icon}
       </div>
-      <div>
-        <p className="text-xs font-bold text-slate-455 uppercase tracking-wider">{title}</p>
-        <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-0.5">{value}</h3>
+      <div className="min-w-0">
+        <p className="text-[10px] sm:text-xs font-bold text-slate-455 uppercase tracking-wider truncate">{title}</p>
+        <h3 className="text-base sm:text-lg lg:text-2xl font-black text-slate-800 dark:text-white mt-0.5 truncate">{value}</h3>
       </div>
     </motion.div>
   );
