@@ -13,7 +13,8 @@ const ALL_PERMISSIONS = [
   "Reports",
   "Notifications",
   "Users",
-  "Settings"
+  "Settings",
+  "Maintenance"
 ];
 
 export default function UserManagement() {

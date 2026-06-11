@@ -18,6 +18,7 @@ import ResetPassword from "./pages/ResetPassword";
 import UserManagement from "./pages/UserManagement";
 import Settings from "./pages/Settings";
 import AccessDenied from "./pages/AccessDenied";
+import Maintenance from "./pages/Maintenance";
 
 function ProtectedRoute({ children, requiredPermission }) {
   const { currentUser } = useStore();
@@ -57,6 +58,7 @@ function App() {
           <Route path="/notifications" element={<ProtectedRoute requiredPermission="Notifications"><Notifications /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute requiredPermission="Users"><UserManagement /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute requiredPermission="Settings"><Settings /></ProtectedRoute>} />
+          <Route path="/maintenance" element={<ProtectedRoute requiredPermission="Maintenance"><Maintenance /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </StoreProvider>

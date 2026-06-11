@@ -8,7 +8,8 @@ import {
   FaBell,
   FaUsers,
   FaCog,
-  FaShoppingCart
+  FaShoppingCart,
+  FaWrench
 } from "react-icons/fa";
 
 export const menuConfig = {
@@ -18,6 +19,7 @@ export const menuConfig = {
     { name: "Receive Order", icon: <FaTruck />, path: "/receive-order" },
     { name: "Issue Stock", icon: <FaClipboardList />, path: "/issue-stock" },
     { name: "Inventory", icon: <FaBoxes />, path: "/inventory" },
+    { name: "Maintenance", icon: <FaWrench />, path: "/maintenance" },
     { name: "Analytics", icon: <FaChartBar />, path: "/analytics" },
     { name: "Reports", icon: <FaFilePdf />, path: "/reports" },
     { name: "Notifications", icon: <FaBell />, path: "/notifications" },
@@ -30,6 +32,7 @@ export const menuConfig = {
     { name: "Receive Order", icon: <FaTruck />, path: "/receive-order" },
     { name: "Issue Stock", icon: <FaClipboardList />, path: "/issue-stock" },
     { name: "Inventory", icon: <FaBoxes />, path: "/inventory" },
+    { name: "Maintenance", icon: <FaWrench />, path: "/maintenance" },
     { name: "Reports", icon: <FaFilePdf />, path: "/reports" },
     { name: "Notifications", icon: <FaBell />, path: "/notifications" },
   ],
@@ -44,6 +47,7 @@ export const menuConfig = {
 
   Principal: [
     { name: "Dashboard", icon: <FaHome />, path: "/dashboard" },
+    { name: "Maintenance", icon: <FaWrench />, path: "/maintenance" },
     { name: "Analytics", icon: <FaChartBar />, path: "/analytics" },
     { name: "Reports", icon: <FaFilePdf />, path: "/reports" },
   ]

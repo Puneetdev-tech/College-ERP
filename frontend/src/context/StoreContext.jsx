@@ -3,20 +3,35 @@ import { createContext, useContext, useState, useEffect } from "react";
 const StoreContext = createContext();
 
 export const ROLE_DEFAULT_PERMISSIONS = {
-  "Admin": ["Dashboard", "Inventory", "Place Order", "Receive Order", "Issue Stock", "Analytics", "Reports", "Notifications", "Users", "Settings"],
-  "Store Manager": ["Dashboard", "Inventory", "Receive Order", "Issue Stock", "Reports", "Notifications"],
+  "Admin": ["Dashboard", "Inventory", "Place Order", "Receive Order", "Issue Stock", "Analytics", "Reports", "Notifications", "Users", "Settings", "Maintenance"],
+  "Store Manager": ["Dashboard", "Inventory", "Receive Order", "Issue Stock", "Reports", "Notifications", "Maintenance"],
   "Purchase Officer": ["Dashboard", "Place Order", "Receive Order", "Reports", "Notifications"],
-  "Principal": ["Dashboard", "Analytics", "Reports"],
+  "Principal": ["Dashboard", "Analytics", "Reports", "Maintenance"],
   "Account Office": ["Dashboard", "Reports", "Notifications"]
 };
 
 const API_URL = "http://localhost:5000/api";
 
 export function StoreProvider({ children }) {
-  const [usersList, setUsersList] = useState([]);
+  // User management states
+  const [usersList, setUsersList] = useState(() => {
+    const saved = localStorage.getItem("rjit_users");
+    return saved ? JSON.parse(saved) : DEFAULT_USERS;
+  });
+
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem("rjit_currentUser");
-    return saved ? JSON.parse(saved) : null;
+    if (saved) {
+      const user = JSON.parse(saved);
+      const defaultPerms = ROLE_DEFAULT_PERMISSIONS[user.role] || [];
+      if (defaultPerms.includes("Maintenance") && !user.permissions?.includes("Maintenance")) {
+        const updatedUser = { ...user, permissions: [...(user.permissions || []), "Maintenance"] };
+        localStorage.setItem("rjit_currentUser", JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+      return user;
+    }
+    return null;
   });
 
   const [systemSettings, setSystemSettings] = useState({
@@ -229,33 +244,65 @@ export function StoreProvider({ children }) {
     return { success: false, message: res ? res.message : "Failed to delete user" };
   };
 
-  // Inventory Operations
-  const addInventoryItem = async (itemDetails) => {
-    const res = await apiFetch("/inventory", {
-      method: "POST",
-      body: JSON.stringify(itemDetails)
-    });
+  // Initial inventory items (sorted newest first)
+  const [inventory, setInventory] = useState(() => {
+    const saved = localStorage.getItem("rjit_inventory");
+    
+    // Define the new default stationery items
+    const newStationeryItems = [
+      { id: 101, item: "A4 size paper Rim", category: "Stationery", subcategory: "A4 size paper Rim", type: "Rim", stock: 250, price: 320, status: "Good", createdAt: "2026-06-01 09:25:00" },
+      { id: 102, item: "Add Gel pen", category: "Stationery", subcategory: "Add Gel pen", type: "Blue/Black", stock: 120, price: 15, status: "Good", createdAt: "2026-06-01 09:26:00" },
+      { id: 103, item: "Add gel refill", category: "Stationery", subcategory: "Add gel refill", type: "0.5mm", stock: 200, price: 5, status: "Good", createdAt: "2026-06-01 09:27:00" },
+      { id: 104, item: "Cell AAA", category: "Stationery", subcategory: "Cell AAA", type: "Alkaline", stock: 80, price: 15, status: "Good", createdAt: "2026-06-01 09:28:00" },
+      { id: 105, item: "Cell AA", category: "Stationery", subcategory: "Cell AA", type: "Alkaline", stock: 90, price: 15, status: "Good", createdAt: "2026-06-01 09:29:00" },
+      { id: 106, item: "Envelope small brown", category: "Stationery", subcategory: "Envelope small brown", type: "Brown paper", stock: 350, price: 3, status: "Good", createdAt: "2026-06-01 09:30:00" },
+      { id: 107, item: "File flag", category: "Stationery", subcategory: "File flag", type: "Sticky", stock: 500, price: 2, status: "Good", createdAt: "2026-06-01 09:31:00" },
+      { id: 108, item: "Highlighter", category: "Stationery", subcategory: "Highlighter", type: "Neon Pack", stock: 110, price: 25, status: "Good", createdAt: "2026-06-01 09:32:00" },
+      { id: 109, item: "Liquid gum", category: "Stationery", subcategory: "Liquid gum", type: "50ml", stock: 75, price: 18, status: "Good", createdAt: "2026-06-01 09:33:00" },
+      { id: 110, item: "Notice board pin", category: "Stationery", subcategory: "Notice board pin", type: "Push pin", stock: 400, price: 1, status: "Good", createdAt: "2026-06-01 09:34:00" },
+      { id: 111, item: "Register", category: "Stationery", subcategory: "Register", type: "Standard", stock: 125, price: 80, status: "Good", createdAt: "2026-06-01 09:35:00" },
+      { id: 112, item: "Staff attendance register", category: "Stationery", subcategory: "Staff attendance register", type: "Ledger", stock: 20, price: 150, status: "Good", createdAt: "2026-06-01 09:36:00" },
+      { id: 113, item: "Student attendance register", category: "Stationery", subcategory: "Student attendance register", type: "Ledger", stock: 45, price: 150, status: "Good", createdAt: "2026-06-01 09:37:00" },
+      { id: 114, item: "Use and throw pen", category: "Stationery", subcategory: "Use and throw pen", type: "Blue", stock: 1000, price: 5, status: "Good", createdAt: "2026-06-01 09:38:00" },
+      { id: 115, item: "White board marker", category: "Stationery", subcategory: "White board marker", type: "Black/Blue", stock: 150, price: 35, status: "Good", createdAt: "2026-06-01 09:39:00" },
+      { id: 116, item: "Whitener pen", category: "Stationery", subcategory: "Whitener pen", type: "Correction Pen", stock: 65, price: 30, status: "Good", createdAt: "2026-06-01 09:40:00" },
+      { id: 117, item: "File cover J-280", category: "Stationery", subcategory: "File cover J-280", type: "Plastic J-280", stock: 250, price: 22, status: "Good", createdAt: "2026-06-01 09:41:00" }
+    ];
 
-    if (res && res.success) {
-      await fetchInventory();
-      return { success: true };
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Migrate if user has old stationery list (check by checking one unique new item)
+      const hasNewItem = parsed.some(item => item.item === "File cover J-280");
+      if (!hasNewItem) {
+        const filtered = parsed.filter(item => item.category !== "Stationery");
+        const migrated = [...filtered, ...newStationeryItems];
+        localStorage.setItem("rjit_inventory", JSON.stringify(migrated));
+        return migrated.sort((a, b) => {
+          if (a.createdAt && b.createdAt) return new Date(b.createdAt) - new Date(a.createdAt);
+          return b.id - a.id;
+        });
+      }
+      return [...parsed].sort((a, b) => {
+        if (a.createdAt && b.createdAt) return new Date(b.createdAt) - new Date(a.createdAt);
+        return b.id - a.id;
+      });
     }
-    return { success: false, message: res ? res.message : "Failed to add inventory item" };
-  };
 
-  // Issue Operations
-  const issueStockItem = async (details) => {
-    const res = await apiFetch("/issues", {
-      method: "POST",
-      body: JSON.stringify(details)
-    });
-
-    if (res && res.success) {
-      await Promise.all([fetchInventory(), fetchIssues(), fetchNotifications()]);
-      return { success: true };
-    }
-    return { success: false, message: res ? res.message : "Failed to issue stock" };
-  };
+    return [
+      { id: 1, item: "Desktop Computer", category: "Electronics", subcategory: "Computer", type: "i5 16GB", stock: 25, price: 45000, status: "Good", createdAt: "2026-06-01 09:00:00" },
+      { id: 2, item: "Laser Printer", category: "Electronics", subcategory: "Printer", type: "LaserJet", stock: 4, price: 12000, status: "Low", createdAt: "2026-06-01 09:05:00" },
+      { id: 3, item: "Office Chair", category: "Furniture", subcategory: "Chair", type: "Ergonomic Mesh", stock: 18, price: 3500, status: "Good", createdAt: "2026-06-01 09:10:00" },
+      { id: 4, item: "Football", category: "Sports", subcategory: "Balls", type: "Leather size 5", stock: 10, price: 800, status: "Good", createdAt: "2026-06-01 09:15:00" },
+      { id: 5, item: "Microscope", category: "Equipment", subcategory: "Lab Equipment", type: "Compound 1000x", stock: 15, price: 10000, status: "Good", createdAt: "2026-06-01 09:20:00" },
+      ...newStationeryItems,
+      { id: 10, item: "Study Desk", category: "Furniture", subcategory: "Desk", type: "Study Desk", stock: 30, price: 5000, status: "Good", createdAt: "2026-06-01 09:45:00" },
+      { id: 11, item: "Bed (Iron Frame)", category: "Furniture", subcategory: "Bed", type: "Iron Frame Bed", stock: 50, price: 5000, status: "Good", createdAt: "2026-06-01 09:50:00" },
+      { id: 12, item: "Reading Chair", category: "Furniture", subcategory: "Chair", type: "Reading Chair", stock: 80, price: 1500, status: "Good", createdAt: "2026-06-01 09:55:00" },
+      { id: 13, item: "Executive Desk", category: "Furniture", subcategory: "Desk", type: "Executive Desk", stock: 15, price: 7000, status: "Good", createdAt: "2026-06-01 10:00:00" },
+      { id: 14, item: "Wi-Fi Router", category: "Electronics", subcategory: "Router", type: "Dual Band Wi-Fi", stock: 5, price: 3000, status: "Good", createdAt: "2026-06-01 10:05:00" },
+      { id: 15, item: "Barcode Scanner", category: "Electronics", subcategory: "Barcode Scanner", type: "Laser Scanner", stock: 3, price: 3000, status: "Good", createdAt: "2026-06-01 10:10:00" }
+    ];
+  });
 
   // Order Operations
   const placeOrderItem = async (details) => {
@@ -371,14 +418,23 @@ export function StoreProvider({ children }) {
     if (token) {
       refreshAllData();
     } else {
-      // Just load settings for logo/name
-      apiFetch("/settings").then((res) => {
-        if (res && res.success && res.settings) {
-          setSystemSettings(res.settings);
-        }
-      });
+      const newItem = {
+        id: Date.now(),
+        item: itemDetails.item,
+        category: itemDetails.category,
+        subcategory: itemDetails.subcategory,
+        type: itemDetails.type || "Standard",
+        stock: itemDetails.stock,
+        price: itemDetails.price,
+        status: itemDetails.stock <= (systemSettings.lowStockThreshold || 10) ? "Low" : itemDetails.stock <= 15 ? "Medium" : "Good",
+        createdAt: nowStr
+      };
+      updatedInventory = [newItem, ...inventory];
     }
-  }, []);
+    setInventory(updatedInventory);
+    localStorage.setItem("rjit_inventory", JSON.stringify(updatedInventory));
+    return { success: true };
+  };
 
   return (
     <StoreContext.Provider
@@ -406,8 +462,7 @@ export function StoreProvider({ children }) {
         notifications,
         markAllRead,
         markAsRead,
-        addNotification,
-        refreshAllData // Expose refresh helper
+        addNotification
       }}
     >
       {children}
