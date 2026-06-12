@@ -115,3 +115,52 @@ model Notification {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
+
+model InventoryCategory {
+  id    String @id
+  name  String @unique
+  icon  String @default("FaBoxes")
+  desc  String @default("")
+  color String @default("from-blue-500 to-indigo-600")
+
+  subcategories InventorySubcategory[]
+}
+
+model InventorySubcategory {
+  id         Int               @id @default(autoincrement())
+  categoryId String
+  category   InventoryCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name       String
+
+  @@unique([categoryId, name])
+}
+
+model MaintenanceCategory {
+  id   String @id
+  name String @unique
+  icon String @default("FaTools")
+}
+
+model MaintenanceUnit {
+  id           String               @id
+  name         String
+  category     String
+  location     String               @default("Campus")
+  initialPrice Float                @default(0)
+  installDate  String
+  status       String               @default("Active")
+  history      MaintenanceHistory[]
+}
+
+model MaintenanceHistory {
+  id           String          @id
+  unitId       String
+  unit         MaintenanceUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  partRepaired String
+  quantity     Int             @default(1)
+  pricePerQty  Float           @default(0)
+  totalAmount  Float           @default(0)
+  date         String
+  technician   String          @default("General Technician")
+  notes        String          @default("")
+}

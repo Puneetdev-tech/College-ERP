@@ -7,6 +7,8 @@ import issueRoutes from "./issue.routes.js";
 import notificationRoutes from "./notification.routes.js";
 import settingsRoutes from "./settings.routes.js";
 import reportRoutes from "./report.routes.js";
+import categoryRoutes from "./category.routes.js";
+import maintenanceRoutes from "./maintenance.routes.js";
 
 const router = Router();
 
@@ -18,5 +20,7 @@ router.use("/issues", issueRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/reports", reportRoutes);
+router.use("/categories", categoryRoutes);
+router.use("/maintenance", maintenanceRoutes);
 
 export default router;
