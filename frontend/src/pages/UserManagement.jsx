@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { FaUserPlus, FaTrash, FaEdit } from "react-icons/fa";
+import { FaUserPlus, FaTrash, FaEdit, FaEye, FaEyeSlash } from "react-icons/fa";
 import Sidebar from "../components/sidebar";
 import { useStore, ROLE_DEFAULT_PERMISSIONS } from "../context/StoreContext";
+import FlashMessage from "../components/FlashMessage";
+import useFlash from "../components/useFlash";
 
 const ALL_PERMISSIONS = [
   "Dashboard",
@@ -19,6 +21,7 @@ const ALL_PERMISSIONS = [
 
 export default function UserManagement() {
   const { usersList, addUser, updateUser, deleteUser, approvalSequence, updateApprovalSequence } = useStore();
+  const { flashes, showFlash, dismissFlash } = useFlash();
   const [showModal, setShowModal] = useState(false);
 
   // Form states
@@ -33,6 +36,7 @@ export default function UserManagement() {
   const [status, setStatus] = useState("Active");
   const [selectedPermissions, setSelectedPermissions] = useState(ROLE_DEFAULT_PERMISSIONS["Admin"]);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Approver config controls tab state and forms
   const [approverTab, setApproverTab] = useState("existing");
@@ -56,6 +60,7 @@ export default function UserManagement() {
     setIsEditMode(false);
     setEditingUserId(null);
     setErrorMsg("");
+    setShowPassword(false);
   };
 
   const handleRoleChange = (newRole) => {
@@ -73,7 +78,7 @@ export default function UserManagement() {
   const handleEditClick = (user) => {
     setName(user.name);
     setEmail(user.email);
-    setPassword(""); // Keep blank unless updating password
+    setPassword(user.password || ""); // Prefill password so admin can view/change it
     const isStandard = ["Admin", "Store Manager", "Purchase Officer", "Principal", "Account Office"].includes(user.role);
     if (isStandard) {
       setRole(user.role);
@@ -88,6 +93,7 @@ export default function UserManagement() {
     setSelectedPermissions(user.permissions || ROLE_DEFAULT_PERMISSIONS[user.role] || []);
     setIsEditMode(true);
     setEditingUserId(user.id);
+    setShowPassword(false);
     setShowModal(true);
   };
 
@@ -131,11 +137,21 @@ export default function UserManagement() {
         setErrorMsg(res.message);
         return;
       }
+      showFlash(
+        "success",
+        "User Created ✓",
+        `New user "${userData.name}" has been created successfully.`
+      );
     } else {
       if (password.trim()) {
         userData.password = password.trim();
       }
       updateUser(editingUserId, userData);
+      showFlash(
+        "success",
+        "User Access Saved ✓",
+        `Changes to user "${userData.name}" have been saved successfully.`
+      );
     }
 
     resetForm();
@@ -144,13 +160,21 @@ export default function UserManagement() {
 
   const handleDelete = (id) => {
     if (confirm("Are you sure you want to delete this user?")) {
+      const user = usersList.find((u) => u.id === id);
+      const userName = user ? user.name : "User";
       deleteUser(id);
+      showFlash(
+        "info",
+        "User Deleted",
+        `User "${userName}" has been deleted.`
+      );
     }
   };
 
   return (
     <div className="bg-slate-100 min-h-screen text-slate-800">
       <Sidebar />
+      <FlashMessage flashes={flashes} onDismiss={dismissFlash} />
       <div className="ml-64 p-6">
 
         <div className="flex justify-between items-center mb-6">
@@ -574,16 +598,25 @@ export default function UserManagement() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-400 mb-1">
-                    {isEditMode ? "Password (leave blank to keep current)" : "Password"}
+                    Password
                   </label>
-                  <input
-                    type="password"
-                    placeholder={isEditMode ? "••••••••" : "Password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="border p-3 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 border-slate-200"
-                    required={!isEditMode}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="border p-3 pr-10 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 border-slate-200"
+                      required={!isEditMode}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1.5 rounded-lg transition duration-150 cursor-pointer"
+                    >
+                      {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

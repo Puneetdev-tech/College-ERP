@@ -230,11 +230,22 @@ body.dark tr:hover {
 
 /* Sidebar Scrollbar Helper */
 .sidebar-scrollbar::-webkit-scrollbar {
-  display: none;
+  width: 4px;
+}
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 .sidebar-scrollbar {
-  -ms-overflow-style: none;  /* IE/Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: auto;  /* IE/Edge */
+  scrollbar-width: thin;  /* Firefox */
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 /* Print Stylesheet */

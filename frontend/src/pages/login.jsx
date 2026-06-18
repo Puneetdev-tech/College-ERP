@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { FaLock, FaTimes } from "react-icons/fa";
 
 import campus1 from "../../images/campus1.jpg"; 
 import campus2 from "../../images/campus2.jpg";
@@ -16,6 +18,8 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const [passwordChangeMessage, setPasswordChangeMessage] = useState("");
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -38,7 +42,12 @@ export default function Login() {
     if (res.success) {
       navigate("/dashboard");
     } else {
-      setError(res.message);
+      if (res.message && res.message.includes("Your password was changed by")) {
+        setPasswordChangeMessage(res.message);
+        setShowPasswordChangeModal(true);
+      } else {
+        setError(res.message);
+      }
     }
   };
 
@@ -48,7 +57,12 @@ export default function Login() {
     if (res.success) {
       navigate("/dashboard");
     } else {
-      setError(res.message);
+      if (res.message && res.message.includes("Your password was changed by")) {
+        setPasswordChangeMessage(res.message);
+        setShowPasswordChangeModal(true);
+      } else {
+        setError(res.message);
+      }
     }
   };
 
@@ -175,18 +189,69 @@ export default function Login() {
               </button>
             </div>
           </div>
-
-          <div className="text-center mt-5">
-            <button
-              type="button"
-              onClick={() => navigate("/forgot-password")}
-              className="text-cyan-300 hover:text-white hover:underline text-sm transition-all duration-300 cursor-pointer"
-            >
-              Forgot Password?
-            </button>
-          </div>
         </form>
       </div>
+
+      {/* Password Changed Alert Modal */}
+      <AnimatePresence>
+        {showPasswordChangeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop blur */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPasswordChangeModal(false)}
+              className="fixed inset-0 bg-slate-950/70 backdrop-blur-md"
+            />
+
+            {/* Modal Container */}
+            <motion.div
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 10, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="relative bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 dark:border-white/10 z-50 p-7 flex flex-col items-center text-center"
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setShowPasswordChangeModal(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 hover:bg-slate-105 dark:hover:bg-white/5 p-2 rounded-xl transition duration-150 cursor-pointer"
+              >
+                <FaTimes className="text-sm" />
+              </button>
+
+              {/* Icon Banner */}
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl mb-4 border bg-amber-50 dark:bg-amber-950/30 text-amber-500 border-amber-100 dark:border-amber-900/30">
+                <FaLock className="animate-pulse" />
+              </div>
+
+              {/* Content */}
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-3">
+                Security Update
+              </h3>
+              
+              <div className="bg-slate-50 dark:bg-slate-950/50 border border-slate-150 dark:border-white/5 rounded-2xl p-4 mb-6 text-left w-full">
+                <p className="text-slate-700 dark:text-slate-200 text-sm leading-relaxed font-semibold">
+                  {passwordChangeMessage}
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex w-full gap-3 text-sm font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordChangeModal(false)}
+                  className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/10 hover:scale-[1.02] active:scale-98 transition cursor-pointer text-center"
+                >
+                  Okay, Got it!
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

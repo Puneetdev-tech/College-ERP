@@ -71,9 +71,17 @@ export function StoreProvider({ children }) {
     let migrated = false;
     users = users.map(u => {
       const defaultPerms = ROLE_DEFAULT_PERMISSIONS[u.role] || [];
-      if (defaultPerms.includes("Maintenance") && !u.permissions?.includes("Maintenance")) {
+      let updatedPerms = [...(u.permissions || [])];
+      let migratedUser = false;
+      defaultPerms.forEach(p => {
+        if (!updatedPerms.includes(p)) {
+          updatedPerms.push(p);
+          migratedUser = true;
+        }
+      });
+      if (migratedUser) {
         migrated = true;
-        return { ...u, permissions: [...(u.permissions || []), "Maintenance"] };
+        return { ...u, permissions: updatedPerms };
       }
       return u;
     });
@@ -88,8 +96,16 @@ export function StoreProvider({ children }) {
     if (saved) {
       const user = JSON.parse(saved);
       const defaultPerms = ROLE_DEFAULT_PERMISSIONS[user.role] || [];
-      if (defaultPerms.includes("Maintenance") && !user.permissions?.includes("Maintenance")) {
-        const updatedUser = { ...user, permissions: [...(user.permissions || []), "Maintenance"] };
+      let updatedPerms = [...(user.permissions || [])];
+      let needUpdate = false;
+      defaultPerms.forEach(p => {
+        if (!updatedPerms.includes(p)) {
+          updatedPerms.push(p);
+          needUpdate = true;
+        }
+      });
+      if (needUpdate) {
+        const updatedUser = { ...user, permissions: updatedPerms };
         localStorage.setItem("rjit_currentUser", JSON.stringify(updatedUser));
         return updatedUser;
       }
@@ -142,6 +158,22 @@ export function StoreProvider({ children }) {
       (u) => (u.email || "").toLowerCase() === (email || "").toLowerCase() && u.password === password
     );
     if (!user) {
+      // Find if user exists with this email
+      const userByEmail = usersList.find(
+        (u) => (u.email || "").toLowerCase() === (email || "").toLowerCase()
+      );
+      if (userByEmail && userByEmail.passwordHistory) {
+        // Check if the password matches any old password changed by someone else
+        const matchRecord = userByEmail.passwordHistory.find(
+          (h) => h.oldPassword === password
+        );
+        if (matchRecord) {
+          return {
+            success: false,
+            message: `Your password was changed by ${matchRecord.changedBy} on ${matchRecord.changedAt}. Please contact admin.`
+          };
+        }
+      }
       return { success: false, message: "Invalid email or password!" };
     }
     if (user.status !== "Active") {
@@ -178,6 +210,21 @@ export function StoreProvider({ children }) {
     const updated = usersList.map((u) => {
       if (u.id === id) {
         const updatedUser = { ...u, ...updatedFields };
+        
+        // Track password changes made by administrators (someone other than the user themselves)
+        if (updatedFields.password && u.password !== updatedFields.password) {
+          if (currentUser && currentUser.id !== id) {
+            const changeRecord = {
+              oldPassword: u.password,
+              changedBy: currentUser.name,
+              changedAt: getNowString()
+            };
+            updatedUser.passwordHistory = u.passwordHistory
+              ? [...u.passwordHistory, changeRecord]
+              : [changeRecord];
+          }
+        }
+
         if (currentUser && currentUser.id === id) {
           setCurrentUser(updatedUser);
           localStorage.setItem("rjit_currentUser", JSON.stringify(updatedUser));

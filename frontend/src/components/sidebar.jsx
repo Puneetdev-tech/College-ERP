@@ -76,9 +76,9 @@ export default function Sidebar() {
             <div
               key={index}
               onClick={() => navigate(menu.path)}
-              className={`sidebar-item flex items-center gap-3 rounded-xl cursor-pointer mb-2 ${
+              className={`sidebar-item flex items-center gap-3 rounded-xl cursor-pointer mb-1.5 ${
                 isActive(menu) ? "active" : ""
-              } ${isCollapsed ? "justify-center p-3" : "p-3"}`}
+              } ${isCollapsed ? "justify-center p-2.5" : "py-2 px-3.5"}`}
               title={isCollapsed ? menu.name : undefined}
             >
               <span className="text-lg flex-shrink-0">{menu.icon}</span>
