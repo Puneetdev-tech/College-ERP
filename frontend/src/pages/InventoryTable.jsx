@@ -619,8 +619,9 @@ export default function InventoryTable() {
                                               <div>
                                                 <div className="flex items-center gap-2">
                                                   <span className="font-bold text-slate-700">Order Ref: #{order.id}</span>
-                                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap ${
                                                     order.status === "Received" ? "bg-green-50 border-green-200 text-green-700" :
+                                                    order.status === "Partially Received" ? "bg-blue-50 border-blue-200 text-blue-700" :
                                                     order.status === "Approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
                                                     order.status === "Rejected" ? "bg-rose-50 border-rose-250 text-rose-700" :
                                                     "bg-yellow-50 border-yellow-200 text-yellow-700"
@@ -639,6 +640,11 @@ export default function InventoryTable() {
                                                 <p className="font-bold text-slate-700">
                                                   {order.quantity} unit{order.quantity > 1 ? "s" : ""} @ ₹{order.pricePerUnit?.toLocaleString("en-IN")}/unit
                                                 </p>
+                                                {(order.receivedQuantity !== undefined || order.status === "Partially Received") && (
+                                                  <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                                                    Rec: <span className="text-emerald-600 font-bold">{order.receivedQuantity || 0}</span> | Pend: <span className="text-amber-600 font-bold">{order.pendingQuantity !== undefined ? order.pendingQuantity : (order.quantity - (order.receivedQuantity || 0))}</span>
+                                                  </p>
+                                                )}
                                                 <p className="font-extrabold text-indigo-650 text-sm mt-0.5">
                                                   Total: ₹{(order.quantity * (order.pricePerUnit || 0)).toLocaleString("en-IN")}
                                                 </p>

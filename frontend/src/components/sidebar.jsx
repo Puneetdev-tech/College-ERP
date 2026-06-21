@@ -69,7 +69,7 @@ export default function Sidebar() {
           </button>
         </div>
  
-        <div className={`overflow-y-auto pr-1 sidebar-scrollbar ${
+        <div className={`overflow-y-auto overflow-x-hidden pr-1 sidebar-scrollbar ${
           isCollapsed ? "p-2 max-h-[calc(100vh-190px)]" : "p-4 max-h-[calc(100vh-220px)]"
         }`}>
           {menus.map((menu, index) => (

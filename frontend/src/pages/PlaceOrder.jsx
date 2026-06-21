@@ -376,7 +376,7 @@ export default function PlaceOrder() {
                       <td className="p-4 text-xs text-slate-500 dark:text-slate-400 font-medium">{formatDateTime(order.orderDate)}</td>
                       <td className="p-4 text-sm">
                         <span
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold border ${
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold border whitespace-nowrap ${
                             order.status === "Pending"
                               ? "bg-yellow-50/80 border-yellow-250 text-yellow-600 dark:bg-yellow-950/20 dark:border-yellow-900 dark:text-yellow-400"
                               : order.status === "Approved"

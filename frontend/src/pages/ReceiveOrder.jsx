@@ -50,6 +50,7 @@ export default function ReceiveOrder() {
   const [remarks, setRemarks] = useState("");
   const [invoiceFile, setInvoiceFile] = useState(null);
   const [receiveDate, setReceiveDate] = useState(getCurrentDateTimeString());
+  const [receiveQty, setReceiveQty] = useState(1);
 
   // Alert feedback states
   const [errorMsg, setErrorMsg] = useState("");
@@ -62,6 +63,8 @@ export default function ReceiveOrder() {
 
   const handleOpenReceive = (order) => {
     setSelectedOrder(order);
+    const pending = order.pendingQuantity !== undefined ? order.pendingQuantity : (order.quantity - (order.receivedQuantity || 0));
+    setReceiveQty(pending);
     setShowModal(true);
     setReceiveDate(getCurrentDateTimeString());
     setErrorMsg("");
@@ -74,9 +77,9 @@ export default function ReceiveOrder() {
 
     if (!selectedOrder) return;
 
-    const res = receiveOrderItem(selectedOrder.id, receiveDate.replace("T", " "));
+    const res = receiveOrderItem(selectedOrder.id, receiveQty, receiveDate.replace("T", " "));
     if (res.success) {
-      const msg = `Order #${selectedOrder.id} received — ${selectedOrder.quantity} × ${selectedOrder.item} stocked successfully.`;
+      const msg = `Order #${selectedOrder.id} received — ${receiveQty} × ${selectedOrder.item} stocked successfully.`;
       setSuccessMsg(`Order #${selectedOrder.id} received successfully! Stock levels updated.`);
       showFlash("success", "Order Received & Stocked", msg);
       setRemarks("");
@@ -92,7 +95,7 @@ export default function ReceiveOrder() {
   };
 
   // Metrics
-  const readyToReceiveCount = orders.filter((o) => o.status === "Approved").length;
+  const readyToReceiveCount = orders.filter((o) => o.status === "Approved" || o.status === "Partially Received").length;
   const totalReceivedCount = orders.filter((o) => o.status === "Received").length;
   const pendingApprovalCount = orders.filter((o) => o.status === "Pending").length;
 
@@ -149,7 +152,7 @@ export default function ReceiveOrder() {
           </div>
 
           <div className="group card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-2 h-full bg-green-650 dark:bg-green-500" />
+            <div className="absolute top-0 left-0 w-2 h-full bg-green-600 dark:bg-green-500" />
             <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:translate-x-2">
               <FaTruck size={20} />
             </div>
@@ -255,7 +258,14 @@ export default function ReceiveOrder() {
                         <div className="font-semibold">{order.department || "N/A"}</div>
                         <div className="text-xs text-slate-400 mt-0.5">{order.faculty || "N/A"}</div>
                       </td>
-                      <td className="p-4 text-sm font-black text-slate-800 dark:text-slate-100">{order.quantity}</td>
+                      <td className="p-4 text-sm font-black text-slate-800 dark:text-slate-100">
+                        <div>{order.quantity}</div>
+                        {(order.receivedQuantity !== undefined || order.status === "Partially Received") && (
+                          <div className="text-[10px] text-slate-455 font-bold mt-0.5 whitespace-nowrap">
+                            Rec: <span className="text-emerald-600">{order.receivedQuantity || 0}</span> | Pend: <span className="text-amber-600">{order.pendingQuantity !== undefined ? order.pendingQuantity : (order.quantity - (order.receivedQuantity || 0))}</span>
+                          </div>
+                        )}
+                      </td>
                       <td className="p-4 text-sm font-semibold text-slate-800 dark:text-slate-100">₹{order.pricePerUnit?.toLocaleString()}</td>
                       <td className="p-4 text-sm font-black text-slate-800 dark:text-slate-100">₹{(order.pricePerUnit * order.quantity)?.toLocaleString()}</td>
                                      {/* Premium Interactive Progress Tracker */}
@@ -267,7 +277,7 @@ export default function ReceiveOrder() {
                           </div>
                           
                           <div className={`flex-1 h-0.5 mx-1.5 ${
-                            order.status === "Approved" || order.status === "Received" 
+                            order.status === "Approved" || order.status === "Received" || order.status === "Partially Received"
                               ? "bg-amber-500" 
                               : order.status === "Rejected"
                               ? "bg-red-500"
@@ -276,7 +286,7 @@ export default function ReceiveOrder() {
                           
                           <div className="flex flex-col items-center">
                             <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] text-white font-bold transition-transform duration-300 hover:scale-125 cursor-help ${
-                              order.status === "Approved" || order.status === "Received" 
+                              order.status === "Approved" || order.status === "Received" || order.status === "Partially Received"
                                 ? "bg-amber-500" 
                                 : order.status === "Rejected"
                                 ? "bg-red-500"
@@ -292,21 +302,31 @@ export default function ReceiveOrder() {
                           </div>
 
                           <div className={`flex-1 h-0.5 mx-1.5 ${
-                            order.status === "Received" ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-800"
+                            order.status === "Received" 
+                              ? "bg-emerald-500" 
+                              : order.status === "Partially Received"
+                              ? "bg-blue-550 dark:bg-blue-500"
+                              : "bg-slate-200 dark:bg-slate-800"
                           }`} />
 
                           <div className="flex flex-col items-center">
                             <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] text-white font-bold transition-transform duration-300 hover:scale-125 cursor-help ${
-                              order.status === "Received" ? "bg-emerald-500" : "bg-slate-350"
-                            }`} title="Received in Store">3</div>
-                            <span className="text-[9px] text-slate-455 dark:text-slate-500 font-bold mt-1 font-semibold">Received</span>
+                              order.status === "Received" 
+                                ? "bg-emerald-500" 
+                                : order.status === "Partially Received"
+                                ? "bg-blue-500 animate-pulse"
+                                : "bg-slate-355"
+                            }`} title={order.status === "Partially Received" ? "Partially Received" : "Received in Store"}>3</div>
+                            <span className="text-[9px] text-slate-455 dark:text-slate-500 font-bold mt-1 font-semibold">
+                              {order.status === "Partially Received" ? "Partial" : "Received"}
+                            </span>
                           </div>
                         </div>
                       </td>
 
                       <td className="p-4 text-xs text-slate-500 dark:text-slate-400 space-y-1">
                         <div><strong className="text-slate-400">Ordered:</strong> {formatDateTime(order.orderDate)}</div>
-                        {order.status === "Received" && (
+                        {(order.status === "Received" || order.status === "Partially Received") && order.receiveDate && (
                           <div><strong className="text-emerald-500">Received:</strong> {formatDateTime(order.receiveDate)}</div>
                         )}
                       </td>
@@ -333,12 +353,12 @@ export default function ReceiveOrder() {
                             </button>
                           </div>
                         ) : (
-                          /* Approved: Pulsing animation button */
+                          /* Approved / Partially Received: Pulsing animation button */
                           <button
                             onClick={() => handleOpenReceive(order)}
                             className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold cursor-pointer transition shadow-md shadow-emerald-500/10 hover:shadow-lg active:scale-95 animate-pulse hover:animate-none flex items-center gap-1 text-xs hover:scale-105 duration-200"
                           >
-                            Receive Order
+                            {order.status === "Partially Received" ? "Receive Pending" : "Receive Order"}
                           </button>
                         )}
                       </td>
@@ -405,12 +425,27 @@ export default function ReceiveOrder() {
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-500 font-bold text-xs mb-1.5 uppercase tracking-wider">Quantity to Stock</label>
+                    <label className="block text-slate-500 font-bold text-xs mb-1.5 uppercase tracking-wider">Quantity to Receive</label>
                     <input
-                      value={selectedOrder.quantity}
-                      disabled
-                      className="border border-slate-200 p-3.5 rounded-2xl w-full bg-slate-100 dark:bg-slate-950 text-slate-500 cursor-not-allowed font-black"
+                      type="number"
+                      min="1"
+                      max={selectedOrder.pendingQuantity !== undefined ? selectedOrder.pendingQuantity : (selectedOrder.quantity - (selectedOrder.receivedQuantity || 0))}
+                      value={receiveQty}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        const maxVal = selectedOrder.pendingQuantity !== undefined ? selectedOrder.pendingQuantity : (selectedOrder.quantity - (selectedOrder.receivedQuantity || 0));
+                        if (isNaN(val)) {
+                          setReceiveQty("");
+                        } else {
+                          setReceiveQty(Math.min(Math.max(1, val), maxVal));
+                        }
+                      }}
+                      className="border border-slate-200 p-3.5 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-black"
+                      required
                     />
+                    <div className="text-[10px] font-bold text-slate-400 mt-1 pl-1">
+                      Ordered: {selectedOrder.quantity} | Rec: {selectedOrder.receivedQuantity || 0} | Pend: {selectedOrder.pendingQuantity !== undefined ? selectedOrder.pendingQuantity : (selectedOrder.quantity - (selectedOrder.receivedQuantity || 0))}
+                    </div>
                   </div>
                 </div>
 
@@ -443,9 +478,9 @@ export default function ReceiveOrder() {
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-500 font-bold text-xs mb-1.5 uppercase tracking-wider">Total Amount</label>
+                    <label className="block text-slate-500 font-bold text-xs mb-1.5 uppercase tracking-wider">Total Amount (This Batch)</label>
                     <input
-                      value={`₹${(selectedOrder.pricePerUnit * selectedOrder.quantity)?.toLocaleString()}`}
+                      value={`₹${(selectedOrder.pricePerUnit * (receiveQty || 0))?.toLocaleString()}`}
                       disabled
                       className="border border-slate-200 p-3.5 rounded-2xl w-full bg-slate-100 dark:bg-slate-950 text-slate-500 cursor-not-allowed font-black text-sm"
                     />

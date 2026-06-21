@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 const StoreContext = createContext();
 
@@ -499,23 +499,46 @@ export function StoreProvider({ children }) {
     ];
   });
 
-  const markAllRead = () => {
+  const markAllRead = useCallback(() => {
     setNotifications(prev => {
       const updated = prev.map(n => ({ ...n, read: true }));
       localStorage.setItem("rjit_notifications", JSON.stringify(updated));
       return updated;
     });
-  };
+  }, []);
 
-  const markAsRead = (id) => {
+  const markAsRead = useCallback((id) => {
     setNotifications(prev => {
       const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
       localStorage.setItem("rjit_notifications", JSON.stringify(updated));
       return updated;
     });
-  };
+  }, []);
 
-  const addNotification = (type, message, iconType, color) => {
+  const deleteNotification = useCallback((id) => {
+    setNotifications(prev => {
+      const updated = prev.filter(n => n.id !== id);
+      localStorage.setItem("rjit_notifications", JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const clearAllNotifications = useCallback((status = "all") => {
+    setNotifications(prev => {
+      let updated;
+      if (status === "read") {
+        updated = prev.filter(n => !n.read);
+      } else if (status === "unread") {
+        updated = prev.filter(n => n.read);
+      } else {
+        updated = [];
+      }
+      localStorage.setItem("rjit_notifications", JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const addNotification = useCallback((type, message, iconType, color) => {
     const newNotif = {
       id: Date.now(),
       type,
@@ -530,7 +553,7 @@ export function StoreProvider({ children }) {
       localStorage.setItem("rjit_notifications", JSON.stringify(updated));
       return updated;
     });
-  };
+  }, []);
 
   // Initial placed & received orders log
   const [orders, setOrders] = useState(() => {
@@ -695,15 +718,49 @@ export function StoreProvider({ children }) {
   };
 
   // Helper action: Receive Order (Update status & increase stock count)
-  const receiveOrderItem = (orderId, receiveDate) => {
+  const receiveOrderItem = (orderId, firstArg, secondArg) => {
     const orderIndex = orders.findIndex((o) => o.id === orderId);
     if (orderIndex === -1) return { success: false, message: "Order not found!" };
 
     const order = orders[orderIndex];
-    if (order.status === "Approved" || order.status === "Pending" || order.status === "Received") {
-      // 1. Mark order as Received
+    
+    // Support either receiveOrderItem(orderId, receiveDate) or receiveOrderItem(orderId, qtyReceived, receiveDate)
+    let qtyToReceive;
+    let receiveDate;
+    
+    const currentReceived = order.receivedQuantity || 0;
+    const remainingToReceive = order.pendingQuantity !== undefined ? order.pendingQuantity : (order.quantity - currentReceived);
+
+    if (secondArg !== undefined) {
+      qtyToReceive = parseInt(firstArg, 10);
+      receiveDate = secondArg;
+    } else {
+      qtyToReceive = remainingToReceive;
+      receiveDate = firstArg;
+    }
+
+    if (isNaN(qtyToReceive) || qtyToReceive <= 0) {
+      return { success: false, message: "Invalid quantity received!" };
+    }
+
+    if (qtyToReceive > remainingToReceive) {
+      return { success: false, message: `Cannot receive more than pending quantity (${remainingToReceive})!` };
+    }
+
+    if (order.status === "Approved" || order.status === "Pending" || order.status === "Received" || order.status === "Partially Received") {
+      const newReceived = currentReceived + qtyToReceive;
+      const newPending = order.quantity - newReceived;
+      const newStatus = newPending === 0 ? "Received" : "Partially Received";
+
+      // 1. Mark order status and quantities
       const updatedOrders = [...orders];
-      updatedOrders[orderIndex] = { ...order, status: "Received", receiveDate: receiveDate };
+      updatedOrders[orderIndex] = {
+        ...order,
+        status: newStatus,
+        receivedQuantity: newReceived,
+        pendingQuantity: newPending,
+        receiveDate: receiveDate
+      };
       setOrders(updatedOrders);
       localStorage.setItem("rjit_orders", JSON.stringify(updatedOrders));
 
@@ -719,7 +776,7 @@ export function StoreProvider({ children }) {
       const nowStr = getNowString();
       if (itemIndex !== -1) {
         updatedInventory = [...inventory];
-        const updatedStock = updatedInventory[itemIndex].stock + order.quantity;
+        const updatedStock = updatedInventory[itemIndex].stock + qtyToReceive;
         updatedInventory[itemIndex] = {
           ...updatedInventory[itemIndex],
           stock: updatedStock,
@@ -738,7 +795,7 @@ export function StoreProvider({ children }) {
           category: order.category,
           subcategory: order.subcategory,
           type: order.type,
-          stock: order.quantity,
+          stock: qtyToReceive,
           price: order.pricePerUnit || 1000,
           status: "Good",
           createdAt: nowStr
@@ -750,7 +807,7 @@ export function StoreProvider({ children }) {
 
       addNotification(
         "Stock Received",
-        `${order.quantity} units of ${order.item} (${order.type}) received for ${order.department} - Total Value: ₹${(order.quantity * (order.pricePerUnit || 1000)).toLocaleString()}`,
+        `${qtyToReceive} units of ${order.item} (${order.type}) received for ${order.department} - Total Value: ₹${(qtyToReceive * (order.pricePerUnit || 1000)).toLocaleString()}${newPending > 0 ? ` (${newPending} still pending)` : ""}`,
         "received",
         "bg-green-100 text-green-800"
       );
@@ -1304,6 +1361,8 @@ export function StoreProvider({ children }) {
         notifications,
         markAllRead,
         markAsRead,
+        deleteNotification,
+        clearAllNotifications,
         addNotification,
         maintenanceLogs,
         addMaintenanceLog,
