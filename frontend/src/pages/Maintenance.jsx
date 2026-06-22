@@ -38,6 +38,7 @@ export default function Maintenance() {
   // State Management
   const [selectedCategory, setSelectedCategory] = useState("RO"); // Default to RO Systems as in reference image
   const [selectedRoId, setSelectedRoId] = useState(null);
+  const [maintenanceTab, setMaintenanceTab] = useState("active"); // "active" or "decommissioned"
   const [showAddCatModal, setShowAddCatModal] = useState(false);
   const [showAddUnitModal, setShowAddUnitModal] = useState(false);
   const [showAddLogModal, setShowAddLogModal] = useState(false);
@@ -843,6 +844,13 @@ export default function Maintenance() {
       list = list.filter(ro => ro.category === selectedCategory);
     }
     
+    // Filter by Active vs Decommissioned Tab
+    if (maintenanceTab === "active") {
+      list = list.filter(ro => ro.status !== "Decommissioned");
+    } else {
+      list = list.filter(ro => ro.status === "Decommissioned");
+    }
+    
     if (assetSearch.trim()) {
       const q = assetSearch.toLowerCase();
       list = list.filter(ro => 
@@ -856,7 +864,7 @@ export default function Maintenance() {
     }
 
     return list;
-  }, [maintenanceLogs, selectedCategory, assetSearch, assetStatusFilter]);
+  }, [maintenanceLogs, selectedCategory, maintenanceTab, assetSearch, assetStatusFilter]);
 
   // Selected Unit & logs filtering
   const currentRO = useMemo(() => {
@@ -913,6 +921,14 @@ export default function Maintenance() {
   }, [maintenanceLogs, selectedCategory]);
 
   const totalAssetsCount = statsScopeUnits.length;
+
+  const activeCount = useMemo(() => {
+    return statsScopeUnits.filter(u => u.status !== "Decommissioned").length;
+  }, [statsScopeUnits]);
+
+  const decommissionedCount = useMemo(() => {
+    return statsScopeUnits.filter(u => u.status === "Decommissioned").length;
+  }, [statsScopeUnits]);
   
   const totalInvestmentAmount = useMemo(() => {
     return statsScopeUnits.reduce((sum, u) => {
@@ -1076,10 +1092,23 @@ export default function Maintenance() {
                     >
                       {/* Active indicator checkmark */}
                       {isActive && (
-                        <div className="absolute top-3 right-3 w-5 h-5 bg-white text-blue-600 rounded-full flex items-center justify-center text-[10px] shadow font-bold">
+                        <div className="absolute top-3 right-9 w-5 h-5 bg-white text-blue-600 rounded-full flex items-center justify-center text-[10px] shadow font-bold">
                           <FaIcons.FaCheck />
                         </div>
                       )}
+
+                      {/* Delete category option */}
+                      <button
+                        onClick={(e) => handleDeleteCategory(e, cat.id, cat.name)}
+                        className={`absolute top-3 right-3 p-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 z-10 cursor-pointer ${
+                          isActive
+                            ? "bg-white/10 hover:bg-rose-600 text-white border border-white/10 hover:border-transparent"
+                            : "bg-slate-100 hover:bg-rose-50 text-slate-450 hover:text-rose-600 border border-slate-200/50 hover:border-rose-100 shadow-sm"
+                        }`}
+                        title="Delete Category"
+                      >
+                        <FaIcons.FaTrash className="text-[10px]" />
+                      </button>
 
                       <div>
                         <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm mb-3 border ${
@@ -1255,6 +1284,48 @@ export default function Maintenance() {
                   <FaIcons.FaPlus /> Register Asset Unit
                 </button>
               </div>
+            </div>
+
+            {/* Tabs Selector */}
+            <div className="flex border-b border-slate-200 mb-6 bg-white p-1 rounded-xl shadow-sm w-fit">
+              <button
+                onClick={() => {
+                  setMaintenanceTab("active");
+                  setSelectedRoId(null);
+                }}
+                className={`py-2 px-5 font-bold text-xs flex items-center gap-2 rounded-lg transition-all duration-200 cursor-pointer ${
+                  maintenanceTab === "active"
+                    ? "bg-blue-600 text-white shadow"
+                    : "text-slate-500 hover:text-slate-850 hover:bg-slate-50"
+                }`}
+              >
+                <FaIcons.FaCheckCircle className={maintenanceTab === "active" ? "text-white" : "text-emerald-500"} />
+                <span>Active Assets</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+                  maintenanceTab === "active" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                }`}>
+                  {activeCount}
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  setMaintenanceTab("decommissioned");
+                  setSelectedRoId(null);
+                }}
+                className={`py-2 px-5 font-bold text-xs flex items-center gap-2 rounded-lg transition-all duration-200 cursor-pointer ${
+                  maintenanceTab === "decommissioned"
+                    ? "bg-blue-600 text-white shadow"
+                    : "text-slate-500 hover:text-slate-850 hover:bg-slate-50"
+                }`}
+              >
+                <FaIcons.FaTimesCircle className={maintenanceTab === "decommissioned" ? "text-white" : "text-slate-400"} />
+                <span>Decommissioned</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+                  maintenanceTab === "decommissioned" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-650"
+                }`}>
+                  {decommissionedCount}
+                </span>
+              </button>
             </div>
 
             {/* Filter Toggle Panel */}

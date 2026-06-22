@@ -34,22 +34,7 @@ const CATEGORY_STYLES = {
   "Miscellaneous": { icon: <FaIcons.FaBoxOpen />, color: "bg-slate-50 text-slate-600 border-slate-200" }
 };
 
-const DEPT_CATEGORIES = {
-  "Stationary": ["Stationery"],
-  "Sanitory": ["Cleaning"],
-  "Electrical": ["Electrical"],
-  "Electronics": ["Electronics"],
-  "Sports": ["Sports"],
-  "Furniture": ["Furniture"],
-  "IT,CSE": ["Electronics"],
-  "laboratory": ["Equipment", "Stationery"],
-  "Hostel": ["Furniture", "Electronics", "Cleaning"],
-  "Laboratory": ["Equipment", "Stationery"],
-  "IT Department": ["Electronics"],
-  "Library": ["Furniture", "Electronics", "Stationery"],
-  "Office": ["Furniture", "Stationery", "Electronics"],
-  "Medical": ["Equipment", "Cleaning"]
-};
+
 
 export default function DepartmentInventory() {
   const { department } = useParams();
@@ -85,16 +70,6 @@ export default function DepartmentInventory() {
     subcategories = inventorySubcategories
       .filter(s => s.categoryId === matchedCategory.id)
       .map(s => s.name);
-  } else {
-    // Compatibility fallback
-    subcategories = DEPT_CATEGORIES[department] || [
-      "Furniture",
-      "Electronics",
-      "Cleaning",
-      "Stationery",
-      "Equipment",
-      "Miscellaneous"
-    ];
   }
 
   const handleNavigate = (catName) => {

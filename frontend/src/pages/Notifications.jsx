@@ -20,17 +20,8 @@ export default function Notifications() {
   const { notifications, markAllRead, markAsRead, deleteNotification, clearAllNotifications } = useStore();
   const [activeTab, setActiveTab] = useState("unread"); // "unread" or "past"
 
-  useEffect(() => {
-    return () => {
-      markAllRead();
-    };
-  }, [markAllRead]);
-
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    if (tab === "past") {
-      markAllRead();
-    }
   };
 
   const getIcon = (iconType) => {

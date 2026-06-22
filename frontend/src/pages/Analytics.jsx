@@ -131,7 +131,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function Analytics() {
-  const { inventory, issuedStock } = useStore();
+  const { inventory, issuedStock, inventoryCategories, getRegisterForCategory } = useStore();
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const onPieEnter = (_, index) => {
@@ -143,37 +143,37 @@ export default function Analytics() {
   };
 
   // 1. Dynamic Department Usage (base mock values + dynamically issued quantities)
-  const departmentData = Object.keys(baseDepartmentData).map((dept) => {
-    const matchDept = (logDept) => {
-      if (!logDept) return false;
-      if (logDept.toLowerCase() === dept.toLowerCase()) return true;
-      if (dept === "IT,CSE" && logDept === "IT Department") return true;
-      if (dept === "Sanitory" && (logDept === "Hostel" || logDept === "Medical")) return true;
-      if (dept === "Furniture" && (logDept === "Library" || logDept === "Office")) return true;
-      if (dept === "laboratory" && logDept === "Laboratory") return true;
-      return false;
-    };
+  const departmentData = (inventoryCategories || []).map((cat) => {
+    const dept = cat.name;
+    const baseOffset = baseDepartmentData[dept] || 0;
 
     const issuedQty = issuedStock
-      .filter((log) => matchDept(log.department))
+      .filter((log) => {
+        const logReg = getRegisterForCategory(log.category || log.department);
+        return logReg.toLowerCase() === dept.toLowerCase();
+      })
       .reduce((sum, log) => sum + log.quantity, 0);
-    return { name: dept, value: baseDepartmentData[dept] + issuedQty };
+
+    return { name: dept, value: baseOffset + issuedQty };
   });
 
   // 2. Dynamic Category Stock Double Bar Levels
-  const categoryData = Object.keys(baseCategoryData).map((cat) => {
+  const categoryData = (inventoryCategories || []).map((catObj) => {
+    const cat = catObj.name;
+    const baseOffset = baseCategoryData[cat] || { availableOffset: 0, usedOffset: 0 };
+
     const available = inventory
-      .filter((item) => (item.category || "").toLowerCase() === (cat || "").toLowerCase())
+      .filter((item) => getRegisterForCategory(item.category).toLowerCase() === cat.toLowerCase())
       .reduce((sum, item) => sum + item.stock, 0);
 
     const used = issuedStock
-      .filter((log) => (log.category || "").toLowerCase() === (cat || "").toLowerCase())
+      .filter((log) => getRegisterForCategory(log.category || log.department).toLowerCase() === cat.toLowerCase())
       .reduce((sum, log) => sum + log.quantity, 0);
 
     return {
       category: cat,
-      available: available + baseCategoryData[cat].availableOffset,
-      used: used + baseCategoryData[cat].usedOffset
+      available: available + baseOffset.availableOffset,
+      used: used + baseOffset.usedOffset
     };
   });
 
@@ -343,7 +343,7 @@ export default function Analytics() {
                       {departmentData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
-                          fill={DEPARTMENT_COLORS[index]}
+                          fill={DEPARTMENT_COLORS[index % DEPARTMENT_COLORS.length]}
                           style={{ filter: "drop-shadow(0px 6px 10px rgba(0, 0, 0, 0.06))" }}
                         />
                       ))}
@@ -398,7 +398,7 @@ export default function Analytics() {
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div 
                           className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: dotColors[index] }}
+                          style={{ backgroundColor: dotColors[index % dotColors.length] }}
                         />
                         <span className="text-xs font-semibold text-slate-700 truncate">{item.name}</span>
                       </div>

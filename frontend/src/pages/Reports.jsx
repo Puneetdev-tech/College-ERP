@@ -22,30 +22,11 @@ import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
 import ExcelJS from "exceljs";
 
-// Department to Category mapping for purchase orders filtering
-const DEPT_CATEGORIES = {
-  // New Categories
-  Stationary: ["Stationery"],
-  Sanitory: ["Cleaning"],
-  Electrical: ["Electrical"],
-  Electronics: ["Electronics"],
-  Sports: ["Sports"],
-  Furniture: ["Furniture"],
-  "IT,CSE": ["Electronics"],
-  laboratory: ["Equipment", "Stationery"],
 
-  // Old Departments (backward compatibility)
-  "IT Department": ["Electronics"],
-  Hostel: ["Furniture", "Electronics"],
-  Library: ["Furniture", "Electronics", "Stationery"],
-  Office: ["Furniture", "Electronics", "Stationery"],
-  Medical: ["Equipment", "Cleaning"],
-  Laboratory: ["Equipment", "Stationery"]
-};
 
 export default function Reports() {
   const navigate = useNavigate();
-  const { inventory, issuedStock, orders, systemSettings, inventoryCategories } = useStore();
+  const { inventory, issuedStock, orders, systemSettings, inventoryCategories, getRegisterForCategory } = useStore();
   const collegeInfo = systemSettings?.collegeInfo;
 
   // Active Report Category: 'department', 'category', 'detail', 'summary', or null
@@ -429,8 +410,8 @@ export default function Reports() {
     if (!isWithinRange(order.orderDate)) return false;
     if (activeReportType === "category" && (order.category || "").toLowerCase() !== (selectedCategory || "").toLowerCase()) return false;
     if (activeReportType === "department") {
-      const allowedCategories = DEPT_CATEGORIES[selectedDepartment] || [];
-      if (!allowedCategories.some((cat) => (cat || "").toLowerCase() === (order.category || "").toLowerCase())) {
+      const regName = getRegisterForCategory(order.category);
+      if (regName.toLowerCase() !== selectedDepartment.toLowerCase()) {
         return false;
       }
     }
@@ -487,17 +468,10 @@ export default function Reports() {
   const departmentsList = inventoryCategories.map(c => c.name);
   
   const departmentIssuesSummary = departmentsList.map(dept => {
-    const matchDept = (logDept) => {
-      if (!logDept) return false;
-      if (logDept.toLowerCase() === dept.toLowerCase()) return true;
-      if (dept === "IT,CSE" && logDept === "IT Department") return true;
-      if (dept === "Sanitory" && (logDept === "Hostel" || logDept === "Medical")) return true;
-      if (dept === "Furniture" && (logDept === "Library" || logDept === "Office")) return true;
-      if (dept === "laboratory" && logDept === "Laboratory") return true;
-      return false;
-    };
-
-    const deptLogs = filteredIssued.filter(log => matchDept(log.department));
+    const deptLogs = filteredIssued.filter(log => {
+      const logReg = getRegisterForCategory(log.category || log.department);
+      return logReg.toLowerCase() === dept.toLowerCase();
+    });
     const qty = deptLogs.reduce((sum, log) => sum + log.quantity, 0);
     const amount = deptLogs.reduce((sum, log) => sum + (log.quantity * getIssuedItemPrice(log)), 0);
     return {
@@ -865,14 +839,9 @@ export default function Reports() {
                           {departmentIssuesSummary.map((dept, idx) => {
                             const isExpanded = expandedDepartment === dept.name;
                             const deptLogs = filteredIssued.filter(log => {
-                              if (!log.department) return false;
-                              if (log.department.toLowerCase() === dept.name.toLowerCase()) return true;
-                              if (dept.name === "IT,CSE" && log.department === "IT Department") return true;
-                              if (dept.name === "Sanitory" && (log.department === "Hostel" || log.department === "Medical")) return true;
-                              if (dept.name === "Furniture" && (log.department === "Library" || log.department === "Office")) return true;
-                              if (dept.name === "laboratory" && log.department === "Laboratory") return true;
-                              return false;
-                            });
+                               const logReg = getRegisterForCategory(log.category || log.department);
+                               return logReg.toLowerCase() === dept.name.toLowerCase();
+                             });
 
                             return (
                               <React.Fragment key={idx}>

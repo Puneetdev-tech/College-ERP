@@ -4,6 +4,7 @@ import Sidebar from "../components/sidebar";
 import { useStore, ROLE_DEFAULT_PERMISSIONS } from "../context/StoreContext";
 import FlashMessage from "../components/FlashMessage";
 import useFlash from "../components/useFlash";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const ALL_PERMISSIONS = [
   "Dashboard",
@@ -16,13 +17,21 @@ const ALL_PERMISSIONS = [
   "Notifications",
   "Users",
   "Settings",
-  "Maintenance"
+  "Maintenance",
+  "Backup"
 ];
 
 export default function UserManagement() {
   const { usersList, addUser, updateUser, deleteUser, approvalSequence, updateApprovalSequence } = useStore();
   const { flashes, showFlash, dismissFlash } = useFlash();
   const [showModal, setShowModal] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    type: "danger"
+  });
 
   // Form states
   const [isEditMode, setIsEditMode] = useState(false);
@@ -159,16 +168,23 @@ export default function UserManagement() {
   };
 
   const handleDelete = (id) => {
-    if (confirm("Are you sure you want to delete this user?")) {
-      const user = usersList.find((u) => u.id === id);
-      const userName = user ? user.name : "User";
-      deleteUser(id);
-      showFlash(
-        "info",
-        "User Deleted",
-        `User "${userName}" has been deleted.`
-      );
-    }
+    const user = usersList.find((u) => u.id === id);
+    const userName = user ? user.name : "User";
+    setConfirmDialog({
+      isOpen: true,
+      title: "Delete User",
+      message: `Are you sure you want to delete the user "${userName}"? This will move them to the backup logs.`,
+      type: "danger",
+      onConfirm: () => {
+        deleteUser(id);
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        showFlash(
+          "info",
+          "User Deleted",
+          `User "${userName}" has been deleted.`
+        );
+      }
+    });
   };
 
   return (
@@ -715,6 +731,15 @@ export default function UserManagement() {
             </div>
           </div>
         )}
+
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+          type={confirmDialog.type}
+        />
 
       </div>
     </div>

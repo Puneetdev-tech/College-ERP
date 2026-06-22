@@ -37,7 +37,7 @@ const formatDateTime = (dateTimeStr) => {
 };
 
 export default function ReceiveOrder() {
-  const { orders, receiveOrderItem } = useStore();
+  const { orders, receiveOrderItem, getRegisterForCategory } = useStore();
   const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamVal = searchParams.get("search") || "";
@@ -231,7 +231,7 @@ export default function ReceiveOrder() {
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Order ID</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Supplier</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Item Details</th>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Department</th>
+                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Category / Register</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Quantity</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Per Unit</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Total Cost</th>
@@ -255,7 +255,7 @@ export default function ReceiveOrder() {
                         <div className="text-[11px] text-slate-400 mt-0.5">{order.category} &gt; {order.subcategory} ({order.type})</div>
                       </td>
                       <td className="p-4 text-sm text-slate-700 dark:text-slate-300">
-                        <div className="font-semibold">{order.department || "N/A"}</div>
+                        <div className="font-semibold">{getRegisterForCategory(order.category)}</div>
                         <div className="text-xs text-slate-400 mt-0.5">{order.faculty || "N/A"}</div>
                       </td>
                       <td className="p-4 text-sm font-black text-slate-800 dark:text-slate-100">
@@ -451,9 +451,9 @@ export default function ReceiveOrder() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-500 font-bold text-xs mb-1.5 uppercase tracking-wider">Target Department</label>
+                    <label className="block text-slate-500 font-bold text-xs mb-1.5 uppercase tracking-wider">Category / Register</label>
                     <input
-                      value={selectedOrder.department || "N/A"}
+                      value={getRegisterForCategory(selectedOrder.category)}
                       disabled
                       className="border border-slate-200 p-3.5 rounded-2xl w-full bg-slate-100 dark:bg-slate-950 text-slate-500 cursor-not-allowed font-medium"
                     />

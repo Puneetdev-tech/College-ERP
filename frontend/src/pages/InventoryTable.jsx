@@ -23,35 +23,16 @@ const CATEGORY_BADGES = {
   "Furniture": "bg-amber-50 text-amber-700 border-amber-150",
   "Electrical": "bg-yellow-50 text-yellow-700 border-yellow-150",
   "Electronics": "bg-cyan-50 text-cyan-700 border-cyan-150",
-  "Cleaning": "bg-emerald-50 text-emerald-700 border-emerald-150",
-  "Stationery": "bg-blue-50 text-blue-700 border-blue-150",
-  "Equipment": "bg-indigo-50 text-indigo-700 border-indigo-150",
+  "Sanitory": "bg-emerald-50 text-emerald-700 border-emerald-150",
+  "Stationary": "bg-blue-50 text-blue-700 border-blue-150",
+  "IT,CSE": "bg-indigo-50 text-indigo-700 border-indigo-150",
+  "laboratory": "bg-indigo-50 text-indigo-700 border-indigo-150",
   "Sports": "bg-orange-50 text-orange-700 border-orange-150",
   "Miscellaneous": "bg-slate-50 text-slate-700 border-slate-200"
 };
 
-const DEPT_CATEGORIES = {
-  // New Categories
-  "Stationary": ["Stationery"],
-  "Sanitory": ["Cleaning"],
-  "Electrical": ["Electrical"],
-  "Electronics": ["Electronics"],
-  "Sports": ["Sports"],
-  "Furniture": ["Furniture"],
-  "IT,CSE": ["Electronics"],
-  "laboratory": ["Equipment", "Stationery"],
-
-  // Old Departments (backward compatibility)
-  "Hostel": ["Furniture", "Electronics", "Cleaning"],
-  "Laboratory": ["Equipment", "Stationery"],
-  "IT Department": ["Electronics"],
-  "Library": ["Furniture", "Electronics", "Stationery"],
-  "Office": ["Furniture", "Stationery", "Electronics"],
-  "Medical": ["Equipment", "Cleaning"]
-};
-
 export default function InventoryTable() {
-  const { inventory, addInventoryItem, systemSettings, orders } = useStore();
+  const { inventory, addInventoryItem, systemSettings, orders, getRegisterForCategory } = useStore();
   const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -133,13 +114,19 @@ export default function InventoryTable() {
 
   // Filter based on search query, category, and department params
   const filteredInventory = inventory.filter((item) => {
-    if (paramCategory && (item.category || "").toLowerCase() !== paramCategory.toLowerCase()) {
-      return false;
+    if (paramCategory) {
+      const normItemCat = (item.category || "").toLowerCase().trim();
+      const normParamCat = paramCategory.toLowerCase().trim();
+      const isStationeryMatch = (normItemCat === "stationary" || normItemCat === "stationery") && (normParamCat === "stationary" || normParamCat === "stationery");
+      const isSanitaryMatch = (normItemCat === "sanitory" || normItemCat === "sanitary" || normItemCat === "cleaning") && (normParamCat === "sanitory" || normParamCat === "sanitary" || normParamCat === "cleaning");
+      const isExactMatch = normItemCat === normParamCat;
+      
+      if (!isStationeryMatch && !isSanitaryMatch && !isExactMatch) {
+        return false;
+      }
     }
     if (paramDepartment) {
-      const allowedCategories = DEPT_CATEGORIES[paramDepartment] || [];
-      const itemCat = item.category || "";
-      if (!allowedCategories.some(c => c.toLowerCase() === itemCat.toLowerCase())) {
+      if (getRegisterForCategory(item.category).toLowerCase() !== paramDepartment.toLowerCase()) {
         return false;
       }
     }

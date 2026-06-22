@@ -321,3 +321,32 @@ body.dark .interactive-table-row:hover {
   background-color: rgba(34, 211, 238, 0.08) !important; /* soft cyan */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
+
+/* Futuristic/Creative Backup Panel Animations & Glows */
+@keyframes borderGlow {
+  0%, 100% {
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+  }
+  50% {
+    border-color: rgba(168, 85, 247, 0.6);
+    box-shadow: 0 0 40px rgba(168, 85, 247, 0.4);
+  }
+}
+
+.animate-glow {
+  animation: borderGlow 6s ease-in-out infinite;
+}
+
+@keyframes pulseNeon {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.6);
+  }
+}
+
+.animate-pulse-neon {
+  animation: pulseNeon 3s ease-in-out infinite;
+}

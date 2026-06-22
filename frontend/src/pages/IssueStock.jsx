@@ -72,7 +72,14 @@ const parseDate = (dateStr) => {
 };
 
 export default function IssueStock() {
-  const { inventory, issuedStock, issueStockItem, inventoryCategories, inventorySubcategories } = useStore();
+  const { 
+    inventory, 
+    issuedStock, 
+    issueStockItem, 
+    inventoryCategories, 
+    inventorySubcategories,
+    getRegisterForCategory
+  } = useStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamVal = searchParams.get("search") || "";
 
@@ -103,50 +110,11 @@ export default function IssueStock() {
   const [sortDirection, setSortDirection] = useState("desc");
 
   // Get registers list
-  const registersList = inventoryCategories && inventoryCategories.length > 0 
-    ? inventoryCategories.map(c => c.name) 
-    : [
-        "Stationary",
-        "Sanitory",
-        "Electrical",
-        "Electronics",
-        "Sports",
-        "Furniture",
-        "IT,CSE",
-        "laboratory"
-      ];
-
-  // Map register name to item categories
-  const fallbackMap = {
-    "stationary": ["stationery"],
-    "sanitory": ["cleaning"],
-    "electrical": ["electrical"],
-    "electronics": ["electronics"],
-    "sports": ["sports"],
-    "furniture": ["furniture"],
-    "it,cse": ["electronics"],
-    "laboratory": ["equipment", "stationery"]
-  };
-
-  const getRegisterCategories = (regName) => {
-    const regObj = (inventoryCategories || []).find(c => c.name.toLowerCase() === regName.toLowerCase());
-    let cats = [];
-    if (regObj && inventorySubcategories) {
-      cats = inventorySubcategories
-        .filter(s => s.categoryId === regObj.id)
-        .map(s => s.name.toLowerCase());
-    }
-    if (cats.length === 0) {
-      cats = fallbackMap[regName.toLowerCase()] || [regName.toLowerCase()];
-    }
-    return cats;
-  };
+  const registersList = (inventoryCategories || []).map(c => c.name);
 
   // Filter items that belong to the selected register
   const registerItems = inventory.filter(item => {
-    const itemCat = (item.category || "").toLowerCase();
-    const allowedCats = getRegisterCategories(category);
-    return allowedCats.includes(itemCat);
+    return getRegisterForCategory(item.category).toLowerCase() === category.toLowerCase();
   });
 
   // Subcategories based on selected register
@@ -168,10 +136,8 @@ export default function IssueStock() {
   // Find matching inventory item to show current stock
   const matchingItem = inventory.find(
     (item) => {
-      const itemCat = (item.category || "").toLowerCase();
-      const allowedCats = getRegisterCategories(category);
       return (
-        allowedCats.includes(itemCat) &&
+        getRegisterForCategory(item.category).toLowerCase() === category.toLowerCase() &&
         (item.subcategory || "").toLowerCase() === (subcategory || "").toLowerCase() &&
         (item.type || "").toLowerCase() === (type || "").trim().toLowerCase()
       );
@@ -329,49 +295,15 @@ export default function IssueStock() {
               setDepartment("");
               setFaculty("");
               
-              const regs = inventoryCategories && inventoryCategories.length > 0 
-                ? inventoryCategories.map(c => c.name) 
-                : [
-                    "Stationary",
-                    "Sanitory",
-                    "Electrical",
-                    "Electronics",
-                    "Sports",
-                    "Furniture",
-                    "IT,CSE",
-                    "laboratory"
-                  ];
+              const regs = (inventoryCategories || []).map(c => c.name);
               
               if (regs.length > 0) {
                 const defaultReg = regs[0];
                 setCategory(defaultReg);
                 
-                const getRegCats = (regName) => {
-                  const regObj = (inventoryCategories || []).find(c => c.name.toLowerCase() === regName.toLowerCase());
-                  let cats = [];
-                  if (regObj && inventorySubcategories) {
-                    cats = inventorySubcategories
-                      .filter(s => s.categoryId === regObj.id)
-                      .map(s => s.name.toLowerCase());
-                  }
-                  if (cats.length === 0) {
-                    const fallbackMap = {
-                      "stationary": ["stationery"],
-                      "sanitory": ["cleaning"],
-                      "electrical": ["electrical"],
-                      "electronics": ["electronics"],
-                      "sports": ["sports"],
-                      "furniture": ["furniture"],
-                      "it,cse": ["electronics"],
-                      "laboratory": ["equipment", "stationery"]
-                    };
-                    cats = fallbackMap[regName.toLowerCase()] || [regName.toLowerCase()];
-                  }
-                  return cats;
-                };
-
-                const allowedCats = getRegCats(defaultReg);
-                const regItems = inventory.filter(item => allowedCats.includes((item.category || "").toLowerCase()));
+                const regItems = inventory.filter(item => 
+                  getRegisterForCategory(item.category).toLowerCase() === defaultReg.toLowerCase()
+                );
                 const subcats = Array.from(new Set(regItems.map((item) => item.subcategory)));
                 const defaultSub = subcats.length > 0 ? subcats[0] : "";
                 setSubcategory(defaultSub);
@@ -513,7 +445,7 @@ export default function IssueStock() {
                     onClick={() => handleSort("category")}
                   >
                     <div className="flex items-center gap-1">
-                      <span>Category</span>
+                      <span>Category / Register</span>
                       {renderSortIcon("category")}
                     </div>
                   </th>
@@ -603,7 +535,7 @@ export default function IssueStock() {
                         {/* Category */}
                         <td className="p-5">
                           <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-xl border ${badgeClass}`}>
-                            {log.category}
+                            {getRegisterForCategory(log.category)}
                           </span>
                         </td>
 
@@ -784,7 +716,15 @@ export default function IssueStock() {
                       type="number"
                       min="1"
                       value={quantity}
-                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "") {
+                          setQuantity("");
+                        } else {
+                          const parsed = parseInt(val, 10);
+                          setQuantity(isNaN(parsed) ? "" : parsed);
+                        }
+                      }}
                       className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
                     />
                   </div>
