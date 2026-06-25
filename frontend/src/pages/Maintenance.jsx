@@ -977,88 +977,124 @@ export default function Maintenance() {
 
 
   return (
-    <div className="bg-slate-50 min-h-screen text-slate-800 transition-colors duration-300">
+    <div className="min-h-screen text-slate-800 transition-colors duration-300" style={{
+      background: "linear-gradient(135deg, #f8fafc 0%, #ebf1fa 40%, #e2eaf8 80%, #f8fafc 100%)",
+      backgroundAttachment: "fixed"
+    }}>
+      {/* Ambient orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div style={{ position: "absolute", top: "8%", left: "10%", width: 350, height: 350, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", top: "60%", right: "5%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(6,182,212,0.06) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", bottom: "10%", left: "25%", width: 250, height: 250, borderRadius: "50%", background: "radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%)" }} />
+      </div>
       <Sidebar />
-      <div className="ml-64 p-6 font-sans">
+      <div className="ml-64 p-6 font-sans relative z-10">
         
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
-            <FaIcons.FaWrench className="text-blue-600 animate-pulse" />
+          <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-3"
+            style={{ background: "linear-gradient(90deg, #1e40af 0%, #6d28d9 50%, #0369a1 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+            <FaIcons.FaWrench style={{ color: "#2563eb", filter: "drop-shadow(0 0 10px rgba(37,99,235,0.25))", animation: "neonShieldPulse 2s ease-in-out infinite" }} />
             <span>Asset Maintenance Center</span>
           </h1>
-          <p className="text-slate-500 text-sm mt-1">
+          {/* Neon underline */}
+          <div className="mt-1.5 h-0.5 rounded-full" style={{ background: "linear-gradient(90deg, transparent, rgba(37,99,235,0.4), rgba(139,92,246,0.4), transparent)", boxShadow: "0 0 10px rgba(37,99,235,0.15)", maxWidth: 400 }} />
+          <p className="text-sm mt-2 font-medium" style={{ color: "#475569" }}>
             Track maintenance, repair history, parts replacement and cumulative costing of institutional assets.
           </p>
         </div>
 
         {/* Success Alert */}
         {successMessage && (
-          <div className="mb-6 flex items-center justify-between p-4 bg-emerald-50 border border-emerald-250 text-emerald-800 rounded-xl shadow-sm transition-all duration-300">
+          <div className="mb-6 flex items-center justify-between p-4 rounded-xl shadow-sm transition-all duration-300"
+            style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.22)", boxShadow: "0 4px 15px rgba(16,185,129,0.05)" }}>
             <div className="flex items-center gap-2">
-              <FaIcons.FaCheckCircle className="text-emerald-600 text-lg shrink-0" />
-              <span className="font-semibold text-sm">{successMessage}</span>
+              <FaIcons.FaCheckCircle style={{ color: "#10b981", filter: "drop-shadow(0 0 6px rgba(16,185,129,0.2))" }} />
+              <span className="font-semibold text-sm" style={{ color: "#065f46" }}>{successMessage}</span>
             </div>
-            <button onClick={() => setSuccessMessage("")} className="text-emerald-850 hover:text-emerald-950 font-bold text-lg cursor-pointer">
+            <button onClick={() => setSuccessMessage("")} className="font-bold text-lg cursor-pointer" style={{ color: "rgba(6,95,70,0.6)" }}>
               <FaIcons.FaTimes />
             </button>
           </div>
         )}
 
         {/* 1. Quick Actions Section */}
-        <div className="mb-8 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <FaIcons.FaBolt className="text-blue-500" />
+        <div className="mb-8 p-5 rounded-2xl" style={{ background: "rgba(255, 255, 255, 0.75)", border: "1px solid rgba(99,102,241,0.15)", backdropFilter: "blur(16px)", boxShadow: "0 10px 30px rgba(99, 102, 241, 0.05)" }}>
+          <h2 className="text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2" style={{ color: "rgba(71,85,105,0.75)" }}>
+            <FaIcons.FaBolt style={{ color: "#fbbf24", filter: "drop-shadow(0 0 6px rgba(251,191,36,0.8))" }} />
             <span>Quick Actions</span>
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
             <button 
               onClick={() => setShowAddUnitModal(true)}
-              className="flex items-center justify-between p-4 bg-slate-55 hover:bg-blue-50/45 border border-slate-200/60 rounded-xl transition group text-left cursor-pointer active:scale-98"
+              className="flex items-center justify-between p-4 rounded-xl transition-all duration-200 group text-left cursor-pointer active:scale-98 hover:-translate-y-0.5"
+              style={{ background: "rgba(37,99,235,0.04)", border: "1px solid rgba(37,99,235,0.15)" }}
+              onMouseEnter={e => {
+                e.currentTarget.style.boxShadow = "0 8px 25px rgba(37,99,235,0.1)";
+                e.currentTarget.style.background = "rgba(37,99,235,0.07)";
+                e.currentTarget.style.borderColor = "rgba(37,99,235,0.25)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.boxShadow = "none";
+                e.currentTarget.style.background = "rgba(37,99,235,0.04)";
+                e.currentTarget.style.borderColor = "rgba(37,99,235,0.15)";
+              }}
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm shadow">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm shadow"
+                  style={{ background: "linear-gradient(135deg, #3b82f6, #1d4ed8)", border: "1px solid rgba(37,99,235,0.2)", color: "#ffffff", filter: "drop-shadow(0 4px 8px rgba(37,99,235,0.25))" }}>
                   <FaIcons.FaPlus />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-800 text-sm">Register Asset</h3>
-                  <p className="text-slate-400 text-xs mt-0.5">Add new asset</p>
+                  <h3 className="font-extrabold text-sm" style={{ color: "#1e293b" }}>Register Asset</h3>
+                  <p className="text-xs mt-0.5" style={{ color: "rgba(71,85,105,0.7)" }}>Add new asset unit</p>
                 </div>
               </div>
-              <FaIcons.FaChevronRight className="text-slate-400 group-hover:translate-x-1 transition-transform text-xs" />
+              <FaIcons.FaChevronRight className="text-xs group-hover:translate-x-1 transition-transform" style={{ color: "#3b82f6" }} />
             </button>
 
             <button 
               onClick={() => setShowReportFormatModal(true)}
-              className="flex items-center justify-between p-4 bg-slate-55 hover:bg-purple-50/45 border border-slate-200/60 rounded-xl transition group text-left cursor-pointer active:scale-98"
+              className="flex items-center justify-between p-4 rounded-xl transition-all duration-200 group text-left cursor-pointer active:scale-98 hover:-translate-y-0.5"
+              style={{ background: "rgba(139,92,246,0.04)", border: "1px solid rgba(139,92,246,0.15)" }}
+              onMouseEnter={e => {
+                e.currentTarget.style.boxShadow = "0 8px 25px rgba(139,92,246,0.1)";
+                e.currentTarget.style.background = "rgba(139,92,246,0.07)";
+                e.currentTarget.style.borderColor = "rgba(139,92,246,0.25)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.boxShadow = "none";
+                e.currentTarget.style.background = "rgba(139,92,246,0.04)";
+                e.currentTarget.style.borderColor = "rgba(139,92,246,0.15)";
+              }}
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm shadow">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm shadow"
+                  style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)", border: "1px solid rgba(139,92,246,0.2)", color: "#ffffff", filter: "drop-shadow(0 4px 8px rgba(139,92,246,0.25))" }}>
                   <FaIcons.FaFileAlt />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-800 text-sm">Generate Report</h3>
-                  <p className="text-slate-400 text-xs mt-0.5">Download report</p>
+                  <h3 className="font-extrabold text-sm" style={{ color: "#1e293b" }}>Generate Report</h3>
+                  <p className="text-xs mt-0.5" style={{ color: "rgba(71,85,105,0.7)" }}>Download full report</p>
                 </div>
               </div>
-              <FaIcons.FaChevronRight className="text-slate-400 group-hover:translate-x-1 transition-transform text-xs" />
+              <FaIcons.FaChevronRight className="text-xs group-hover:translate-x-1 transition-transform" style={{ color: "#8b5cf6" }} />
             </button>
 
           </div>
         </div>
 
-        {/* 2. Middle Row: Asset Categories (left) & Overview Statistics (right) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-          
           {/* Left panel: Asset Categories */}
-          <div className="lg:col-span-7 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+          <div className="lg:col-span-7 p-5 rounded-2xl flex flex-col justify-between"
+            style={{ background: "rgba(255, 255, 255, 0.75)", border: "1px solid rgba(99,102,241,0.15)", backdropFilter: "blur(12px)", boxShadow: "0 10px 30px rgba(99, 102, 241, 0.05)" }}>
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-base font-bold text-slate-800">Asset Categories</h2>
+                <h2 className="text-base font-bold" style={{ color: "#1e293b" }}>Asset Categories</h2>
                 <button 
                   onClick={() => setShowAddCatModal(true)}
-                  className="text-xs text-blue-600 hover:text-blue-800 font-semibold cursor-pointer"
+                  className="text-xs font-semibold cursor-pointer transition text-blue-600 hover:text-blue-700"
                 >
                   Manage Categories
                 </button>
@@ -1084,15 +1120,31 @@ export default function Maintenance() {
                         setSelectedRoId(null);
                         setAssetSearch("");
                       }}
-                      className={`p-4 rounded-xl border transition-all duration-300 relative flex flex-col justify-between cursor-pointer group ${
-                        isActive
-                          ? "bg-gradient-to-br from-blue-600 to-indigo-650 text-white border-transparent shadow-[0_8px_25px_-4px_rgba(37,99,235,0.35)]"
-                          : "bg-slate-50/50 hover:bg-slate-50 text-slate-800 border-slate-200/70 hover:border-blue-400 hover:shadow-sm"
-                      }`}
+                      className="p-4 rounded-xl transition-all duration-300 relative flex flex-col justify-between cursor-pointer group"
+                      style={isActive ? {
+                        background: "linear-gradient(135deg, rgba(37,99,235,0.08) 0%, rgba(29,78,216,0.04) 100%)",
+                        border: "2px solid #2563eb",
+                        boxShadow: "0 8px 25px rgba(37,99,235,0.12)"
+                      } : {
+                        background: "rgba(255,255,255,0.85)",
+                        border: "1px solid rgba(226,232,240,0.8)",
+                      }}
+                      onMouseEnter={e => {
+                        if (!isActive) {
+                          e.currentTarget.style.border = "1px solid rgba(37,99,235,0.25)";
+                          e.currentTarget.style.background = "rgba(37,99,235,0.03)";
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!isActive) {
+                          e.currentTarget.style.border = "1px solid rgba(226,232,240,0.8)";
+                          e.currentTarget.style.background = "rgba(255,255,255,0.85)";
+                        }
+                      }}
                     >
                       {/* Active indicator checkmark */}
                       {isActive && (
-                        <div className="absolute top-3 right-9 w-5 h-5 bg-white text-blue-600 rounded-full flex items-center justify-center text-[10px] shadow font-bold">
+                        <div className="absolute top-3 right-9 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] shadow font-bold">
                           <FaIcons.FaCheck />
                         </div>
                       )}
@@ -1100,34 +1152,38 @@ export default function Maintenance() {
                       {/* Delete category option */}
                       <button
                         onClick={(e) => handleDeleteCategory(e, cat.id, cat.name)}
-                        className={`absolute top-3 right-3 p-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 z-10 cursor-pointer ${
-                          isActive
-                            ? "bg-white/10 hover:bg-rose-600 text-white border border-white/10 hover:border-transparent"
-                            : "bg-slate-100 hover:bg-rose-50 text-slate-450 hover:text-rose-600 border border-slate-200/50 hover:border-rose-100 shadow-sm"
-                        }`}
+                        className="absolute top-3 right-3 p-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 z-10 cursor-pointer"
+                        style={{ background: "rgba(255,77,109,0.15)", border: "1px solid rgba(255,77,109,0.2)", color: "#ff4d6d" }}
                         title="Delete Category"
                       >
                         <FaIcons.FaTrash className="text-[10px]" />
                       </button>
 
                       <div>
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm mb-3 border ${
-                          isActive 
-                            ? "bg-white text-blue-600 border-transparent shadow-sm" 
-                            : "bg-blue-50 text-blue-600 border-blue-100"
-                        }`}>
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm mb-3"
+                          style={isActive ? {
+                            background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                            border: "1px solid rgba(37,99,235,0.2)",
+                            color: "#ffffff",
+                            boxShadow: "0 4px 10px rgba(37,99,235,0.25)"
+                          } : {
+                            background: "rgba(37,99,235,0.06)",
+                            border: "1px solid rgba(37,99,235,0.15)",
+                            color: "#2563eb"
+                          }}
+                        >
                           {getIcon(cat.icon)}
                         </div>
-                        <h3 className="font-extrabold text-sm tracking-tight">{cat.name}</h3>
-                        <p className={`text-xs mt-1 font-semibold ${isActive ? "text-blue-100" : "text-slate-500"}`}>
+                        <h3 className="font-extrabold text-sm tracking-tight" style={{ color: isActive ? "#2563eb" : "#334155" }}>{cat.name}</h3>
+                        <p className="text-xs mt-1 font-semibold" style={{ color: isActive ? "#1e3a8a" : "#64748b" }}>
                           {count} Unit{count !== 1 && "s"}
                         </p>
-                        <p className={`text-[10px] mt-0.5 font-bold ${isActive ? "text-blue-200" : "text-slate-400"}`}>
+                        <p className="text-[10px] mt-0.5 font-bold" style={{ color: isActive ? "#2563eb" : "#94a3b8" }}>
                           {formatCurrency(investment)} Invested
                         </p>
                       </div>
 
-                      <div className="mt-4 pt-2 border-t border-current/10 flex items-center gap-1 text-[10px] font-bold">
+                      <div className="mt-4 pt-2 flex items-center gap-1 text-[10px] font-bold" style={{ borderTop: "1px solid rgba(0,0,0,0.06)", color: isActive ? "#2563eb" : "#94a3b8" }}>
                         <span>View Assets</span>
                         <FaIcons.FaArrowRight className="text-[8px] group-hover:translate-x-0.5 transition-transform" />
                       </div>
@@ -1138,88 +1194,104 @@ export default function Maintenance() {
                 {/* Add new category dotted card */}
                 <div
                   onClick={() => setShowAddCatModal(true)}
-                  className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-4 flex flex-col items-center justify-center bg-slate-50/20 hover:bg-blue-50/5 transition cursor-pointer text-slate-400 hover:text-blue-600 text-center min-h-[135px]"
+                  className="rounded-xl p-4 flex flex-col items-center justify-center transition cursor-pointer text-center min-h-[135px]"
+                  style={{ border: "2px dashed rgba(37,99,235,0.2)", background: "rgba(37,99,235,0.02)" }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = "#2563eb";
+                    e.currentTarget.style.background = "rgba(37,99,235,0.05)";
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = "rgba(37,99,235,0.2)";
+                    e.currentTarget.style.background = "rgba(37,99,235,0.02)";
+                  }}
                 >
-                  <FaIcons.FaPlus className="text-lg mb-1" />
-                  <span className="font-bold text-xs">Add New Category</span>
-                  <span className="text-[9px] text-slate-400 mt-0.5">Create a new asset category</span>
+                  <FaIcons.FaPlus className="text-lg mb-1" style={{ color: "#2563eb" }} />
+                  <span className="font-bold text-xs" style={{ color: "#2563eb" }}>Add New Category</span>
+                  <span className="text-[9px] mt-0.5" style={{ color: "#64748b" }}>Create a new asset category</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Right panel: Overview Statistics */}
-          <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+          <div className="lg:col-span-5 p-5 rounded-2xl flex flex-col justify-between"
+            style={{ background: "rgba(255, 255, 255, 0.75)", border: "1px solid rgba(99,102,241,0.15)", backdropFilter: "blur(12px)", boxShadow: "0 10px 30px rgba(99, 102, 241, 0.05)" }}>
             <div>
-              <h2 className="text-base font-bold text-slate-800 mb-4">
-                Overview Statistics {selectedCategory ? `- ${selectedCategory}` : ""}
+              <h2 className="text-base font-bold mb-4" style={{ color: "#1e293b" }}>
+                Overview Statistics {selectedCategory ? `— ${selectedCategory}` : ""}
               </h2>
               
               <div className="grid grid-cols-2 gap-4">
                 
                 {/* Total Assets KPI */}
-                <div className="p-3.5 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-xl border border-blue-200/50 flex flex-col justify-between min-h-[90px] relative shadow-sm hover:shadow transition duration-200">
+                <div className="p-3.5 rounded-xl flex flex-col justify-between min-h-[90px] relative transition-all duration-200 hover:-translate-y-0.5"
+                  style={{ background: "linear-gradient(135deg, rgba(59,130,246,0.06), rgba(29,78,216,0.02))", border: "1px solid rgba(59,130,246,0.15)", boxShadow: "0 4px 12px rgba(59,130,246,0.03)" }}>
                   <div className="flex justify-between items-start">
-                    <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-xs">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
+                      style={{ background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)", color: "#2563eb", boxShadow: "0 2px 6px rgba(59,130,246,0.1)" }}>
                       <FaIcons.FaBoxes />
                     </div>
-                    <span className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5" style={{ background: "rgba(59,130,246,0.1)", color: "#2563eb", border: "1px solid rgba(59,130,246,0.15)" }}>
                       <FaIcons.FaArrowUp className="text-[7px]" /> 12%
                     </span>
                   </div>
                   <div className="mt-2">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Total Assets</span>
-                    <span className="text-lg font-black text-slate-800">{totalAssetsCount}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider block" style={{ color: "#64748b" }}>Total Assets</span>
+                    <span className="text-lg font-black" style={{ color: "#1d4ed8", textShadow: "0 2px 8px rgba(37,99,235,0.15)" }}>{totalAssetsCount}</span>
                   </div>
                 </div>
 
                 {/* Total Investment KPI */}
-                <div className="p-3.5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-xl border border-emerald-200/50 flex flex-col justify-between min-h-[90px] relative shadow-sm hover:shadow transition duration-200">
+                <div className="p-3.5 rounded-xl flex flex-col justify-between min-h-[90px] relative transition-all duration-200 hover:-translate-y-0.5"
+                  style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.06), rgba(4,120,87,0.02))", border: "1px solid rgba(16,185,129,0.15)", boxShadow: "0 4px 12px rgba(16,185,129,0.03)" }}>
                   <div className="flex justify-between items-start">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
+                      style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.25)", color: "#10b981", boxShadow: "0 2px 6px rgba(16,185,129,0.1)" }}>
                       <FaIcons.FaRupeeSign />
                     </div>
-                    <span className="bg-emerald-100 text-emerald-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5" style={{ background: "rgba(16,185,129,0.1)", color: "#10b981", border: "1px solid rgba(16,185,129,0.15)" }}>
                       <FaIcons.FaArrowUp className="text-[7px]" /> 8%
                     </span>
                   </div>
                   <div className="mt-2">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Total Investment</span>
-                    <span className="text-sm font-black text-slate-800 block truncate">{formatCurrency(totalInvestmentAmount)}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider block" style={{ color: "#64748b" }}>Total Investment</span>
+                    <span className="text-sm font-black block truncate" style={{ color: "#047857", textShadow: "0 2px 8px rgba(16,185,129,0.15)" }}>{formatCurrency(totalInvestmentAmount)}</span>
                   </div>
                 </div>
 
                 {/* Pending Repairs KPI */}
-                <div className="p-3.5 bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-xl border border-amber-200/50 flex flex-col justify-between min-h-[90px] relative shadow-sm hover:shadow transition duration-200">
+                <div className="p-3.5 rounded-xl flex flex-col justify-between min-h-[90px] relative transition-all duration-200 hover:-translate-y-0.5"
+                  style={{ background: "linear-gradient(135deg, rgba(245,158,11,0.06), rgba(217,119,6,0.02))", border: `1px solid ${pendingRepairsCount > 0 ? "rgba(245,158,11,0.35)" : "rgba(245,158,11,0.15)"}`, boxShadow: pendingRepairsCount > 0 ? "0 4px 15px rgba(245,158,11,0.1)" : "none" }}>
                   <div className="flex justify-between items-start">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs ${pendingRepairsCount > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
+                      style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)", color: "#f59e0b", boxShadow: "0 2px 6px rgba(245,158,11,0.1)" }}>
                       <FaIcons.FaExclamationTriangle />
                     </div>
-                    <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold">
-                      - 0%
-                    </span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.15)" }}>Alerts</span>
                   </div>
                   <div className="mt-2">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Pending Repairs</span>
-                    <span className={`text-lg font-black ${pendingRepairsCount > 0 ? "text-amber-600 animate-pulse" : "text-slate-800"}`}>
+                    <span className="text-[9px] font-bold uppercase tracking-wider block" style={{ color: "#64748b" }}>Pending Repairs</span>
+                    <span className="text-lg font-black" style={{ color: pendingRepairsCount > 0 ? "#b45309" : "#64748b", textShadow: pendingRepairsCount > 0 ? "0 2px 8px rgba(245,158,11,0.2)" : "none", animation: pendingRepairsCount > 0 ? "neonShieldPulse 2s ease-in-out infinite" : "none" }}>
                       {pendingRepairsCount}
                     </span>
                   </div>
                 </div>
 
                 {/* Avg Repair Cost KPI */}
-                <div className="p-3.5 bg-gradient-to-br from-purple-500/10 to-fuchsia-500/10 rounded-xl border border-purple-200/50 flex flex-col justify-between min-h-[90px] relative shadow-sm hover:shadow transition duration-200">
+                <div className="p-3.5 rounded-xl flex flex-col justify-between min-h-[90px] relative transition-all duration-200 hover:-translate-y-0.5"
+                  style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.06), rgba(109,40,217,0.02))", border: "1px solid rgba(139,92,246,0.15)", boxShadow: "0 4px 12px rgba(139,92,246,0.03)" }}>
                   <div className="flex justify-between items-start">
-                    <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
+                      style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.25)", color: "#8b5cf6", boxShadow: "0 2px 6px rgba(139,92,246,0.1)" }}>
                       <FaIcons.FaWrench />
                     </div>
-                    <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5" style={{ background: "rgba(139,92,246,0.1)", color: "#8b5cf6", border: "1px solid rgba(139,92,246,0.15)" }}>
                       <FaIcons.FaArrowUp className="text-[7px]" /> 5%
                     </span>
                   </div>
                   <div className="mt-2">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Avg. Cost per Repair</span>
-                    <span className="text-lg font-black text-slate-800">{formatCurrency(avgRepairCostAmount)}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider block" style={{ color: "#64748b" }}>Avg. Cost per Repair</span>
+                    <span className="text-lg font-black" style={{ color: "#6d28d9", textShadow: "0 2px 8px rgba(139,92,246,0.15)" }}>{formatCurrency(avgRepairCostAmount)}</span>
                   </div>
                 </div>
 

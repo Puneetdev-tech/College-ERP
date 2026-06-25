@@ -15,6 +15,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { menuConfig } from "../data/menuConfig";
 import { useStore } from "../context/StoreContext";
+import { playUISound } from "./useSpeech";
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ export default function Sidebar() {
     : (menuConfig[currentUser?.role?.replace(/\s+/g, "") || "Admin"] || []);
 
   const handleLogout = () => {
+    playUISound("modal-close");
     logout();
     navigate("/");
   };
@@ -75,7 +77,7 @@ export default function Sidebar() {
           {menus.map((menu, index) => (
             <div
               key={index}
-              onClick={() => navigate(menu.path)}
+              onClick={() => { playUISound("nav"); navigate(menu.path); }}
               className={`sidebar-item flex items-center gap-3 rounded-xl cursor-pointer mb-1.5 ${
                 isActive(menu) ? "active" : ""
               } ${isCollapsed ? "justify-center p-2.5" : "py-2 px-3.5"}`}

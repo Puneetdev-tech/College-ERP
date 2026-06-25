@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  FaBell,
   FaUserCircle,
   FaSearch,
   FaSun,
@@ -10,9 +9,110 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
+import { playBeep } from "./useSpeech";
+
+// Bell ring CSS animation injected inline via style tag
+const BELL_RING_STYLE = `
+@keyframes bellRing {
+  0%   { transform: rotate(0deg); }
+  10%  { transform: rotate(15deg); }
+  20%  { transform: rotate(-13deg); }
+  30%  { transform: rotate(11deg); }
+  40%  { transform: rotate(-9deg); }
+  50%  { transform: rotate(7deg); }
+  60%  { transform: rotate(-5deg); }
+  70%  { transform: rotate(3deg); }
+  80%  { transform: rotate(-2deg); }
+  90%  { transform: rotate(1deg); }
+  100% { transform: rotate(0deg); }
+}
+.bell-ringing {
+  animation: bellRing 0.75s cubic-bezier(.36,.07,.19,.97) both;
+  transform-origin: top center;
+}
+`;
+
+// 3D Yellow Bell Icon
+const Yellow3DBell = ({ className, size = 24 }) => {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ filter: "drop-shadow(0 2px 4px rgba(217, 119, 6, 0.4))" }}
+    >
+      <defs>
+        {/* 3D Bell Body Gradient */}
+        <linearGradient id="bellBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#fffbeb" />
+          <stop offset="25%" stopColor="#fef08a" />
+          <stop offset="60%" stopColor="#eab308" />
+          <stop offset="100%" stopColor="#a16207" />
+        </linearGradient>
+
+        {/* 3D Bell Rim Gradient */}
+        <linearGradient id="bellRimGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#ca8a04" />
+          <stop offset="30%" stopColor="#fef08a" />
+          <stop offset="70%" stopColor="#eab308" />
+          <stop offset="100%" stopColor="#854d0e" />
+        </linearGradient>
+
+        {/* 3D Clapper Gradient */}
+        <radialGradient id="clapperGrad" cx="30%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#fef08a" />
+          <stop offset="50%" stopColor="#d97706" />
+          <stop offset="100%" stopColor="#78350f" />
+        </radialGradient>
+        
+        {/* Top Loop Gradient */}
+        <linearGradient id="loopGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#fef08a" />
+          <stop offset="100%" stopColor="#ca8a04" />
+        </linearGradient>
+      </defs>
+
+      {/* Top Hanging Loop */}
+      <path
+        d="M12 2C9.79 2 8 3.79 8 6V7H16V6C16 3.79 14.21 2 12 2ZM12 4C13.1 4 14 4.9 14 6H10C10 4.9 10.9 4 12 4Z"
+        fill="url(#loopGrad)"
+      />
+
+      {/* Clapper (Inside Ball) */}
+      <circle
+        cx="12"
+        cy="19.5"
+        r="2.5"
+        fill="url(#clapperGrad)"
+        style={{
+          filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))"
+        }}
+      />
+
+      {/* Main Bell Dome / Flare */}
+      <path
+        d="M12 5C7.58 5 6 8.5 6 12C6 15 5 16 4 17H20C19 16 18 15 18 12C18 8.5 16.42 5 12 5Z"
+        fill="url(#bellBodyGrad)"
+      />
+
+      {/* Bottom Rim (Lip) giving the 3D depth */}
+      <ellipse
+        cx="12"
+        cy="17"
+        rx="8"
+        ry="1.5"
+        fill="url(#bellRimGrad)"
+      />
+    </svg>
+  );
+};
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const [isBellRinging, setIsBellRinging] = useState(false);
   const { 
     currentUser, 
     inventory, 
@@ -123,7 +223,22 @@ export default function Navbar() {
     setIsFocused(false);
   };
 
+  const handleBellClick = () => {
+    if (!isBellRinging) {
+      setIsBellRinging(true);
+      playBeep("bell");
+      setTimeout(() => {
+        setIsBellRinging(false);
+        navigate("/notifications");
+      }, 800);
+    } else {
+      navigate("/notifications");
+    }
+  };
+
   return (
+    <>
+    <style>{BELL_RING_STYLE}</style>
     <div className="bg-white rounded-2xl shadow-md p-5 flex justify-between items-center z-30 relative">
       
       {/* Universal Search Container */}
@@ -275,13 +390,13 @@ export default function Navbar() {
       <div className="flex items-center gap-6">
 
         <div
-          className="relative cursor-pointer text-slate-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-cyan-400 transition-colors duration-200 p-1.5"
-          onClick={() => navigate("/notifications")}
-          title="Notifications"
+          className="relative cursor-pointer text-slate-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-cyan-400 transition-colors duration-200 p-1.5 select-none"
+          onClick={handleBellClick}
+          title="Notifications — Click for alerts"
         >
-          <FaBell size={22} />
+          <Yellow3DBell size={24} className={isBellRinging ? "bell-ringing" : ""} />
           {unreadCount > 0 && (
-            <span className="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+            <span className="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full animate-pulse">
               {unreadCount}
             </span>
           )}
@@ -309,5 +424,6 @@ export default function Navbar() {
 
       </div>
     </div>
+    </>
   );
 }

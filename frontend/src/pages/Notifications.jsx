@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
 import { useStore } from "../context/StoreContext";
+import { playUISound } from "../components/useSpeech";
 
 export default function Notifications() {
   const { notifications, markAllRead, markAsRead, deleteNotification, clearAllNotifications } = useStore();
@@ -65,14 +66,14 @@ export default function Notifications() {
             {activeTab === "unread" && unreadNotifications.length > 0 && (
               <>
                 <button
-                  onClick={markAllRead}
+                  onClick={() => { playUISound("save"); markAllRead(); }}
                   className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-3 rounded-2xl cursor-pointer transition shadow-md shadow-indigo-600/10 active:scale-95 flex-shrink-0"
                 >
                   <FaCheckDouble className="text-[10px]" />
                   <span>Mark all as read</span>
                 </button>
                 <button
-                  onClick={() => clearAllNotifications("unread")}
+                  onClick={() => { playUISound("delete"); clearAllNotifications("unread"); }}
                   className="flex items-center gap-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 font-bold text-xs px-5 py-3 rounded-2xl cursor-pointer transition shadow-md border border-rose-200/50 dark:border-rose-900/50 active:scale-95 flex-shrink-0"
                 >
                   <FaTrashAlt className="text-[10px]" />
@@ -83,8 +84,8 @@ export default function Notifications() {
 
             {activeTab === "past" && pastNotifications.length > 0 && (
               <button
-                onClick={() => clearAllNotifications("read")}
-                className="flex items-center gap-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 font-bold text-xs px-5 py-3 rounded-2xl cursor-pointer transition shadow-md border border-rose-200/50 dark:border-rose-900/50 active:scale-95 flex-shrink-0"
+                onClick={() => { playUISound("delete"); clearAllNotifications("read"); }}
+                className="flex items-center gap-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-450 font-bold text-xs px-5 py-3 rounded-2xl cursor-pointer transition shadow-md border border-rose-200/50 dark:border-rose-900/50 active:scale-95 flex-shrink-0"
               >
                 <FaTrashAlt className="text-[10px]" />
                 <span>Clear all past</span>
@@ -146,6 +147,7 @@ export default function Notifications() {
                       key={notification.id}
                       onClick={() => {
                         if (!notification.read) {
+                          playUISound("toggle");
                           markAsRead(notification.id);
                         }
                       }}
@@ -173,9 +175,10 @@ export default function Notifications() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            playUISound("delete");
                             deleteNotification(notification.id);
                           }}
-                          className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-white/80 dark:hover:bg-rose-950/20 transition cursor-pointer flex items-center justify-center shadow-sm border border-transparent hover:border-rose-100"
+                          className="p-2 rounded-xl text-slate-450 hover:text-rose-600 hover:bg-white/80 dark:hover:bg-rose-950/20 transition cursor-pointer flex items-center justify-center shadow-sm border border-transparent hover:border-rose-100"
                           title="Delete notification"
                         >
                           <FaTrash className="text-[11px]" />

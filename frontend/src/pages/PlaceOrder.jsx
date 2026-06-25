@@ -9,7 +9,9 @@ import {
   FaSearch,
   FaTimes,
   FaArrowRight,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaTruck,
+  FaLayerGroup
 } from "react-icons/fa";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
@@ -17,7 +19,7 @@ import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
 import FlashMessage from "../components/FlashMessage";
 import useFlash from "../components/useFlash";
-
+import { speak, playBeep } from "../components/useSpeech";
 
 
 const getCurrentDateTimeString = () => {
@@ -171,12 +173,17 @@ export default function PlaceOrder() {
       faculty: faculty.trim()
     });
 
+    // Sound & speech feedback
+    playBeep("order-placed");
+    speak(`Purchase order placed successfully for ${qty} ${finalItem}. Sent for approval.`);
+
     // Flash message
     showFlash(
       "success",
       "Purchase Order Placed",
       `Order for ${qty} × ${finalItem} placed successfully and sent for approval.`
     );
+
 
     setSupplier("");
     setItem("");
@@ -211,87 +218,83 @@ export default function PlaceOrder() {
     );
   });
 
+  const [animateIn, setAnimateIn] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setAnimateIn(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
-    <div className="bg-slate-50 min-h-screen text-slate-800 transition-colors duration-300">
+    <div style={{ background: "linear-gradient(135deg, #eff6ff 0%, #fafbff 50%, #f0fdf4 100%)", minHeight: "100vh" }}
+      className="text-slate-800 transition-colors duration-300">
       <Sidebar />
       <FlashMessage flashes={flashes} onDismiss={dismissFlash} />
       <div className="ml-64 p-8 max-w-7xl mx-auto">
         <Navbar />
 
-        {/* Header Title Section */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-8 mb-8 gap-4">
-          <div>
-            <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-700 to-indigo-900 dark:from-cyan-400 dark:to-indigo-400 bg-clip-text text-transparent">
-              Purchase Order Hub
-            </h1>
-            <p className="text-slate-500 mt-1 dark:text-slate-400">
-              Draft procurement requests, manage vendor agreements, and track order approvals.
-            </p>
-          </div>
+        {/* ── HERO HEADER ─────────────────────────────── */}
+        <div className={`relative overflow-hidden rounded-3xl mt-8 mb-8 p-8 shadow-xl transition-all duration-700 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
+          style={{ background: "linear-gradient(135deg, #1d4ed8 0%, #2563eb 40%, #0ea5e9 100%)" }}>
+          <div className="absolute -top-10 -right-10 w-64 h-64 rounded-full opacity-20"
+            style={{ background: "radial-gradient(circle, #60a5fa 0%, transparent 70%)" }} />
+          <div className="absolute bottom-0 left-1/4 w-32 h-32 rounded-full opacity-15"
+            style={{ background: "radial-gradient(circle, #a5f3fc 0%, transparent 70%)" }} />
+          <div className="absolute inset-0 opacity-5"
+            style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)", backgroundSize: "30px 30px" }} />
 
-          <button
-            onClick={() => {
-              setShowModal(true);
-              setOrderDate(getCurrentDateTimeString());
-            }}
-            className="group bg-blue-600 hover:bg-blue-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold px-6 py-3.5 rounded-2xl flex gap-2.5 items-center cursor-pointer shadow-lg shadow-blue-500/10 dark:shadow-cyan-500/10 active:scale-95 transition-all"
-          >
-            <FaPlus className="text-sm transition-transform duration-300 group-hover:rotate-90" />
-            Create Purchase Order
-          </button>
+          <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+                  <FaShoppingBag className="text-white text-lg" />
+                </div>
+                <span className="text-xs font-bold text-blue-200 uppercase tracking-widest">Procurement Management</span>
+              </div>
+              <h1 className="text-3xl font-extrabold text-white tracking-tight">Purchase Order Hub</h1>
+              <p className="text-blue-200 text-sm mt-1">Draft procurement requests, manage vendor agreements, and track order approvals.</p>
+            </div>
+
+            <button
+              onClick={() => { setShowModal(true); setOrderDate(getCurrentDateTimeString()); }}
+              className="group relative overflow-hidden bg-white text-blue-700 font-bold px-6 py-3.5 rounded-2xl flex gap-2.5 items-center cursor-pointer shadow-lg active:scale-95 transition-all hover:shadow-xl"
+              style={{ boxShadow: "0 8px 25px rgba(0,0,0,0.15)" }}
+            >
+              <span className="absolute inset-0 bg-blue-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <FaPlus className="text-sm transition-transform duration-300 group-hover:rotate-90 relative z-10" />
+              <span className="relative z-10">Create Purchase Order</span>
+            </button>
+          </div>
         </div>
 
-        {/* Statistics Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          
-          <div className="group card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-2 h-full bg-blue-600 dark:bg-blue-500" />
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
-              <FaShoppingBag size={20} />
+        {/* ── STAT CARDS ─────────────────────────────── */}
+        <div className={`grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8 transition-all duration-700 delay-100 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+          {[
+            { icon: <FaShoppingBag size={20} />, label: "Total Orders", value: totalOrders, grad: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)", glow: "rgba(37,99,235,0.18)" },
+            { icon: <FaClock size={20} />, label: "Pending Approval", value: pendingCount, grad: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", glow: "rgba(245,158,11,0.18)" },
+            { icon: <FaCheckDouble size={20} />, label: "Approved Orders", value: approvedCount, grad: "linear-gradient(135deg, #10b981 0%, #059669 100%)", glow: "rgba(16,185,129,0.18)" },
+            { icon: <FaWarehouse size={20} />, label: "Active Suppliers", value: uniqueSuppliers, grad: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)", glow: "rgba(99,102,241,0.18)" },
+          ].map((card, i) => (
+            <div key={i}
+              className="group relative overflow-hidden rounded-3xl p-6 text-white shadow-md cursor-default transition-all duration-400 hover:scale-[1.03] hover:shadow-xl"
+              style={{ background: card.grad, boxShadow: `0 8px 30px ${card.glow}` }}>
+              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-20"
+                style={{ background: "radial-gradient(circle, white 0%, transparent 70%)" }} />
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
+                  {card.icon}
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white/70 uppercase tracking-wider">{card.label}</p>
+                  <h3 className="text-2xl font-black text-white mt-0.5">{card.value}</h3>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Orders</p>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-0.5">{totalOrders}</h3>
-            </div>
-          </div>
-
-          <div className="group card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-2 h-full bg-yellow-500 dark:bg-yellow-400 animate-pulse" />
-            <div className="w-12 h-12 rounded-2xl bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-450 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
-              <FaClock size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Approval</p>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-0.5">{pendingCount}</h3>
-            </div>
-          </div>
-
-          <div className="group card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500 dark:bg-emerald-400" />
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
-              <FaCheckDouble size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Approved Orders</p>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-0.5">{approvedCount}</h3>
-            </div>
-          </div>
-
-          <div className="group card-3d bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center gap-4 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600 dark:bg-indigo-500" />
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">
-              <FaWarehouse size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Suppliers</p>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white mt-0.5">{uniqueSuppliers}</h3>
-            </div>
-          </div>
-
+          ))}
         </div>
 
-        {/* Dynamic Search & Filter Controls */}
-        <div className="bg-white border border-slate-100 dark:border-slate-800 rounded-3xl p-5 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+        {/* ── SEARCH BAR ─────────────────────────────── */}
+        <div className={`bg-white border border-slate-100 rounded-3xl p-5 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between transition-all duration-700 delay-150 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+          style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
           <div className="relative w-full md:w-96">
             <FaSearch className="absolute left-4 top-4 text-slate-400" />
             <input
@@ -333,29 +336,30 @@ export default function PlaceOrder() {
           )}
         </div>
 
-        {/* Orders Table Container */}
-        <div className="bg-white rounded-3xl border border-slate-100 dark:border-slate-850 shadow-md overflow-hidden">
-          <div className="p-6 border-b border-slate-100 dark:border-slate-850 bg-slate-50/50">
-            <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200">Issued Purchase Orders Registry</h2>
+        {/* ── ORDERS TABLE ────────────────────────────── */}
+        <div className={`bg-white rounded-3xl border border-slate-100 shadow-md overflow-hidden transition-all duration-700 delay-200 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+          style={{ boxShadow: "0 4px 30px rgba(37,99,235,0.07)" }}>
+          <div className="p-6 border-b border-slate-100" style={{ background: "linear-gradient(135deg, #fafaff 0%, #eff6ff 100%)" }}>
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><FaLayerGroup className="text-blue-500" /> Issued Purchase Orders Registry</h2>
             <p className="text-slate-400 text-xs mt-0.5">Real-time status updates and order approval states.</p>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
-              <thead className="interactive-thead border-b border-slate-200 dark:border-slate-800">
-                <tr>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Order ID</th>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Supplier</th>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Item Details</th>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Category / Register</th>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Faculty Member</th>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Specification</th>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Quantity</th>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Per Unit Cost</th>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Total Cost</th>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Order Date</th>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Status</th>
-                  <th className="p-4 text-center text-xs font-bold uppercase tracking-wider no-print">Actions</th>
+              <thead style={{ background: "linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)" }}>
+                <tr className="text-white text-[11px] font-bold uppercase tracking-wider">
+                  <th className="p-4 text-left">Order ID</th>
+                  <th className="p-4 text-left">Supplier</th>
+                  <th className="p-4 text-left">Item Details</th>
+                  <th className="p-4 text-left">Category / Register</th>
+                  <th className="p-4 text-left">Faculty Member</th>
+                  <th className="p-4 text-left">Specification</th>
+                  <th className="p-4 text-left">Quantity</th>
+                  <th className="p-4 text-left">Per Unit Cost</th>
+                  <th className="p-4 text-left">Total Cost</th>
+                  <th className="p-4 text-left">Order Date</th>
+                  <th className="p-4 text-left">Status</th>
+                  <th className="p-4 text-center no-print">Actions</th>
                 </tr>
               </thead>
 
@@ -364,7 +368,7 @@ export default function PlaceOrder() {
                   filteredOrders.map((order) => (
                     <tr
                       key={order.id}
-                      className="interactive-table-row hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors duration-150"
+                      className="group border-l-4 border-l-transparent hover:border-l-blue-500 hover:bg-blue-50/40 transition-all duration-200"
                     >
                       <td className="p-4 text-sm font-semibold text-slate-600 dark:text-slate-400">#{order.id}</td>
                       <td className="p-4 text-sm font-medium text-slate-800 dark:text-slate-100">{order.supplier}</td>
@@ -399,7 +403,8 @@ export default function PlaceOrder() {
                       <td className="p-4 text-center no-print">
                         <button
                           onClick={() => handleOpenTracking(order)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition shadow hover:scale-105 active:scale-95 whitespace-nowrap duration-200"
+                          className="text-white font-bold text-xs px-3.5 py-1.5 rounded-xl cursor-pointer transition shadow hover:scale-105 active:scale-95 whitespace-nowrap duration-200"
+                          style={{ background: "linear-gradient(135deg, #2563eb, #4f46e5)", boxShadow: "0 3px 10px rgba(37,99,235,0.3)" }}
                         >
                           Track & Print
                         </button>
@@ -418,17 +423,19 @@ export default function PlaceOrder() {
           </div>
         </div>
 
-        {/* Create Purchase Order Modal */}
+        {/* ── CREATE ORDER MODAL ──────────────────────── */}
         {showModal && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50 animate-fadeIn">
-            <div className="bg-white dark:bg-slate-900 w-[650px] rounded-3xl p-8 shadow-2xl border border-slate-100 dark:border-slate-800 relative max-h-[90vh] overflow-y-auto">
-              
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-slate-850 dark:text-white">
-                  Draft Purchase Request
-                </h2>
-                <p className="text-slate-400 text-xs mt-0.5">Please fill out details to draft an official order. It will route to the Principal dashboard for authorization.</p>
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex justify-center items-center z-50 animate-fadeIn p-4">
+            <div className="relative w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl"
+              style={{ boxShadow: "0 25px 60px rgba(37,99,235,0.3)" }}>
+              <div className="px-8 py-6 text-white relative overflow-hidden"
+                style={{ background: "linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0ea5e9 100%)" }}>
+                <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full opacity-20"
+                  style={{ background: "radial-gradient(circle, white 0%, transparent 70%)" }} />
+                <h2 className="text-2xl font-bold relative z-10">Draft Purchase Request</h2>
+                <p className="text-blue-200 text-xs mt-0.5 relative z-10">Fill out details to draft an official order. It will route to the Principal dashboard for authorization.</p>
               </div>
+              <div className="bg-white p-8 max-h-[75vh] overflow-y-auto">
 
               {errorMsg && (
                 <div className="mb-4 p-3.5 bg-rose-50 border border-rose-150 text-rose-600 rounded-2xl flex items-center gap-2.5 text-sm font-medium animate-fadeIn">
@@ -621,7 +628,8 @@ export default function PlaceOrder() {
               </form>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* Tracking & Print Modal */}
         {showTrackingModal && selectedTrackingOrder && (

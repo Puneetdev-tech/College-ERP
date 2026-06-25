@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaPlus, FaSearch, FaFilePdf, FaClock, FaChevronDown, FaChevronRight, FaHistory, FaFilter } from "react-icons/fa";
+import { FaPlus, FaSearch, FaFilePdf, FaClock, FaChevronDown, FaChevronRight, FaHistory, FaFilter, FaFileInvoice, FaEye, FaDownload } from "react-icons/fa";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
 import Sidebar from "../components/sidebar";
@@ -42,6 +42,8 @@ export default function InventoryTable() {
   const [search, setSearch] = useState("");
   const [expandedGroups, setExpandedGroups] = useState({});
   const [expandedItems, setExpandedItems] = useState({});
+  const [invoiceModalUrl, setInvoiceModalUrl] = useState(null);
+  const [invoiceModalName, setInvoiceModalName] = useState("");
   
   // Filtering & Sorting States
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
@@ -242,6 +244,12 @@ export default function InventoryTable() {
         (order.type || "").toLowerCase() === (item.type || "").toLowerCase()
     );
   };
+
+  // Get orders with invoice attached for an inventory item
+  const getOrdersWithInvoice = (item) => {
+    return getOrderHistory(item).filter(o => o.invoiceDataUrl);
+  };
+
 
   // Dynamic metrics calculations based on filtered items
   const totalItems = filteredInventory.reduce((sum, item) => sum + item.stock, 0);
@@ -535,11 +543,26 @@ export default function InventoryTable() {
                                 <div className="flex items-center gap-2.5">
                                   <div className="w-1.5 h-6 bg-blue-300 rounded-full flex-shrink-0" />
                                   <div>
-                                    <div className="font-bold text-slate-850 flex items-center gap-2">
+                                    <div className="font-bold text-slate-850 flex items-center gap-2 flex-wrap">
                                       <span>{item.item}</span>
                                       <span className="text-xs text-slate-400 font-normal font-mono bg-slate-100 border px-1.5 py-0.5 rounded">
                                         Spec: {item.type}
                                       </span>
+                                      {getOrdersWithInvoice(item).length > 0 && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const inv = getOrdersWithInvoice(item)[0];
+                                            setInvoiceModalUrl(inv.invoiceDataUrl);
+                                            setInvoiceModalName(`Invoice_${inv.id}`);
+                                          }}
+                                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition cursor-pointer"
+                                          title="View attached invoice"
+                                        >
+                                          <FaFileInvoice className="text-[9px]" />
+                                          View Invoice
+                                        </button>
+                                      )}
                                     </div>
                                     <div className="text-[10px] text-slate-400 mt-0.5 font-medium hover:text-indigo-650 transition flex items-center gap-1">
                                       <FaHistory className="text-slate-350" />
@@ -769,6 +792,75 @@ export default function InventoryTable() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Lightbox Modal */}
+      {invoiceModalUrl && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+          onClick={() => { setInvoiceModalUrl(null); setInvoiceModalName(""); }}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-4xl w-full max-h-[92vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 bg-indigo-600 text-white">
+              <div className="flex items-center gap-3">
+                <FaFileInvoice size={20} />
+                <div>
+                  <h3 className="font-bold text-sm">Invoice Viewer</h3>
+                  <p className="text-indigo-200 text-xs">{invoiceModalName}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={invoiceModalUrl}
+                  download={invoiceModalName}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 border border-white/25 rounded-xl text-xs font-bold cursor-pointer transition"
+                  title="Download Invoice"
+                >
+                  <FaDownload size={10} /> Download
+                </a>
+                <button
+                  onClick={() => { setInvoiceModalUrl(null); setInvoiceModalName(""); }}
+                  className="p-2 bg-white/15 hover:bg-white/30 rounded-xl transition cursor-pointer border border-white/20 text-white font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Invoice Content */}
+            <div className="flex-1 overflow-auto p-4 bg-slate-50">
+              {invoiceModalUrl.startsWith("data:image/") ? (
+                <img
+                  src={invoiceModalUrl}
+                  alt="Invoice"
+                  className="max-w-full mx-auto rounded-xl shadow-lg border border-slate-200"
+                />
+              ) : invoiceModalUrl.startsWith("data:application/pdf") ? (
+                <iframe
+                  src={invoiceModalUrl}
+                  className="w-full h-[70vh] rounded-xl border border-slate-200"
+                  title="Invoice PDF"
+                />
+              ) : (
+                <div className="text-center py-12">
+                  <FaFileInvoice size={48} className="mx-auto text-indigo-300 mb-4" />
+                  <p className="text-slate-500 font-semibold mb-4">Preview not available for this file type.</p>
+                  <a
+                    href={invoiceModalUrl}
+                    download={invoiceModalName}
+                    className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition cursor-pointer"
+                  >
+                    <FaDownload /> Download Invoice
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

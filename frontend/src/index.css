@@ -350,3 +350,100 @@ body.dark .interactive-table-row:hover {
 .animate-pulse-neon {
   animation: pulseNeon 3s ease-in-out infinite;
 }
+
+/* =====================================================
+   NEON BACKUP GATEWAY MODAL – Premium 3D/Backlit Effects
+   ===================================================== */
+
+@keyframes neonBorderRotate {
+  0% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.3), 0 0 30px rgba(99, 102, 241, 0.2), inset 0 0 15px rgba(0, 255, 255, 0.05); }
+  25% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(0, 255, 255, 0.2), inset 0 0 20px rgba(168, 85, 247, 0.08); }
+  50% { box-shadow: 0 0 25px rgba(0, 180, 255, 0.6), 0 0 50px rgba(168, 85, 247, 0.3), inset 0 0 25px rgba(0, 180, 255, 0.1); }
+  75% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.5), 0 0 40px rgba(0, 255, 200, 0.2), inset 0 0 20px rgba(99, 102, 241, 0.08); }
+  100% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.3), 0 0 30px rgba(99, 102, 241, 0.2), inset 0 0 15px rgba(0, 255, 255, 0.05); }
+}
+
+@keyframes float3D {
+  0%, 100% { transform: perspective(1000px) rotateX(1deg) rotateY(-1deg) translateY(0px); }
+  33% { transform: perspective(1000px) rotateX(-1deg) rotateY(1deg) translateY(-4px); }
+  66% { transform: perspective(1000px) rotateX(0.5deg) rotateY(-0.5deg) translateY(-2px); }
+}
+
+@keyframes particleFloat {
+  0%, 100% { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.6; }
+  33% { transform: translateY(-12px) translateX(5px) scale(1.2); opacity: 1; }
+  66% { transform: translateY(-6px) translateX(-5px) scale(0.8); opacity: 0.4; }
+}
+
+@keyframes scanLine {
+  0% { top: -10%; opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.2; }
+  100% { top: 110%; opacity: 0; }
+}
+
+@keyframes neonShieldPulse {
+  0%, 100% { 
+    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8)) drop-shadow(0 0 16px rgba(99, 102, 241, 0.6));
+    transform: scale(1);
+  }
+  50% { 
+    filter: drop-shadow(0 0 16px rgba(168, 85, 247, 1)) drop-shadow(0 0 32px rgba(0, 255, 255, 0.8));
+    transform: scale(1.05);
+  }
+}
+
+@keyframes holographicShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes neonTextGlow {
+  0%, 100% { text-shadow: 0 0 10px rgba(0, 255, 255, 0.5), 0 0 20px rgba(99, 102, 241, 0.3); }
+  50% { text-shadow: 0 0 20px rgba(168, 85, 247, 0.8), 0 0 40px rgba(0, 255, 255, 0.5); }
+}
+
+@keyframes orbitRing {
+  0% { transform: rotateZ(0deg) rotateX(70deg); }
+  100% { transform: rotateZ(360deg) rotateX(70deg); }
+}
+
+.animate-neon-modal {
+  animation: neonBorderRotate 4s ease-in-out infinite, float3D 8s ease-in-out infinite;
+}
+
+.animate-neon-shield {
+  animation: neonShieldPulse 2.5s ease-in-out infinite;
+}
+
+.animate-neon-text {
+  animation: neonTextGlow 3s ease-in-out infinite;
+}
+
+.animate-scan-line {
+  animation: scanLine 4s linear infinite;
+}
+
+.animate-holographic {
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 255, 255, 0.2) 25%, rgba(168, 85, 247, 0.3) 50%, rgba(0, 255, 255, 0.2) 75%, transparent 100%);
+  background-size: 200% auto;
+  animation: holographicShimmer 2.5s linear infinite;
+}
+
+.particle-1 { animation: particleFloat 4s ease-in-out infinite; }
+.particle-2 { animation: particleFloat 5s ease-in-out infinite 0.5s; }
+.particle-3 { animation: particleFloat 3.5s ease-in-out infinite 1s; }
+.particle-4 { animation: particleFloat 6s ease-in-out infinite 1.5s; }
+.particle-5 { animation: particleFloat 4.5s ease-in-out infinite 0.8s; }
+.particle-6 { animation: particleFloat 5.5s ease-in-out infinite 2s; }
+
+/* ── Chat & General UI Animations ──────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

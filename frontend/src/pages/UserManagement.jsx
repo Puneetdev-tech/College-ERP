@@ -222,6 +222,7 @@ export default function UserManagement() {
                   <th className="p-4 text-left font-semibold text-sm">Email</th>
                   <th className="p-4 text-left font-semibold text-sm">Role</th>
                   <th className="p-4 text-left font-semibold text-sm">Access Permissions</th>
+                  <th className="p-4 text-left font-semibold text-sm">AI Chatbot</th>
                   <th className="p-4 text-left font-semibold text-sm">Status</th>
                   <th className="p-4 text-left font-semibold text-sm">Action</th>
                 </tr>
@@ -244,6 +245,31 @@ export default function UserManagement() {
                           </span>
                         )) || <span className="text-slate-400 text-xs italic">No access</span>}
                       </div>
+                    </td>
+                    {/* AI Chatbot Access Toggle */}
+                    <td className="p-4">
+                      {user.role === "Admin" ? (
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-full border border-violet-200">
+                          🤖 Always On
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => updateUser(user.id, { chatbotAccess: !user.chatbotAccess })}
+                          title={user.chatbotAccess ? "Revoke chatbot access" : "Grant chatbot access"}
+                          className={`relative inline-flex items-center h-6 rounded-full w-12 transition-colors duration-300 cursor-pointer shadow-inner focus:outline-none ${
+                            user.chatbotAccess
+                              ? "bg-violet-600 shadow-violet-500/30"
+                              : "bg-slate-300"
+                          }`}
+                        >
+                          <span className={`inline-block w-4 h-4 transform bg-white rounded-full shadow-md transition-transform duration-300 ${
+                            user.chatbotAccess ? "translate-x-7" : "translate-x-1"
+                          }`} />
+                          {user.chatbotAccess && (
+                            <span className="absolute inset-0 rounded-full animate-pulse bg-violet-400/20" />
+                          )}
+                        </button>
+                      )}
                     </td>
                     <td className="p-4">
                       <span
