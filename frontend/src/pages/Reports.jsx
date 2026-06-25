@@ -22,30 +22,11 @@ import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
 import ExcelJS from "exceljs";
 
-// Department to Category mapping for purchase orders filtering
-const DEPT_CATEGORIES = {
-  // New Categories
-  Stationary: ["Stationery"],
-  Sanitory: ["Cleaning"],
-  Electrical: ["Electrical"],
-  Electronics: ["Electronics"],
-  Sports: ["Sports"],
-  Furniture: ["Furniture"],
-  "IT,CSE": ["Electronics"],
-  laboratory: ["Equipment", "Stationery"],
 
-  // Old Departments (backward compatibility)
-  "IT Department": ["Electronics"],
-  Hostel: ["Furniture", "Electronics"],
-  Library: ["Furniture", "Electronics", "Stationery"],
-  Office: ["Furniture", "Electronics", "Stationery"],
-  Medical: ["Equipment", "Cleaning"],
-  Laboratory: ["Equipment", "Stationery"]
-};
 
 export default function Reports() {
   const navigate = useNavigate();
-  const { inventory, issuedStock, orders, systemSettings, inventoryCategories } = useStore();
+  const { inventory, issuedStock, orders, systemSettings, inventoryCategories, getRegisterForCategory } = useStore();
   const collegeInfo = systemSettings?.collegeInfo;
 
   // Active Report Category: 'department', 'category', 'detail', 'summary', or null
@@ -429,8 +410,8 @@ export default function Reports() {
     if (!isWithinRange(order.orderDate)) return false;
     if (activeReportType === "category" && (order.category || "").toLowerCase() !== (selectedCategory || "").toLowerCase()) return false;
     if (activeReportType === "department") {
-      const allowedCategories = DEPT_CATEGORIES[selectedDepartment] || [];
-      if (!allowedCategories.some((cat) => (cat || "").toLowerCase() === (order.category || "").toLowerCase())) {
+      const regName = getRegisterForCategory(order.category);
+      if (regName.toLowerCase() !== selectedDepartment.toLowerCase()) {
         return false;
       }
     }
@@ -450,14 +431,14 @@ export default function Reports() {
 
     // Filter received orders that occurred after the endDate
     const receivedAfter = orders.filter(o => {
-      const cleanDate = (o.receiveDate || o.orderDate || "").split(" ")[0];
-      return o.status === "Received" && 
+      const cleanDate = (o.receiveDate || "").split(" ")[0];
+      return (o.status === "Received" || o.status === "Partially Received") && 
              cleanDate > endDate && 
              (o.category || "").toLowerCase() === (item.category || "").toLowerCase() &&
              (o.subcategory || "").toLowerCase() === (item.subcategory || "").toLowerCase() &&
              (o.type || "").toLowerCase() === (item.type || "").toLowerCase();
     });
-    const totalReceivedAfter = receivedAfter.reduce((sum, o) => sum + o.quantity, 0);
+    const totalReceivedAfter = receivedAfter.reduce((sum, o) => sum + (o.receivedQuantity || o.quantity), 0);
 
     const computedStock = item.stock + totalIssuedAfter - totalReceivedAfter;
     return computedStock >= 0 ? computedStock : 0;
@@ -472,11 +453,11 @@ export default function Reports() {
   const totalOrderedQty = filteredOrders.reduce((sum, o) => sum + o.quantity, 0);
   const totalOrderedAmount = filteredOrders.reduce((sum, o) => sum + (o.quantity * o.pricePerUnit), 0);
 
-  const totalPurchasedQty = filteredOrders.filter(o => o.status === "Received").reduce((sum, o) => sum + o.quantity, 0);
-  const totalPurchasedAmount = filteredOrders.filter(o => o.status === "Received").reduce((sum, o) => sum + (o.quantity * o.pricePerUnit), 0);
+  const totalPurchasedQty = filteredOrders.reduce((sum, o) => sum + (o.receivedQuantity || (o.status === "Received" ? o.quantity : 0)), 0);
+  const totalPurchasedAmount = filteredOrders.reduce((sum, o) => sum + ((o.receivedQuantity || (o.status === "Received" ? o.quantity : 0)) * o.pricePerUnit), 0);
 
-  const totalNotReceivedQty = filteredOrders.filter(o => o.status !== "Received").reduce((sum, o) => sum + o.quantity, 0);
-  const totalNotReceivedAmount = filteredOrders.filter(o => o.status !== "Received").reduce((sum, o) => sum + (o.quantity * o.pricePerUnit), 0);
+  const totalNotReceivedQty = filteredOrders.reduce((sum, o) => sum + (o.pendingQuantity !== undefined ? o.pendingQuantity : (o.status === "Received" ? 0 : o.quantity)), 0);
+  const totalNotReceivedAmount = filteredOrders.reduce((sum, o) => sum + ((o.pendingQuantity !== undefined ? o.pendingQuantity : (o.status === "Received" ? 0 : o.quantity)) * o.pricePerUnit), 0);
 
   const totalIssuedQty = filteredIssued.reduce((sum, log) => sum + log.quantity, 0);
   const totalIssuedAmount = filteredIssued.reduce((sum, log) => sum + (log.quantity * getIssuedItemPrice(log)), 0);
@@ -487,17 +468,10 @@ export default function Reports() {
   const departmentsList = inventoryCategories.map(c => c.name);
   
   const departmentIssuesSummary = departmentsList.map(dept => {
-    const matchDept = (logDept) => {
-      if (!logDept) return false;
-      if (logDept.toLowerCase() === dept.toLowerCase()) return true;
-      if (dept === "IT,CSE" && logDept === "IT Department") return true;
-      if (dept === "Sanitory" && (logDept === "Hostel" || logDept === "Medical")) return true;
-      if (dept === "Furniture" && (logDept === "Library" || logDept === "Office")) return true;
-      if (dept === "laboratory" && logDept === "Laboratory") return true;
-      return false;
-    };
-
-    const deptLogs = filteredIssued.filter(log => matchDept(log.department));
+    const deptLogs = filteredIssued.filter(log => {
+      const logReg = getRegisterForCategory(log.category || log.department);
+      return logReg.toLowerCase() === dept.toLowerCase();
+    });
     const qty = deptLogs.reduce((sum, log) => sum + log.quantity, 0);
     const amount = deptLogs.reduce((sum, log) => sum + (log.quantity * getIssuedItemPrice(log)), 0);
     return {
@@ -865,14 +839,9 @@ export default function Reports() {
                           {departmentIssuesSummary.map((dept, idx) => {
                             const isExpanded = expandedDepartment === dept.name;
                             const deptLogs = filteredIssued.filter(log => {
-                              if (!log.department) return false;
-                              if (log.department.toLowerCase() === dept.name.toLowerCase()) return true;
-                              if (dept.name === "IT,CSE" && log.department === "IT Department") return true;
-                              if (dept.name === "Sanitory" && (log.department === "Hostel" || log.department === "Medical")) return true;
-                              if (dept.name === "Furniture" && (log.department === "Library" || log.department === "Office")) return true;
-                              if (dept.name === "laboratory" && log.department === "Laboratory") return true;
-                              return false;
-                            });
+                               const logReg = getRegisterForCategory(log.category || log.department);
+                               return logReg.toLowerCase() === dept.name.toLowerCase();
+                             });
 
                             return (
                               <React.Fragment key={idx}>
@@ -991,7 +960,7 @@ export default function Reports() {
                           : "Total Item Ordered List"}
                         {` (${
                           activeSummaryTab === "purchased" 
-                            ? filteredOrders.filter(o => o.status === "Received").length
+                            ? filteredOrders.filter(o => o.status === "Received" || o.status === "Partially Received").length
                             : activeSummaryTab === "not_received"
                             ? filteredOrders.filter(o => o.status !== "Received").length
                             : filteredOrders.length
@@ -1015,7 +984,7 @@ export default function Reports() {
                           <th className="p-3 text-left text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">Item Details</th>
                           <th className="p-3 text-left text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">Supplier</th>
                           <th className="p-3 text-left text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">
-                            {activeSummaryTab === "not_received" ? "Qty Pending" : "Qty"}
+                            {activeSummaryTab === "not_received" ? "Qty Pending" : activeSummaryTab === "purchased" ? "Qty Recd" : "Qty"}
                           </th>
                           <th className="p-3 text-left text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">Per Unit</th>
                           <th className="p-3 text-left text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">Total Cost</th>
@@ -1026,35 +995,47 @@ export default function Reports() {
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
                         {(() => {
                           const list = activeSummaryTab === "purchased"
-                            ? filteredOrders.filter(o => o.status === "Received")
+                            ? filteredOrders.filter(o => o.status === "Received" || o.status === "Partially Received")
                             : activeSummaryTab === "not_received"
                             ? filteredOrders.filter(o => o.status !== "Received")
                             : filteredOrders;
 
                           return list.length > 0 ? (
-                            list.map((order) => (
-                              <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                                <td className="p-3 text-sm font-semibold text-slate-700 dark:text-slate-350">
-                                  {order.item} <span className="text-[10px] text-slate-450 font-normal">({order.type})</span>
-                                </td>
-                                <td className="p-3 text-sm text-slate-600 dark:text-slate-400">{order.supplier}</td>
-                                <td className="p-3 text-sm font-black text-slate-800 dark:text-white">{order.quantity}</td>
-                                <td className="p-3 text-sm font-semibold text-slate-700 dark:text-slate-350">₹{order.pricePerUnit?.toLocaleString()}</td>
-                                <td className="p-3 text-sm font-black text-slate-850 dark:text-white">₹{(order.pricePerUnit * order.quantity)?.toLocaleString()}</td>
-                                <td className="p-3 text-xs text-slate-500">{order.orderDate}</td>
-                                <td className="p-3 text-sm">
-                                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                                    order.status === "Pending" 
-                                      ? "bg-yellow-50 text-yellow-600 dark:bg-yellow-950/20 dark:text-yellow-400" 
-                                      : order.status === "Approved"
-                                      ? "bg-amber-550/20 text-amber-600 dark:bg-amber-950/20 dark:text-amber-450"
-                                      : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400"
-                                  }`}>
-                                    {order.status}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))
+                            list.map((order) => {
+                              const displayQty = activeSummaryTab === "purchased"
+                                ? (order.receivedQuantity !== undefined ? order.receivedQuantity : (order.status === "Received" ? order.quantity : 0))
+                                : activeSummaryTab === "not_received"
+                                ? (order.pendingQuantity !== undefined ? order.pendingQuantity : (order.status === "Received" ? 0 : order.quantity))
+                                : order.quantity;
+
+                              const displayCost = displayQty * order.pricePerUnit;
+
+                              return (
+                                <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                                  <td className="p-3 text-sm font-semibold text-slate-700 dark:text-slate-350">
+                                    {order.item} <span className="text-[10px] text-slate-455 font-normal">({order.type})</span>
+                                  </td>
+                                  <td className="p-3 text-sm text-slate-600 dark:text-slate-400">{order.supplier}</td>
+                                  <td className="p-3 text-sm font-black text-slate-800 dark:text-white">{displayQty}</td>
+                                  <td className="p-3 text-sm font-semibold text-slate-700 dark:text-slate-350">₹{order.pricePerUnit?.toLocaleString()}</td>
+                                  <td className="p-3 text-sm font-black text-slate-855 dark:text-white">₹{displayCost?.toLocaleString()}</td>
+                                  <td className="p-3 text-xs text-slate-500">{order.orderDate}</td>
+                                  <td className="p-3 text-sm">
+                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${
+                                      order.status === "Pending" 
+                                        ? "bg-yellow-50 text-yellow-600 dark:bg-yellow-950/20 dark:text-yellow-400" 
+                                        : order.status === "Approved"
+                                        ? "bg-amber-550/20 text-amber-600 dark:bg-amber-950/20 dark:text-amber-455"
+                                        : order.status === "Partially Received"
+                                        ? "bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400"
+                                        : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400"
+                                    }`}>
+                                      {order.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })
                           ) : (
                             <tr>
                               <td colSpan="7" className="p-8 text-center text-sm text-slate-400 font-medium bg-white dark:bg-slate-950">
@@ -1219,11 +1200,13 @@ export default function Reports() {
                               <td className="p-3.5 text-sm font-black text-slate-850 dark:text-white">₹{(order.pricePerUnit * order.quantity)?.toLocaleString()}</td>
                               <td className="p-3.5 text-xs text-slate-500">{order.orderDate}</td>
                               <td className="p-3.5 text-sm">
-                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${
                                   order.status === "Pending" 
                                     ? "bg-yellow-50 text-yellow-600 dark:bg-yellow-950/20 dark:text-yellow-400" 
                                     : order.status === "Approved"
-                                    ? "bg-amber-550/20 text-amber-600 dark:bg-amber-950/20 dark:text-amber-450"
+                                    ? "bg-amber-550/20 text-amber-600 dark:bg-amber-950/20 dark:text-amber-455"
+                                    : order.status === "Partially Received"
+                                    ? "bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400"
                                     : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400"
                                 }`}>
                                   {order.status}

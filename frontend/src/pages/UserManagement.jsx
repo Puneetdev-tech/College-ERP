@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { FaUserPlus, FaTrash, FaEdit } from "react-icons/fa";
+import { FaUserPlus, FaTrash, FaEdit, FaEye, FaEyeSlash } from "react-icons/fa";
 import Sidebar from "../components/sidebar";
 import { useStore, ROLE_DEFAULT_PERMISSIONS } from "../context/StoreContext";
+import FlashMessage from "../components/FlashMessage";
+import useFlash from "../components/useFlash";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const ALL_PERMISSIONS = [
   "Dashboard",
@@ -14,12 +17,21 @@ const ALL_PERMISSIONS = [
   "Notifications",
   "Users",
   "Settings",
-  "Maintenance"
+  "Maintenance",
+  "Backup"
 ];
 
 export default function UserManagement() {
   const { usersList, addUser, updateUser, deleteUser, approvalSequence, updateApprovalSequence } = useStore();
+  const { flashes, showFlash, dismissFlash } = useFlash();
   const [showModal, setShowModal] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    type: "danger"
+  });
 
   // Form states
   const [isEditMode, setIsEditMode] = useState(false);
@@ -33,6 +45,7 @@ export default function UserManagement() {
   const [status, setStatus] = useState("Active");
   const [selectedPermissions, setSelectedPermissions] = useState(ROLE_DEFAULT_PERMISSIONS["Admin"]);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Approver config controls tab state and forms
   const [approverTab, setApproverTab] = useState("existing");
@@ -56,6 +69,7 @@ export default function UserManagement() {
     setIsEditMode(false);
     setEditingUserId(null);
     setErrorMsg("");
+    setShowPassword(false);
   };
 
   const handleRoleChange = (newRole) => {
@@ -73,7 +87,7 @@ export default function UserManagement() {
   const handleEditClick = (user) => {
     setName(user.name);
     setEmail(user.email);
-    setPassword(""); // Keep blank unless updating password
+    setPassword(user.password || ""); // Prefill password so admin can view/change it
     const isStandard = ["Admin", "Store Manager", "Purchase Officer", "Principal", "Account Office"].includes(user.role);
     if (isStandard) {
       setRole(user.role);
@@ -88,10 +102,11 @@ export default function UserManagement() {
     setSelectedPermissions(user.permissions || ROLE_DEFAULT_PERMISSIONS[user.role] || []);
     setIsEditMode(true);
     setEditingUserId(user.id);
+    setShowPassword(false);
     setShowModal(true);
   };
 
-  const handleSave = async (e) => {
+  const handleSave = (e) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -126,38 +141,56 @@ export default function UserManagement() {
 
     if (!isEditMode) {
       userData.password = password.trim();
-      const res = await addUser(userData);
+      const res = addUser(userData);
       if (!res.success) {
         setErrorMsg(res.message);
         return;
       }
+      showFlash(
+        "success",
+        "User Created ✓",
+        `New user "${userData.name}" has been created successfully.`
+      );
     } else {
       if (password.trim()) {
         userData.password = password.trim();
       }
-      const res = await updateUser(editingUserId, userData);
-      if (!res.success) {
-        setErrorMsg(res.message);
-        return;
-      }
+      updateUser(editingUserId, userData);
+      showFlash(
+        "success",
+        "User Access Saved ✓",
+        `Changes to user "${userData.name}" have been saved successfully.`
+      );
     }
 
     resetForm();
     setShowModal(false);
   };
 
-  const handleDelete = async (id) => {
-    if (confirm("Are you sure you want to delete this user?")) {
-      const res = await deleteUser(id);
-      if (!res.success) {
-        alert(res.message || "Failed to delete user");
+  const handleDelete = (id) => {
+    const user = usersList.find((u) => u.id === id);
+    const userName = user ? user.name : "User";
+    setConfirmDialog({
+      isOpen: true,
+      title: "Delete User",
+      message: `Are you sure you want to delete the user "${userName}"? This will move them to the backup logs.`,
+      type: "danger",
+      onConfirm: () => {
+        deleteUser(id);
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        showFlash(
+          "info",
+          "User Deleted",
+          `User "${userName}" has been deleted.`
+        );
       }
-    }
+    });
   };
 
   return (
     <div className="bg-slate-100 min-h-screen text-slate-800">
       <Sidebar />
+      <FlashMessage flashes={flashes} onDismiss={dismissFlash} />
       <div className="ml-64 p-6">
 
         <div className="flex justify-between items-center mb-6">
@@ -287,13 +320,13 @@ export default function UserManagement() {
                           </div>
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={async () => {
+                              onClick={() => {
                                 if (idx === 0) return;
                                 const newSeq = [...approvalSequence];
                                 const temp = newSeq[idx];
                                 newSeq[idx] = newSeq[idx - 1];
                                 newSeq[idx - 1] = temp;
-                                await updateApprovalSequence(newSeq);
+                                updateApprovalSequence(newSeq);
                               }}
                               disabled={idx === 0}
                               className="text-slate-400 hover:text-slate-700 text-xs font-bold disabled:opacity-30 p-1 bg-slate-100 hover:bg-slate-200 rounded cursor-pointer transition"
@@ -302,13 +335,13 @@ export default function UserManagement() {
                               ▲
                             </button>
                             <button
-                              onClick={async () => {
+                              onClick={() => {
                                 if (idx === approvalSequence.length - 1) return;
                                 const newSeq = [...approvalSequence];
                                 const temp = newSeq[idx];
                                 newSeq[idx] = newSeq[idx + 1];
                                 newSeq[idx + 1] = temp;
-                                await updateApprovalSequence(newSeq);
+                                updateApprovalSequence(newSeq);
                               }}
                               disabled={idx === approvalSequence.length - 1}
                               className="text-slate-400 hover:text-slate-700 text-xs font-bold disabled:opacity-30 p-1 bg-slate-100 hover:bg-slate-200 rounded cursor-pointer transition"
@@ -317,9 +350,9 @@ export default function UserManagement() {
                               ▼
                             </button>
                             <button
-                              onClick={async () => {
+                              onClick={() => {
                                 const newSeq = approvalSequence.filter((_, i) => i !== idx);
-                                await updateApprovalSequence(newSeq);
+                                updateApprovalSequence(newSeq);
                               }}
                               className="text-red-500 hover:text-red-700 p-1 bg-red-50 hover:bg-red-100 rounded cursor-pointer transition"
                               title="Remove Step"
@@ -387,7 +420,7 @@ export default function UserManagement() {
                     </p>
                     
                     <button
-                      onClick={async () => {
+                      onClick={() => {
                         const selectEl = document.getElementById("approverSelect");
                         const selectedIdStr = selectEl?.value;
                         if (!selectedIdStr) return;
@@ -396,7 +429,7 @@ export default function UserManagement() {
                           alert("This user is already in the approval chain sequence!");
                           return;
                         }
-                        await updateApprovalSequence([...approvalSequence, selectedId]);
+                        updateApprovalSequence([...approvalSequence, selectedId]);
                         selectEl.value = "";
                       }}
                       className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition cursor-pointer active:scale-95 text-center text-xs"
@@ -486,7 +519,7 @@ export default function UserManagement() {
                       )}
                     </div>
                     <button
-                      onClick={async () => {
+                      onClick={() => {
                         setNewApprError("");
                         if (!newApprName.trim() || !newApprEmail.trim() || !newApprPassword.trim()) {
                           setNewApprError("All fields are required!");
@@ -503,7 +536,9 @@ export default function UserManagement() {
                           return;
                         }
                         
+                        const generatedId = Date.now();
                         const newUserObj = {
+                          id: generatedId,
                           name: newApprName.trim(),
                           email: newApprEmail.trim(),
                           password: newApprPassword.trim(),
@@ -512,13 +547,13 @@ export default function UserManagement() {
                           permissions: ROLE_DEFAULT_PERMISSIONS[finalRole] || []
                         };
                         
-                        const res = await addUser(newUserObj);
+                        const res = addUser(newUserObj);
                         if (!res.success) {
                           setNewApprError(res.message);
                           return;
                         }
                         
-                        await updateApprovalSequence([...approvalSequence, res.user.id]);
+                        updateApprovalSequence([...approvalSequence, generatedId]);
                         
                         setNewApprName("");
                         setNewApprEmail("");
@@ -579,16 +614,25 @@ export default function UserManagement() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-400 mb-1">
-                    {isEditMode ? "Password (leave blank to keep current)" : "Password"}
+                    Password
                   </label>
-                  <input
-                    type="password"
-                    placeholder={isEditMode ? "••••••••" : "Password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="border p-3 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 border-slate-200"
-                    required={!isEditMode}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="border p-3 pr-10 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 border-slate-200"
+                      required={!isEditMode}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1.5 rounded-lg transition duration-150 cursor-pointer"
+                    >
+                      {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -687,6 +731,15 @@ export default function UserManagement() {
             </div>
           </div>
         )}
+
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+          type={confirmDialog.type}
+        />
 
       </div>
     </div>

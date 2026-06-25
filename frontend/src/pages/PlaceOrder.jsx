@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { 
   FaPlus, 
@@ -38,7 +38,7 @@ const formatDateTime = (dateTimeStr) => {
 };
 
 export default function PlaceOrder() {
-  const { inventory, orders, placeOrderItem, systemSettings, inventoryCategories } = useStore();
+  const { inventory, orders, placeOrderItem, systemSettings, inventoryCategories, getRegisterForCategory } = useStore();
   const departmentsList = inventoryCategories.map(c => c.name);
   const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -62,63 +62,84 @@ export default function PlaceOrder() {
   // Form state
   const [supplier, setSupplier] = useState("");
   const [item, setItem] = useState("");
-  const [category, setCategory] = useState("Electronics");
+  const [category, setCategory] = useState(() => inventoryCategories[0]?.name || "Electronics");
 
-  // Subcategory list based on selected category
-  const subcategories = Array.from(
-    new Set(
-      inventory
-        .filter((i) => (i.category || "").toLowerCase() === (category || "").toLowerCase())
-        .map((i) => i.subcategory)
-    )
-  );
-
-  const [subcategory, setSubcategory] = useState(subcategories[0] || "");
-  const [isCustomSubcat, setIsCustomSubcat] = useState(subcategories.length === 0);
-  const [customSubcat, setCustomSubcat] = useState("");
-
+  // Autocomplete States
+  const [subcategory, setSubcategory] = useState("");
+  const [showSubcatSuggestions, setShowSubcatSuggestions] = useState(false);
   const [type, setType] = useState("");
+  const [showTypeSuggestions, setShowTypeSuggestions] = useState(false);
+
   const [quantity, setQuantity] = useState("");
   const [pricePerUnit, setPricePerUnit] = useState("");
   const [orderDate, setOrderDate] = useState(getCurrentDateTimeString());
-  const [department, setDepartment] = useState("IT,CSE");
   const [faculty, setFaculty] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const handleCategoryChange = (newCat) => {
-    setCategory(newCat);
-    const newSubcats = Array.from(
+  // Subcategory suggestions based on selected Category / Register
+  const subcategorySuggestions = React.useMemo(() => {
+    if (!category) return [];
+    return Array.from(
       new Set(
         inventory
-          .filter((i) => (i.category || "").toLowerCase() === (newCat || "").toLowerCase())
-          .map((i) => i.subcategory)
+          .filter(i => getRegisterForCategory(i.category).toLowerCase() === category.toLowerCase())
+          .map(i => i.subcategory)
+          .filter(Boolean)
       )
     );
-    if (newSubcats.length > 0) {
-      setSubcategory(newSubcats[0]);
-      setIsCustomSubcat(false);
-    } else {
-      setSubcategory("");
-      setIsCustomSubcat(true);
-    }
-    setCustomSubcat("");
+  }, [inventory, category, getRegisterForCategory]);
+
+  const filteredSubcatSuggestions = React.useMemo(() => {
+    if (!subcategory.trim()) return subcategorySuggestions;
+    return subcategorySuggestions.filter(s =>
+      s.toLowerCase().includes(subcategory.toLowerCase())
+    );
+  }, [subcategory, subcategorySuggestions]);
+
+  // Specification suggestions based on selected Category / Register & Subcategory
+  const specificationSuggestions = React.useMemo(() => {
+    if (!category || !subcategory) return [];
+    return Array.from(
+      new Set(
+        inventory
+          .filter(i => 
+            getRegisterForCategory(i.category).toLowerCase() === category.toLowerCase() &&
+            (i.subcategory || "").toLowerCase() === subcategory.toLowerCase()
+          )
+          .map(i => i.type)
+          .filter(Boolean)
+      )
+    );
+  }, [inventory, category, subcategory, getRegisterForCategory]);
+
+  const filteredTypeSuggestions = React.useMemo(() => {
+    if (!type.trim()) return specificationSuggestions;
+    return specificationSuggestions.filter(t =>
+      t.toLowerCase().includes(type.toLowerCase())
+    );
+  }, [type, specificationSuggestions]);
+
+  const handleCategoryChange = (newCat) => {
+    setCategory(newCat);
+    setSubcategory("");
+    setType("");
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setErrorMsg("");
 
-    const finalSubcat = isCustomSubcat ? customSubcat.trim() : subcategory.trim();
+    const finalSubcat = subcategory.trim();
+    const finalItem = item.trim() || finalSubcat;
 
     if (
       !supplier.trim() ||
-      !item.trim() ||
+      !finalItem ||
       !category.trim() ||
       !finalSubcat ||
       !quantity ||
       !pricePerUnit ||
       !orderDate ||
-      !department.trim() ||
       !faculty.trim()
     ) {
       setErrorMsg("All fields are required.");
@@ -137,55 +158,34 @@ export default function PlaceOrder() {
       return;
     }
 
-    const res = await placeOrderItem({
+    placeOrderItem({
       supplier: supplier.trim(),
-      item: item.trim(),
+      item: finalItem,
       category: category.trim(),
       subcategory: finalSubcat,
       type: type.trim() || "Standard",
       quantity: qty,
       pricePerUnit: unitPrice,
       orderDate: orderDate.replace("T", " "),
-      department: department.trim(),
+      department: category.trim(), // target department is unified to category/register
       faculty: faculty.trim()
     });
 
-    if (res.success) {
-      // Flash message
-      showFlash(
-        "success",
-        "Purchase Order Placed",
-        `Order for ${qty} × ${item.trim()} placed successfully and sent for approval.`
-      );
-    } else {
-      setErrorMsg(res.message || "Failed to place order");
-      return;
-    }
+    // Flash message
+    showFlash(
+      "success",
+      "Purchase Order Placed",
+      `Order for ${qty} × ${finalItem} placed successfully and sent for approval.`
+    );
 
     setSupplier("");
     setItem("");
-    setCategory("Electronics");
-    // Reset to electronics subcategories
-    const defaultSubcats = Array.from(
-      new Set(
-        inventory
-          .filter((i) => (i.category || "").toLowerCase() === "electronics")
-          .map((i) => i.subcategory)
-      )
-    );
-    if (defaultSubcats.length > 0) {
-      setSubcategory(defaultSubcats[0]);
-      setIsCustomSubcat(false);
-    } else {
-      setSubcategory("");
-      setIsCustomSubcat(true);
-    }
-    setCustomSubcat("");
+    setCategory(() => inventoryCategories[0]?.name || "Electronics");
+    setSubcategory("");
     setType("");
     setQuantity("");
     setPricePerUnit("");
     setOrderDate(getCurrentDateTimeString());
-    setDepartment("IT Department");
     setFaculty("");
     setShowModal(false);
   };
@@ -347,7 +347,7 @@ export default function PlaceOrder() {
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Order ID</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Supplier</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Item Details</th>
-                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Department</th>
+                  <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Category / Register</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Faculty Member</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Specification</th>
                   <th className="p-4 text-left text-xs font-bold uppercase tracking-wider">Quantity</th>
@@ -370,9 +370,11 @@ export default function PlaceOrder() {
                       <td className="p-4 text-sm font-medium text-slate-800 dark:text-slate-100">{order.supplier}</td>
                       <td className="p-4 text-sm">
                         <div className="font-bold text-slate-800 dark:text-slate-100">{order.item}</div>
-                        <div className="text-[11px] text-slate-450 dark:text-slate-400 mt-0.5">{order.category} &gt; {order.subcategory}</div>
+                        <div className="text-[11px] text-slate-450 dark:text-slate-400 mt-0.5">{order.subcategory}</div>
                       </td>
-                      <td className="p-4 text-sm font-semibold text-slate-700 dark:text-slate-300">{order.department || "N/A"}</td>
+                      <td className="p-4 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        {getRegisterForCategory(order.category)}
+                      </td>
                       <td className="p-4 text-sm text-slate-600 dark:text-slate-400">{order.faculty || "N/A"}</td>
                       <td className="p-4 text-sm text-slate-700 dark:text-slate-300 font-medium">{order.type || "Standard"}</td>
                       <td className="p-4 text-sm font-bold text-slate-800 dark:text-slate-100">{order.quantity}</td>
@@ -381,7 +383,7 @@ export default function PlaceOrder() {
                       <td className="p-4 text-xs text-slate-500 dark:text-slate-400 font-medium">{formatDateTime(order.orderDate)}</td>
                       <td className="p-4 text-sm">
                         <span
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold border ${
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold border whitespace-nowrap ${
                             order.status === "Pending"
                               ? "bg-yellow-50/80 border-yellow-250 text-yellow-600 dark:bg-yellow-950/20 dark:border-yellow-900 dark:text-yellow-400"
                               : order.status === "Approved"
@@ -434,7 +436,6 @@ export default function PlaceOrder() {
                   <span>{errorMsg}</span>
                 </div>
               )}
-
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -461,74 +462,53 @@ export default function PlaceOrder() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Category</label>
+                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Category / Register</label>
                     <select
                       value={category}
                       onChange={(e) => handleCategoryChange(e.target.value)}
                       className="border border-slate-200 p-3.5 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium cursor-pointer"
                     >
-                      <option value="Electronics">Electronics</option>
-                      <option value="Furniture">Furniture</option>
-                      <option value="Stationery">Stationery</option>
-                      <option value="Sports">Sports</option>
-                      <option value="Cleaning">Cleaning</option>
-                      <option value="Equipment">Equipment</option>
+                      {departmentsList.map((dept) => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
                     </select>
                   </div>
-                  <div>
+                  <div className="relative">
                     <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Subcategory</label>
-                    {!isCustomSubcat && subcategories.length > 0 ? (
-                      <div className="relative">
-                        <select
-                          value={subcategory}
-                          onChange={(e) => {
-                            if (e.target.value === "Other") {
-                              setIsCustomSubcat(true);
-                              setSubcategory("");
-                            } else {
-                              setSubcategory(e.target.value);
-                            }
-                          }}
-                          className="border border-slate-200 p-3.5 pr-10 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 appearance-none font-medium text-slate-800 dark:text-slate-200 cursor-pointer"
-                        >
-                          {subcategories.map((sub) => (
-                            <option key={sub} value={sub}>{sub}</option>
-                          ))}
-                          <option value="Other">Other (Add Custom)</option>
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-                          </svg>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <input
-                          placeholder="e.g. Computer, Printer, Chair"
-                          value={isCustomSubcat ? customSubcat : subcategory}
-                          onChange={(e) => {
-                            if (isCustomSubcat) {
-                              setCustomSubcat(e.target.value);
-                              setSubcategory(e.target.value);
-                            } else {
-                              setSubcategory(e.target.value);
-                            }
-                          }}
-                          className="border border-slate-200 p-3.5 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium"
-                          required
-                        />
-                        {subcategories.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsCustomSubcat(false);
-                              setSubcategory(subcategories[0]);
-                            }}
-                            className="border border-slate-300 text-slate-600 dark:text-slate-400 px-3.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold whitespace-nowrap cursor-pointer"
-                          >
-                            Select Existing
-                          </button>
+                    <input
+                      placeholder="e.g. Chair, Printer"
+                      value={subcategory}
+                      onChange={(e) => {
+                        setSubcategory(e.target.value);
+                        if (!item || item === subcategory) {
+                          setItem(e.target.value);
+                        }
+                      }}
+                      onFocus={() => setShowSubcatSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowSubcatSuggestions(false), 200)}
+                      className="border border-slate-200 p-3.5 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium"
+                      required
+                    />
+                    {showSubcatSuggestions && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                        {filteredSubcatSuggestions.length > 0 ? (
+                          filteredSubcatSuggestions.map((sub, idx) => (
+                            <div
+                              key={idx}
+                              onMouseDown={() => {
+                                setSubcategory(sub);
+                                setItem(sub);
+                                setShowSubcatSuggestions(false);
+                              }}
+                              className="p-3 hover:bg-slate-100 cursor-pointer text-sm text-slate-800 font-medium transition"
+                            >
+                              {sub}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-3 text-sm text-slate-400 italic">
+                            No matching subcategories (type custom)
+                          </div>
                         )}
                       </div>
                     )}
@@ -536,14 +516,38 @@ export default function PlaceOrder() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
-                  <div>
+                  <div className="relative">
                     <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Specification / Type</label>
                     <input
-                      placeholder="e.g. i5 16GB, Laser"
+                      placeholder="e.g. rotating, i5 16GB"
                       value={type}
                       onChange={(e) => setType(e.target.value)}
+                      onFocus={() => setShowTypeSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowTypeSuggestions(false), 200)}
                       className="border border-slate-200 p-3.5 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium"
                     />
+                    {showTypeSuggestions && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                        {filteredTypeSuggestions.length > 0 ? (
+                          filteredTypeSuggestions.map((t, idx) => (
+                            <div
+                              key={idx}
+                              onMouseDown={() => {
+                                setType(t);
+                                setShowTypeSuggestions(false);
+                              }}
+                              className="p-3 hover:bg-slate-100 cursor-pointer text-sm text-slate-800 font-medium transition"
+                            >
+                              {t}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-3 text-sm text-slate-400 italic">
+                            No matching specifications (type custom)
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Quantity</label>
@@ -574,18 +578,6 @@ export default function PlaceOrder() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Target Department</label>
-                    <select
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      className="border border-slate-200 p-3.5 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium cursor-pointer"
-                    >
-                      {departmentsList.map((dept) => (
-                        <option key={dept} value={dept}>{dept}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
                     <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Requesting Faculty</label>
                     <input
                       placeholder="e.g. Mr. Sharma"
@@ -595,17 +587,16 @@ export default function PlaceOrder() {
                       required
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Draft Date & Time</label>
-                  <input
-                    type="datetime-local"
-                    value={orderDate}
-                    onChange={(e) => setOrderDate(e.target.value)}
-                    className="border border-slate-200 p-3.5 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium text-slate-700 dark:text-slate-200"
-                    required
-                  />
+                  <div>
+                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Draft Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={orderDate}
+                      onChange={(e) => setOrderDate(e.target.value)}
+                      className="border border-slate-200 p-3.5 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium text-slate-700 dark:text-slate-200"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">

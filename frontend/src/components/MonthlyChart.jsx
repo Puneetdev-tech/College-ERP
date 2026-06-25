@@ -8,22 +8,46 @@ import {
   CartesianGrid,
 } from "recharts";
 
-const data = [
-  { month: "Jan", orders: 40 },
-  { month: "Feb", orders: 65 },
-  { month: "Mar", orders: 55 },
-  { month: "Apr", orders: 90 },
-  { month: "May", orders: 75 },
-  { month: "Jun", orders: 110 },
-  { month: "Jul", orders: 85 },
-  { month: "Aug", orders: 95 },
-  { month: "Sep", orders: 70 },
-  { month: "Oct", orders: 120 },
-  { month: "Nov", orders: 105 },
-  { month: "Dec", orders: 130 },
-];
+import { useStore } from "../context/StoreContext";
 
 export default function MonthlyChart() {
+  const { orders } = useStore();
+
+  const monthlyCounts = {
+    Jan: 0, Feb: 0, Mar: 0, Apr: 0, May: 0, Jun: 0,
+    Jul: 0, Aug: 0, Sep: 0, Oct: 0, Nov: 0, Dec: 0
+  };
+
+  (orders || []).forEach(o => {
+    if (!o.orderDate) return;
+    try {
+      const parts = o.orderDate.split(" ");
+      const datePart = parts[0]; // "YYYY-MM-DD"
+      const date = new Date(datePart);
+      if (!isNaN(date.getTime())) {
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthName = monthNames[date.getMonth()];
+        monthlyCounts[monthName] = (monthlyCounts[monthName] || 0) + 1;
+      }
+    } catch (e) {
+      // ignore
+    }
+  });
+
+  const data = [
+    { month: "Jan", orders: monthlyCounts.Jan },
+    { month: "Feb", orders: monthlyCounts.Feb },
+    { month: "Mar", orders: monthlyCounts.Mar },
+    { month: "Apr", orders: monthlyCounts.Apr },
+    { month: "May", orders: monthlyCounts.May },
+    { month: "Jun", orders: monthlyCounts.Jun },
+    { month: "Jul", orders: monthlyCounts.Jul },
+    { month: "Aug", orders: monthlyCounts.Aug },
+    { month: "Sep", orders: monthlyCounts.Sep },
+    { month: "Oct", orders: monthlyCounts.Oct },
+    { month: "Nov", orders: monthlyCounts.Nov },
+    { month: "Dec", orders: monthlyCounts.Dec },
+  ];
   return (
     <ResponsiveContainer width="100%" height={250}>
       <BarChart data={data}>

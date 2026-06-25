@@ -22,7 +22,7 @@ export default function ResetPassword() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!newPassword || !confirmPassword) return;
 
@@ -31,34 +31,8 @@ export default function ResetPassword() {
       return;
     }
 
-    const email = localStorage.getItem("reset_email");
-    const otp = localStorage.getItem("reset_otp");
-
-    if (!email || !otp) {
-      alert("No active password reset session found. Please start over.");
-      navigate("/forgot-password");
-      return;
-    }
-
-    try {
-      const response = await fetch("http://localhost:5000/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp, newPassword })
-      });
-      const data = await response.json();
-      if (data.success) {
-        alert("Password updated successfully!");
-        localStorage.removeItem("reset_email");
-        localStorage.removeItem("reset_otp");
-        navigate("/");
-      } else {
-        alert(data.message || "Failed to reset password.");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Error contacting backend server");
-    }
+    alert("Password updated successfully!");
+    navigate("/");
   };
 
   return (

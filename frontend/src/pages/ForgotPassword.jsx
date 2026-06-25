@@ -21,28 +21,10 @@ export default function ForgotPassword() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!email) return;
-
-    try {
-      const response = await fetch("http://localhost:5000/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
-      });
-      const data = await response.json();
-      if (data.success) {
-        alert(`[LAN Demo Mode] OTP sent to your inbox. Your OTP code is: ${data.otp}`);
-        localStorage.setItem("reset_email", email);
-        navigate("/verify-otp");
-      } else {
-        alert(data.message || "Failed to generate OTP");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Error contacting backend server");
-    }
+    navigate("/verify-otp");
   };
 
   return (

@@ -69,16 +69,16 @@ export default function Sidebar() {
           </button>
         </div>
  
-        <div className={`overflow-y-auto pr-1 sidebar-scrollbar ${
+        <div className={`overflow-y-auto overflow-x-hidden pr-1 sidebar-scrollbar ${
           isCollapsed ? "p-2 max-h-[calc(100vh-190px)]" : "p-4 max-h-[calc(100vh-220px)]"
         }`}>
           {menus.map((menu, index) => (
             <div
               key={index}
               onClick={() => navigate(menu.path)}
-              className={`sidebar-item flex items-center gap-3 rounded-xl cursor-pointer mb-2 ${
+              className={`sidebar-item flex items-center gap-3 rounded-xl cursor-pointer mb-1.5 ${
                 isActive(menu) ? "active" : ""
-              } ${isCollapsed ? "justify-center p-3" : "p-3"}`}
+              } ${isCollapsed ? "justify-center p-2.5" : "py-2 px-3.5"}`}
               title={isCollapsed ? menu.name : undefined}
             >
               <span className="text-lg flex-shrink-0">{menu.icon}</span>

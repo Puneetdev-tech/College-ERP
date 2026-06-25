@@ -11,7 +11,10 @@ import {
   FaHistory,
   FaBuilding,
   FaUserGraduate,
-  FaCalendarAlt
+  FaCalendarAlt,
+  FaSort,
+  FaSortUp,
+  FaSortDown
 } from "react-icons/fa";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
@@ -35,8 +38,48 @@ const formatDateTime = (dateTimeStr) => {
   }
 };
 
+const parseDate = (dateStr) => {
+  if (!dateStr) return new Date(0);
+  let d = new Date(dateStr);
+  if (!isNaN(d.getTime())) return d;
+  
+  try {
+    const parts = dateStr.split(/[\s,]+/);
+    const dateParts = parts[0].split("/");
+    if (dateParts.length === 3) {
+      const day = parseInt(dateParts[0], 10);
+      const month = parseInt(dateParts[1], 10) - 1;
+      const year = parseInt(dateParts[2], 10);
+      
+      let hour = 0;
+      let minute = 0;
+      if (parts[1]) {
+        const timeParts = parts[1].split(":");
+        hour = parseInt(timeParts[0], 10);
+        minute = parseInt(timeParts[1], 10) || 0;
+        
+        const ampm = parts[2] ? parts[2].toLowerCase() : "";
+        if (ampm.includes("pm") && hour < 12) hour += 12;
+        if (ampm.includes("am") && hour === 12) hour = 0;
+      }
+      d = new Date(year, month, day, hour, minute);
+      if (!isNaN(d.getTime())) return d;
+    }
+  } catch (e) {
+    // Ignore error
+  }
+  return new Date(0);
+};
+
 export default function IssueStock() {
-  const { inventory, issuedStock, issueStockItem, inventoryCategories } = useStore();
+  const { 
+    inventory, 
+    issuedStock, 
+    issueStockItem, 
+    inventoryCategories, 
+    inventorySubcategories,
+    getRegisterForCategory
+  } = useStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamVal = searchParams.get("search") || "";
 
@@ -49,50 +92,61 @@ export default function IssueStock() {
   }, [searchParamVal]);
 
   // Form states
-  const [category, setCategory] = useState("Electronics");
+  const [category, setCategory] = useState("Electronics"); // category state is used to store the selected Register name
   const [subcategory, setSubcategory] = useState("Computer");
   const [type, setType] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [department, setDepartment] = useState("IT,CSE");
+  const [department, setDepartment] = useState(""); // department state stores the "Issuing To" manual text input
   const [faculty, setFaculty] = useState("");
   const [issueDate, setIssueDate] = useState(getCurrentDateTimeString());
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Feedback states
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  // Unique categories in inventory
-  const categories = Array.from(new Set(inventory.map((item) => item.category)));
+  // Sort states
+  const [sortField, setSortField] = useState("id");
+  const [sortDirection, setSortDirection] = useState("desc");
 
-  // Subcategories based on selected category
+  // Get registers list
+  const registersList = (inventoryCategories || []).map(c => c.name);
+
+  // Filter items that belong to the selected register
+  const registerItems = inventory.filter(item => {
+    return getRegisterForCategory(item.category).toLowerCase() === category.toLowerCase();
+  });
+
+  // Subcategories based on selected register
   const subcategories = Array.from(
     new Set(
-      inventory
-        .filter((item) => (item.category || "").toLowerCase() === (category || "").toLowerCase())
-        .map((item) => item.subcategory)
+      registerItems.map((item) => item.subcategory)
     )
   );
 
-  // Types based on selected category & subcategory
+  // Types based on selected register & subcategory
   const availableTypes = Array.from(
     new Set(
-      inventory
-        .filter((item) => (item.category || "").toLowerCase() === (category || "").toLowerCase() && (item.subcategory || "").toLowerCase() === (subcategory || "").toLowerCase())
+      registerItems
+        .filter((item) => (item.subcategory || "").toLowerCase() === (subcategory || "").toLowerCase())
         .map((item) => item.type)
     )
   );
 
   // Find matching inventory item to show current stock
   const matchingItem = inventory.find(
-    (item) =>
-      (item.category || "").toLowerCase() === (category || "").toLowerCase() &&
-      (item.subcategory || "").toLowerCase() === (subcategory || "").toLowerCase() &&
-      (item.type || "").toLowerCase() === (type || "").trim().toLowerCase()
+    (item) => {
+      return (
+        getRegisterForCategory(item.category).toLowerCase() === category.toLowerCase() &&
+        (item.subcategory || "").toLowerCase() === (subcategory || "").toLowerCase() &&
+        (item.type || "").toLowerCase() === (type || "").trim().toLowerCase()
+      );
+    }
   );
   const availableStock = matchingItem ? matchingItem.stock : 0;
 
   // Handle form submission
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -101,11 +155,15 @@ export default function IssueStock() {
       return;
     }
     if (!type.trim()) {
-      setErrorMsg("Please enter the specific item type.");
+      setErrorMsg("Please enter the specific item type/specification.");
       return;
     }
     if (quantity <= 0) {
       setErrorMsg("Quantity must be at least 1.");
+      return;
+    }
+    if (!department.trim()) {
+      setErrorMsg("Please enter the issuing destination.");
       return;
     }
     if (!faculty.trim()) {
@@ -114,7 +172,7 @@ export default function IssueStock() {
     }
 
     if (!matchingItem) {
-      setErrorMsg("This specific item type does not exist in inventory for the selected category & subcategory.");
+      setErrorMsg("This specific item type does not exist in inventory for the selected register & subcategory.");
       return;
     }
 
@@ -126,13 +184,13 @@ export default function IssueStock() {
     const formattedDate = formatDateTime(issueDate);
 
     // Trigger context action
-    const res = await issueStockItem({
-      category,
+    const res = issueStockItem({
+      category: matchingItem.category,
       subcategory,
-      type: type.trim(),
+      type: matchingItem.type, // Use canonical case from inventory
       quantity: parseInt(quantity, 10),
-      department,
-      faculty,
+      department: department.trim(),
+      faculty: faculty.trim(),
       date: formattedDate
     });
 
@@ -141,6 +199,7 @@ export default function IssueStock() {
       // Reset form fields
       setQuantity(1);
       setType("");
+      setDepartment("");
       setFaculty("");
       setIssueDate(getCurrentDateTimeString());
       setTimeout(() => {
@@ -151,8 +210,6 @@ export default function IssueStock() {
       setErrorMsg(res.message);
     }
   };
-
-  const departmentsList = inventoryCategories.map(c => c.name);
 
   // Metrics
   const totalDisbursedQty = issuedStock.reduce((acc, log) => acc + log.quantity, 0);
@@ -172,6 +229,45 @@ export default function IssueStock() {
       (log.department || "").toLowerCase().includes(s) ||
       (log.faculty || "").toLowerCase().includes(s)
     );
+  });
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const renderSortIcon = (field) => {
+    if (sortField !== field) {
+      return <FaSort className="text-white/40 dark:text-slate-500 text-xs ml-1 flex-shrink-0" />;
+    }
+    return sortDirection === "asc" 
+      ? <FaSortUp className="text-white dark:text-cyan-400 text-xs ml-1 flex-shrink-0" />
+      : <FaSortDown className="text-white dark:text-cyan-400 text-xs ml-1 flex-shrink-0" />;
+  };
+
+  const sortedIssued = [...filteredIssued].sort((a, b) => {
+    let valA = a[sortField];
+    let valB = b[sortField];
+
+    if (sortField === "date") {
+      const dateA = parseDate(valA);
+      const dateB = parseDate(valB);
+      return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
+    }
+
+    if (typeof valA === "string") {
+      valA = valA.toLowerCase();
+      valB = (valB || "").toLowerCase();
+      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    } else {
+      return sortDirection === "asc" ? valA - valB : valB - valA;
+    }
   });
 
   return (
@@ -196,23 +292,27 @@ export default function IssueStock() {
               setShowModal(true);
               setIssueDate(getCurrentDateTimeString());
               setErrorMsg("");
-              if (categories.length > 0) {
-                const defaultCat = categories[0];
-                setCategory(defaultCat);
-                const subcats = Array.from(
-                  new Set(
-                    inventory
-                      .filter((item) => item.category === defaultCat)
-                      .map((item) => item.subcategory)
-                  )
+              setDepartment("");
+              setFaculty("");
+              
+              const regs = (inventoryCategories || []).map(c => c.name);
+              
+              if (regs.length > 0) {
+                const defaultReg = regs[0];
+                setCategory(defaultReg);
+                
+                const regItems = inventory.filter(item => 
+                  getRegisterForCategory(item.category).toLowerCase() === defaultReg.toLowerCase()
                 );
+                const subcats = Array.from(new Set(regItems.map((item) => item.subcategory)));
                 const defaultSub = subcats.length > 0 ? subcats[0] : "";
                 setSubcategory(defaultSub);
+                
                 if (defaultSub) {
                   const types = Array.from(
                     new Set(
-                      inventory
-                        .filter((item) => item.category === defaultCat && item.subcategory === defaultSub)
+                      regItems
+                        .filter((item) => (item.subcategory || "").toLowerCase() === defaultSub.toLowerCase())
                         .map((item) => item.type)
                     )
                   );
@@ -316,88 +416,174 @@ export default function IssueStock() {
               </button>
             </div>
           )}
-        </div>
-        {/* Redesigned Cards Grid for checkout registry */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredIssued.length > 0 ? (
-            filteredIssued.map((log) => {
-              // Get category-specific gradient color box
-              const getCategoryColorClass = (cat) => {
-                const c = (cat || "").toLowerCase();
-                if (c.includes("electronic")) {
-                  return "bg-gradient-to-br from-blue-50 to-indigo-100/60 dark:from-blue-950/20 dark:to-indigo-900/35 border-blue-150 dark:border-blue-900/40 shadow-blue-500/5";
-                }
-                if (c.includes("furniture")) {
-                  return "bg-gradient-to-br from-purple-50 to-pink-100/60 dark:from-purple-950/20 dark:to-pink-900/35 border-purple-150 dark:border-purple-900/40 shadow-purple-500/5";
-                }
-                if (c.includes("stationery")) {
-                  return "bg-gradient-to-br from-amber-50 to-orange-100/60 dark:from-amber-950/20 dark:to-orange-900/35 border-amber-150 dark:border-amber-900/40 shadow-amber-500/5";
-                }
-                if (c.includes("sport")) {
-                  return "bg-gradient-to-br from-emerald-50 to-teal-100/60 dark:from-emerald-950/20 dark:to-teal-900/35 border-emerald-150 dark:border-emerald-900/40 shadow-emerald-500/5";
-                }
-                return "bg-gradient-to-br from-slate-50 to-slate-100/60 dark:from-slate-900/20 dark:to-slate-800/35 border-slate-200/60 dark:border-slate-850 shadow-slate-500/5";
-              };
-              const colorClass = getCategoryColorClass(log.category);
-              
-              return (
-                <div 
-                  key={log.id} 
-                  className={`card-3d border rounded-3xl p-6 shadow-md relative overflow-hidden flex flex-col justify-between min-h-[260px] ${colorClass}`}
-                >
-                  <div>
-                    {/* Card Header */}
-                    <div className="flex justify-between items-start mb-4">
-                      <span className="text-xs font-bold font-mono text-indigo-600 dark:text-cyan-450 bg-white/70 dark:bg-slate-950/60 px-3 py-1.5 rounded-xl border border-indigo-100/30 dark:border-indigo-900/30">
-                        #IS-{String(log.id).padStart(3, "0")}
-                      </span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-550 dark:text-slate-400 bg-white/70 dark:bg-slate-950/40 px-2.5 py-1 rounded-lg">
-                        {log.category}
-                      </span>
+        </div>        {/* Interactive Table for checkout registry */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-md overflow-hidden transition-all duration-300">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[950px]">
+              <thead className="interactive-thead border-b border-slate-200 dark:border-slate-800">
+                <tr className="text-[11px] font-bold uppercase tracking-wider select-none">
+                  <th 
+                    className="p-5 pl-8 cursor-pointer hover:bg-white/10 dark:hover:bg-white/5 transition-all duration-150"
+                    onClick={() => handleSort("id")}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>ID</span>
+                      {renderSortIcon("id")}
                     </div>
-
-                    {/* Card Main Info */}
-                    <h3 className="text-lg font-black text-slate-850 dark:text-white leading-tight">{log.item}</h3>
-                    {log.type && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">Spec: {log.type}</p>
-                    )}
-
-                    {/* Quantity Display with background bubble */}
-                    <div className="my-4 flex items-center gap-3">
-                      <span className="text-3xl font-black text-slate-800 dark:text-white">{log.quantity}</span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Units Issued</span>
+                  </th>
+                  <th 
+                    className="p-5 cursor-pointer hover:bg-white/10 dark:hover:bg-white/5 transition-all duration-150"
+                    onClick={() => handleSort("item")}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Item Details</span>
+                      {renderSortIcon("item")}
                     </div>
-                  </div>
-
-                  {/* Card Footer Details */}
-                  <div className="border-t border-slate-200/60 dark:border-slate-800/80 pt-4 mt-2 space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-350">
-                      <FaBuilding className="text-slate-500 dark:text-slate-400 text-sm flex-shrink-0" />
-                      <span className="font-semibold">{log.department}</span>
+                  </th>
+                  <th 
+                    className="p-5 cursor-pointer hover:bg-white/10 dark:hover:bg-white/5 transition-all duration-150"
+                    onClick={() => handleSort("category")}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Category / Register</span>
+                      {renderSortIcon("category")}
                     </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2 text-slate-700 dark:text-slate-350">
-                        <FaUserGraduate className="text-slate-500 dark:text-slate-400 text-sm flex-shrink-0" />
-                        <span>{log.faculty}</span>
+                  </th>
+                  <th 
+                    className="p-5 cursor-pointer hover:bg-white/10 dark:hover:bg-white/5 transition-all duration-150 text-right"
+                    onClick={() => handleSort("quantity")}
+                  >
+                    <div className="flex items-center gap-1 justify-end pr-4">
+                      <span>Qty Issued</span>
+                      {renderSortIcon("quantity")}
+                    </div>
+                  </th>
+                  <th 
+                    className="p-5 cursor-pointer hover:bg-white/10 dark:hover:bg-white/5 transition-all duration-150"
+                    onClick={() => handleSort("department")}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Issuing To</span>
+                      {renderSortIcon("department")}
+                    </div>
+                  </th>
+                  <th 
+                    className="p-5 cursor-pointer hover:bg-white/10 dark:hover:bg-white/5 transition-all duration-150"
+                    onClick={() => handleSort("faculty")}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Issued To</span>
+                      {renderSortIcon("faculty")}
+                    </div>
+                  </th>
+                  <th 
+                    className="p-5 pr-8 cursor-pointer hover:bg-white/10 dark:hover:bg-white/5 transition-all duration-150"
+                    onClick={() => handleSort("date")}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Issue Date</span>
+                      {renderSortIcon("date")}
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {sortedIssued.length > 0 ? (
+                  sortedIssued.map((log) => {
+                    const getCategoryBadgeClass = (cat) => {
+                      const c = (cat || "").toLowerCase();
+                      if (c.includes("electronic")) {
+                        return "bg-blue-50 text-blue-750 border-blue-200/60 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-900/40";
+                      }
+                      if (c.includes("furniture")) {
+                        return "bg-purple-50 text-purple-755 border-purple-200/60 dark:bg-purple-950/20 dark:text-purple-300 dark:border-purple-900/40";
+                      }
+                      if (c.includes("stationery") || c.includes("stationary")) {
+                        return "bg-amber-50 text-amber-755 border-amber-200/60 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/40";
+                      }
+                      if (c.includes("sport") || c.includes("cleaning") || c.includes("sanitory")) {
+                        return "bg-emerald-50 text-emerald-755 border-emerald-200/60 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/40";
+                      }
+                      return "bg-slate-50 text-slate-700 border-slate-200/60 dark:bg-slate-800/35 dark:text-slate-350 dark:border-slate-700";
+                    };
+                    const badgeClass = getCategoryBadgeClass(log.category);
+                    
+                    return (
+                      <tr 
+                        key={log.id} 
+                        className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/25 transition-all duration-200 border-l-4 border-l-transparent hover:border-l-blue-600 dark:hover:border-l-cyan-500"
+                      >
+                        {/* ID */}
+                        <td className="p-5 pl-8">
+                          <span className="font-mono text-[11px] font-bold text-blue-600 dark:text-cyan-400 bg-blue-50/80 dark:bg-cyan-950/35 px-2.5 py-1.5 rounded-xl border border-blue-150/40 dark:border-cyan-900/30 transition-all duration-200 group-hover:bg-blue-600 group-hover:text-white dark:group-hover:bg-cyan-500 dark:group-hover:text-slate-950 group-hover:border-transparent shadow-sm">
+                            #IS-{String(log.id).padStart(3, "0")}
+                          </span>
+                        </td>
+
+                        {/* Item Details */}
+                        <td className="p-5">
+                          <div className="font-bold text-slate-800 dark:text-white leading-tight group-hover:translate-x-0.5 transition-transform duration-200">
+                            {log.item}
+                          </div>
+                          {log.type && (
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">
+                              Spec: {log.type}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Category */}
+                        <td className="p-5">
+                          <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-xl border ${badgeClass}`}>
+                            {getRegisterForCategory(log.category)}
+                          </span>
+                        </td>
+
+                        {/* Qty */}
+                        <td className="p-5 text-right font-black text-slate-800 dark:text-white text-base pr-12">
+                          {log.quantity}
+                        </td>
+
+                        {/* Issuing To */}
+                        <td className="p-5">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            <FaBuilding className="text-slate-400 group-hover:text-blue-500 dark:group-hover:text-cyan-500 transition-colors flex-shrink-0 text-sm" />
+                            <span>{log.department}</span>
+                          </div>
+                        </td>
+
+                        {/* Faculty */}
+                        <td className="p-5">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            <FaUserGraduate className="text-slate-400 group-hover:text-blue-500 dark:group-hover:text-cyan-500 transition-colors flex-shrink-0 text-sm" />
+                            <span>{log.faculty}</span>
+                          </div>
+                        </td>
+
+                        {/* Date */}
+                        <td className="p-5 pr-8">
+                          <div className="flex items-center gap-2 text-xs text-slate-800 dark:text-slate-200 font-bold">
+                            <FaCalendarAlt className="text-blue-500 dark:text-cyan-400 flex-shrink-0 text-sm group-hover:scale-110 transition-transform duration-200" />
+                            <span>{log.date}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="p-12 text-center">
+                      <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FaClipboardList className="text-xl" />
                       </div>
-                      <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-450 text-[10px] font-semibold">
-                        <FaCalendarAlt />
-                        <span>{log.date ? log.date.split(" ")[0] : ""}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="col-span-full bg-white border border-slate-100 dark:border-slate-805 rounded-3xl p-12 text-center shadow-sm">
-              <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaClipboardList className="text-xl" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-1">No transaction matches found</h3>
-              <p className="text-slate-450 text-sm max-w-sm mx-auto">Try checking your search spelling or change query filters.</p>
-            </div>
-          )}
+                      <h3 className="text-lg font-bold text-slate-700 dark:text-slate-350 mb-1">No transaction matches found</h3>
+                      <p className="text-slate-450 text-sm max-w-sm mx-auto">Try checking your search spelling or change query filters.</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Issue Item Modal */}
@@ -422,37 +608,38 @@ export default function IssueStock() {
               <form onSubmit={handleSubmit} className="space-y-5">
                 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Category Selection */}
+                  {/* Register Selection */}
                   <div>
-                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Category</label>
+                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Register / Department</label>
                     <select
                       value={category}
                       onChange={(e) => {
-                        const newCat = e.target.value;
-                        setCategory(newCat);
-                        const newSubcats = Array.from(
-                          new Set(
-                            inventory
-                              .filter((item) => item.category === newCat)
-                              .map((item) => item.subcategory)
-                          )
-                        );
+                        const newReg = e.target.value;
+                        setCategory(newReg);
+                        
+                        const allowedCats = getRegisterCategories(newReg);
+                        const regItems = inventory.filter(item => allowedCats.includes((item.category || "").toLowerCase()));
+                        const newSubcats = Array.from(new Set(regItems.map((item) => item.subcategory)));
                         const nextSubcat = newSubcats.length > 0 ? newSubcats[0] : "";
                         setSubcategory(nextSubcat);
                         
-                        const newTypes = Array.from(
-                          new Set(
-                            inventory
-                              .filter((item) => item.category === newCat && item.subcategory === nextSubcat)
-                              .map((item) => item.type)
-                          )
-                        );
-                        setType(newTypes.length > 0 ? newTypes[0] : "");
+                        if (nextSubcat) {
+                          const newTypes = Array.from(
+                            new Set(
+                              regItems
+                                .filter((item) => (item.subcategory || "").toLowerCase() === nextSubcat.toLowerCase())
+                                .map((item) => item.type)
+                            )
+                          );
+                          setType(newTypes.length > 0 ? newTypes[0] : "");
+                        } else {
+                          setType("");
+                        }
                       }}
                       className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer"
                     >
-                      {categories.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
+                      {registersList.map((reg) => (
+                        <option key={reg} value={reg}>{reg}</option>
                       ))}
                     </select>
                   </div>
@@ -467,8 +654,8 @@ export default function IssueStock() {
                         setSubcategory(newSub);
                         const newTypes = Array.from(
                           new Set(
-                            inventory
-                              .filter((item) => item.category === category && item.subcategory === newSub)
+                            registerItems
+                              .filter((item) => (item.subcategory || "").toLowerCase() === newSub.toLowerCase())
                               .map((item) => item.type)
                           )
                         );
@@ -484,19 +671,42 @@ export default function IssueStock() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Specific Type (Dynamic Dropdown) */}
-                  <div>
+                  {/* Specific Type (Manual / Autocomplete Suggestion) */}
+                  <div className="relative">
                     <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Type / Specification</label>
-                    <select
+                    <input
+                      type="text"
+                      placeholder="Enter or select specification"
                       value={type}
                       onChange={(e) => setType(e.target.value)}
-                      className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer text-slate-800"
-                    >
-                      <option value="">-- Select Type --</option>
-                      {availableTypes.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
+                      onFocus={() => setShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-800"
+                    />
+                    {showSuggestions && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                        {availableTypes.filter(t => (t || "").toLowerCase().includes(type.toLowerCase())).length > 0 ? (
+                          availableTypes
+                            .filter(t => (t || "").toLowerCase().includes(type.toLowerCase()))
+                            .map((t, idx) => (
+                              <div
+                                key={idx}
+                                onMouseDown={() => {
+                                  setType(t);
+                                  setShowSuggestions(false);
+                                }}
+                                className="p-3 hover:bg-slate-100 cursor-pointer text-sm text-slate-800 font-medium transition"
+                              >
+                                {t}
+                              </div>
+                            ))
+                        ) : (
+                          <div className="p-3 text-sm text-slate-400 italic">
+                            No matching specifications (type custom)
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Quantity to Issue */}
@@ -506,7 +716,15 @@ export default function IssueStock() {
                       type="number"
                       min="1"
                       value={quantity}
-                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "") {
+                          setQuantity("");
+                        } else {
+                          const parsed = parseInt(val, 10);
+                          setQuantity(isNaN(parsed) ? "" : parsed);
+                        }
+                      }}
                       className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
                     />
                   </div>
@@ -522,18 +740,17 @@ export default function IssueStock() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Department */}
+                  {/* Issuing To */}
                   <div>
-                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Department</label>
-                    <select
+                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Issuing To</label>
+                    <input
+                      type="text"
+                      placeholder="Enter destination / recipient"
                       value={department}
                       onChange={(e) => setDepartment(e.target.value)}
-                      className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer"
-                    >
-                      {departmentsList.map((dept) => (
-                        <option key={dept} value={dept}>{dept}</option>
-                      ))}
-                    </select>
+                      className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium placeholder-slate-400"
+                      required
+                    />
                   </div>
 
                   {/* Faculty Member */}

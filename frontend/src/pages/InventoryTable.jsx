@@ -23,35 +23,16 @@ const CATEGORY_BADGES = {
   "Furniture": "bg-amber-50 text-amber-700 border-amber-150",
   "Electrical": "bg-yellow-50 text-yellow-700 border-yellow-150",
   "Electronics": "bg-cyan-50 text-cyan-700 border-cyan-150",
-  "Cleaning": "bg-emerald-50 text-emerald-700 border-emerald-150",
-  "Stationery": "bg-blue-50 text-blue-700 border-blue-150",
-  "Equipment": "bg-indigo-50 text-indigo-700 border-indigo-150",
+  "Sanitory": "bg-emerald-50 text-emerald-700 border-emerald-150",
+  "Stationary": "bg-blue-50 text-blue-700 border-blue-150",
+  "IT,CSE": "bg-indigo-50 text-indigo-700 border-indigo-150",
+  "laboratory": "bg-indigo-50 text-indigo-700 border-indigo-150",
   "Sports": "bg-orange-50 text-orange-700 border-orange-150",
   "Miscellaneous": "bg-slate-50 text-slate-700 border-slate-200"
 };
 
-const DEPT_CATEGORIES = {
-  // New Categories
-  "Stationary": ["Stationery"],
-  "Sanitory": ["Cleaning"],
-  "Electrical": ["Electrical"],
-  "Electronics": ["Electronics"],
-  "Sports": ["Sports"],
-  "Furniture": ["Furniture"],
-  "IT,CSE": ["Electronics"],
-  "laboratory": ["Equipment", "Stationery"],
-
-  // Old Departments (backward compatibility)
-  "Hostel": ["Furniture", "Electronics", "Cleaning"],
-  "Laboratory": ["Equipment", "Stationery"],
-  "IT Department": ["Electronics"],
-  "Library": ["Furniture", "Electronics", "Stationery"],
-  "Office": ["Furniture", "Stationery", "Electronics"],
-  "Medical": ["Equipment", "Cleaning"]
-};
-
 export default function InventoryTable() {
-  const { inventory, addInventoryItem, systemSettings, orders } = useStore();
+  const { inventory, addInventoryItem, systemSettings, orders, getRegisterForCategory } = useStore();
   const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -84,7 +65,7 @@ export default function InventoryTable() {
   const [itemType, setItemType] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSaveItem = async (e) => {
+  const handleSaveItem = (e) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -106,7 +87,7 @@ export default function InventoryTable() {
       return;
     }
 
-    const res = await addInventoryItem({
+    addInventoryItem({
       item: itemName.trim(),
       category: category.trim(),
       subcategory: subcategory.trim(),
@@ -115,17 +96,12 @@ export default function InventoryTable() {
       price: price
     });
 
-    if (res.success) {
-      // Show flash notification
-      showFlash(
-        "success",
-        "Item Added to Inventory",
-        `${itemName.trim()} (×${qty}) has been added to inventory successfully.`
-      );
-    } else {
-      setErrorMsg(res.message || "Failed to save item");
-      return;
-    }
+    // Show flash notification
+    showFlash(
+      "success",
+      "Item Added to Inventory",
+      `${itemName.trim()} (×${qty}) has been added to inventory successfully.`
+    );
 
     setItemName("");
     setCategory("");
@@ -138,13 +114,19 @@ export default function InventoryTable() {
 
   // Filter based on search query, category, and department params
   const filteredInventory = inventory.filter((item) => {
-    if (paramCategory && (item.category || "").toLowerCase() !== paramCategory.toLowerCase()) {
-      return false;
+    if (paramCategory) {
+      const normItemCat = (item.category || "").toLowerCase().trim();
+      const normParamCat = paramCategory.toLowerCase().trim();
+      const isStationeryMatch = (normItemCat === "stationary" || normItemCat === "stationery") && (normParamCat === "stationary" || normParamCat === "stationery");
+      const isSanitaryMatch = (normItemCat === "sanitory" || normItemCat === "sanitary" || normItemCat === "cleaning") && (normParamCat === "sanitory" || normParamCat === "sanitary" || normParamCat === "cleaning");
+      const isExactMatch = normItemCat === normParamCat;
+      
+      if (!isStationeryMatch && !isSanitaryMatch && !isExactMatch) {
+        return false;
+      }
     }
     if (paramDepartment) {
-      const allowedCategories = DEPT_CATEGORIES[paramDepartment] || [];
-      const itemCat = item.category || "";
-      if (!allowedCategories.some(c => c.toLowerCase() === itemCat.toLowerCase())) {
+      if (getRegisterForCategory(item.category).toLowerCase() !== paramDepartment.toLowerCase()) {
         return false;
       }
     }
@@ -624,8 +606,9 @@ export default function InventoryTable() {
                                               <div>
                                                 <div className="flex items-center gap-2">
                                                   <span className="font-bold text-slate-700">Order Ref: #{order.id}</span>
-                                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap ${
                                                     order.status === "Received" ? "bg-green-50 border-green-200 text-green-700" :
+                                                    order.status === "Partially Received" ? "bg-blue-50 border-blue-200 text-blue-700" :
                                                     order.status === "Approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
                                                     order.status === "Rejected" ? "bg-rose-50 border-rose-250 text-rose-700" :
                                                     "bg-yellow-50 border-yellow-200 text-yellow-700"
@@ -644,6 +627,11 @@ export default function InventoryTable() {
                                                 <p className="font-bold text-slate-700">
                                                   {order.quantity} unit{order.quantity > 1 ? "s" : ""} @ ₹{order.pricePerUnit?.toLocaleString("en-IN")}/unit
                                                 </p>
+                                                {(order.receivedQuantity !== undefined || order.status === "Partially Received") && (
+                                                  <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                                                    Rec: <span className="text-emerald-600 font-bold">{order.receivedQuantity || 0}</span> | Pend: <span className="text-amber-600 font-bold">{order.pendingQuantity !== undefined ? order.pendingQuantity : (order.quantity - (order.receivedQuantity || 0))}</span>
+                                                  </p>
+                                                )}
                                                 <p className="font-extrabold text-indigo-650 text-sm mt-0.5">
                                                   Total: ₹{(order.quantity * (order.pricePerUnit || 0)).toLocaleString("en-IN")}
                                                 </p>
