@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { FaUser, FaSlidersH, FaBuilding, FaLock, FaImage, FaCheckCircle, FaSave, FaHistory, FaTrash, FaTimes, FaUnlock, FaSearch, FaFilter, FaCheckSquare, FaSquare, FaDatabase, FaShieldAlt, FaClock, FaBell, FaCalendarAlt, FaPlay, FaToggleOn, FaToggleOff } from "react-icons/fa";
+import { FaUser, FaSlidersH, FaBuilding, FaLock, FaImage, FaCheckCircle, FaSave, FaHistory, FaTrash, FaTimes, FaUnlock, FaSearch, FaFilter, FaCheckSquare, FaSquare, FaDatabase, FaShieldAlt, FaClock, FaBell, FaCalendarAlt, FaPlay, FaToggleOn, FaToggleOff, FaVolumeUp } from "react-icons/fa";
 import Sidebar from "../components/sidebar";
 import { useStore } from "../context/StoreContext";
 import ConfirmDialog from "../components/ConfirmDialog";
 import FlashMessage from "../components/FlashMessage";
 import useFlash from "../components/useFlash";
+import { speak, playBeep } from "../components/useSpeech";
 
 export default function Settings() {
   const { 
@@ -86,6 +87,10 @@ export default function Settings() {
     return saved ? JSON.parse(saved).lastRun : null;
   });
   const [showSchedulePanel, setShowSchedulePanel] = useState(false);
+  const [scheduleCustomDays, setScheduleCustomDays] = useState(() => {
+    const saved = localStorage.getItem("rjit_scheduleBackup");
+    return saved ? (JSON.parse(saved).customDays || 3) : 3;
+  });
 
   // Handle local state when currentUser/systemSettings change on mount or load
   useEffect(() => {
@@ -200,6 +205,8 @@ export default function Settings() {
       setShowPasswordModal(true);
       setBackupPassword("");
       setBackupPasswordError("");
+      speak("Backup button activated. Authentication required.");
+      playBeep("security");
     }
   };
 
@@ -209,9 +216,11 @@ export default function Settings() {
       setShowPasswordModal(false);
       setShowBackupManager(true);
       setSelectedBackupIds([]);
+      playBeep("success");
       showFlash("success", "Access Granted ✓", "Backup logs unlocked successfully.");
     } else {
       setBackupPasswordError("Incorrect backup credentials. Please try again.");
+      playBeep("error");
     }
   };
 
@@ -260,17 +269,20 @@ export default function Settings() {
   };
 
   const handleSaveSchedule = () => {
-    const config = { enabled: scheduleEnabled, interval: scheduleInterval, time: scheduleTime, lastRun: scheduleLastRun };
+    const config = { enabled: scheduleEnabled, interval: scheduleInterval, time: scheduleTime, lastRun: scheduleLastRun, customDays: scheduleCustomDays };
     localStorage.setItem("rjit_scheduleBackup", JSON.stringify(config));
-    showFlash("success", "Schedule Saved ✓", scheduleEnabled ? `Auto-backup scheduled ${scheduleInterval} at ${scheduleTime}.` : "Auto-backup schedule has been disabled.");
+    const intervalLabel = scheduleInterval === "custom" ? `every ${scheduleCustomDays} day(s)` : scheduleInterval;
+    showFlash("success", "Schedule Saved ✓", scheduleEnabled ? `Auto-backup scheduled ${intervalLabel} at ${scheduleTime}.` : "Auto-backup schedule has been disabled.");
+    playBeep("confirm");
     setShowSchedulePanel(false);
   };
 
   const handleRunBackupNow = () => {
     const now = new Date().toISOString();
     setScheduleLastRun(now);
-    const config = { enabled: scheduleEnabled, interval: scheduleInterval, time: scheduleTime, lastRun: now };
+    const config = { enabled: scheduleEnabled, interval: scheduleInterval, time: scheduleTime, lastRun: now, customDays: scheduleCustomDays };
     localStorage.setItem("rjit_scheduleBackup", JSON.stringify(config));
+    playBeep("confirm");
     showFlash("success", "Backup Triggered ✓", "Manual backup snapshot captured successfully.");
   };
 
@@ -786,113 +798,248 @@ export default function Settings() {
 
       <FlashMessage flashes={flashes} onDismiss={dismissFlash} />
 
-      {/* Password Modal */}
+      {/* Password Modal – Neon 3D Backlit Redesign */}
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 border border-indigo-500/35 text-white rounded-3xl shadow-[0_0_50px_rgba(99,102,241,0.25)] w-full max-w-md overflow-hidden relative p-8 flex flex-col items-center animate-glow">
-            
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full blur-sm" />
-            
-            <button 
-              onClick={() => setShowPasswordModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer transition text-lg bg-slate-900/40 hover:bg-slate-800/60 p-1.5 rounded-lg border border-slate-800"
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "radial-gradient(ellipse at center, rgba(6,0,30,0.95) 0%, rgba(2,0,15,0.98) 100%)", backdropFilter: "blur(20px)" }}
+        >
+          {/* Neon 3D Modal Card */}
+          <div
+            className="animate-neon-modal relative w-full max-w-md overflow-hidden rounded-3xl p-px"
+            style={{
+              background: "linear-gradient(135deg, rgba(0,255,255,0.4) 0%, rgba(99,102,241,0.5) 25%, rgba(168,85,247,0.5) 50%, rgba(0,180,255,0.4) 75%, rgba(0,255,255,0.4) 100%)",
+            }}
+          >
+            {/* Inner card */}
+            <div
+              className="relative rounded-3xl p-8 flex flex-col items-center overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, #030318 0%, #0a0a2e 30%, #060620 60%, #030315 100%)",
+              }}
             >
-              <FaTimes />
-            </button>
+              {/* Scan line effect */}
+              <div
+                className="animate-scan-line absolute left-0 right-0 h-px pointer-events-none z-0"
+                style={{ background: "linear-gradient(90deg, transparent 0%, rgba(0,255,255,0.4) 50%, transparent 100%)" }}
+              />
 
-            <div className="bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-400 p-5 rounded-full shadow-[0_0_20px_rgba(99,102,241,0.3)] animate-pulse-neon mb-4 mt-4">
-              <FaShieldAlt size={32} />
-            </div>
+              {/* Corner accent glows */}
+              <div className="absolute top-0 left-0 w-20 h-20 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(0,255,255,0.15) 0%, transparent 70%)" }} />
+              <div className="absolute bottom-0 right-0 w-24 h-24 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%)" }} />
+              <div className="absolute top-1/2 right-0 w-16 h-32 pointer-events-none" style={{ background: "radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)" }} />
 
-            <h3 className="font-extrabold text-2xl tracking-tight text-center bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent">Security Access Required</h3>
-            <p className="text-slate-400 text-xs text-center mt-1.5 px-6 leading-relaxed">
-              You have triggered a restricted diagnostic zone. Enter authorization credentials to view backup logs.
-            </p>
+              {/* Floating particles */}
+              <div className="particle-1 absolute top-6 left-8 w-1.5 h-1.5 rounded-full" style={{ background: "rgba(0,255,255,0.8)", boxShadow: "0 0 6px rgba(0,255,255,0.9)" }} />
+              <div className="particle-2 absolute top-12 right-10 w-1 h-1 rounded-full" style={{ background: "rgba(168,85,247,0.9)", boxShadow: "0 0 8px rgba(168,85,247,0.9)" }} />
+              <div className="particle-3 absolute bottom-16 left-12 w-1.5 h-1.5 rounded-full" style={{ background: "rgba(99,102,241,0.8)", boxShadow: "0 0 6px rgba(99,102,241,0.9)" }} />
+              <div className="particle-4 absolute bottom-8 right-16 w-1 h-1 rounded-full" style={{ background: "rgba(0,200,255,0.9)", boxShadow: "0 0 8px rgba(0,200,255,0.9)" }} />
+              <div className="particle-5 absolute top-1/3 left-4 w-0.5 h-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.9)" }} />
+              <div className="particle-6 absolute top-2/3 right-4 w-0.5 h-0.5 rounded-full" style={{ background: "rgba(0,255,200,0.9)" }} />
 
-            <form onSubmit={handlePasswordSubmit} className="w-full mt-6 space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
-                  Backup Gateway Password
-                </label>
-                <div className="relative">
-                  <FaLock className="absolute left-3.5 top-3.5 text-slate-550" />
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={backupPassword}
-                    onChange={(e) => setBackupPassword(e.target.value)}
-                    required
-                    autoFocus
-                    className="w-full bg-slate-955 border border-slate-800/80 focus:border-indigo-400/80 focus:shadow-[0_0_15px_rgba(99,102,241,0.25)] focus:ring-1 focus:ring-indigo-400/30 rounded-xl pl-10 pr-3.5 py-3 text-sm focus:outline-none font-semibold tracking-wider text-center text-white placeholder-slate-800 transition duration-300"
-                  />
+              {/* Close button */}
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="absolute top-4 right-4 z-10 text-cyan-400/60 hover:text-cyan-300 cursor-pointer transition-all duration-200 hover:rotate-90"
+                style={{ filter: "drop-shadow(0 0 4px rgba(0,255,255,0.4))" }}
+              >
+                <FaTimes size={16} />
+              </button>
+
+              {/* Top neon bar */}
+              <div className="absolute top-0 inset-x-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(0,255,255,0.8) 30%, rgba(168,85,247,0.9) 50%, rgba(0,255,255,0.8) 70%, transparent 100%)" }} />
+
+              {/* Shield Icon – Neon */}
+              <div
+                className="animate-neon-shield relative mt-2 mb-5 w-20 h-20 rounded-full flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(135deg, rgba(0,255,255,0.12) 0%, rgba(99,102,241,0.15) 50%, rgba(168,85,247,0.12) 100%)",
+                  border: "1px solid rgba(0,255,255,0.3)"
+                }}
+              >
+                {/* Orbit ring */}
+                <div
+                  className="absolute inset-[-8px] rounded-full border border-dashed"
+                  style={{
+                    borderColor: "rgba(0,255,255,0.25)",
+                    animation: "orbitRing 8s linear infinite"
+                  }}
+                />
+                <FaShieldAlt size={34} style={{ color: "#00ffff", filter: "drop-shadow(0 0 8px rgba(0,255,255,0.9))" }} />
+              </div>
+
+              {/* Title */}
+              <h3
+                className="animate-neon-text font-extrabold text-2xl tracking-tight text-center mb-1"
+                style={{ color: "#00ffff", fontFamily: "Inter, sans-serif", letterSpacing: "0.03em" }}
+              >
+                Security Gateway
+              </h3>
+              <p className="text-center text-xs px-6 leading-relaxed mb-6" style={{ color: "rgba(148,163,184,0.85)" }}>
+                Restricted diagnostic zone detected. Enter authorization credentials to access backup logs.
+              </p>
+
+              {/* Holographic divider */}
+              <div className="animate-holographic w-full h-px mb-6 rounded-full" />
+
+              <form onSubmit={handlePasswordSubmit} className="w-full space-y-4 relative z-10">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "rgba(0,255,255,0.6)" }}>
+                    Backup Gateway Password
+                  </label>
+                  <div className="relative">
+                    <FaLock className="absolute left-3.5 top-3.5" style={{ color: "rgba(0,255,255,0.5)" }} />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={backupPassword}
+                      onChange={(e) => setBackupPassword(e.target.value)}
+                      required
+                      autoFocus
+                      className="w-full rounded-xl pl-10 pr-3.5 py-3 text-sm font-semibold tracking-wider text-center transition-all duration-300 focus:outline-none"
+                      style={{
+                        background: "rgba(0,20,40,0.6)",
+                        border: "1px solid rgba(0,255,255,0.25)",
+                        color: "#00ffff",
+                        caretColor: "#00ffff",
+                      }}
+                      onFocus={(e) => { e.target.style.borderColor = "rgba(0,255,255,0.7)"; e.target.style.boxShadow = "0 0 20px rgba(0,255,255,0.25), inset 0 0 10px rgba(0,255,255,0.05)"; }}
+                      onBlur={(e) => { e.target.style.borderColor = "rgba(0,255,255,0.25)"; e.target.style.boxShadow = "none"; }}
+                    />
+                  </div>
+                  {backupPasswordError && (
+                    <p className="text-[10px] font-bold mt-2 text-center animate-bounce" style={{ color: "#ff4d6d", textShadow: "0 0 8px rgba(255,77,109,0.6)" }}>
+                      ⚠ {backupPasswordError}
+                    </p>
+                  )}
                 </div>
-                {backupPasswordError && (
-                  <p className="text-red-500 text-[10px] font-bold mt-2 text-center animate-bounce">{backupPasswordError}</p>
-                )}
-              </div>
 
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-indigo-650 via-purple-650 to-indigo-650 bg-[length:200%_auto] hover:bg-right text-white font-bold py-3 rounded-xl shadow-[0_4px_20px_rgba(99,102,241,0.25)] hover:shadow-[0_4px_25px_rgba(168,85,247,0.4)] cursor-pointer active:scale-95 transition-all duration-500 flex items-center justify-center gap-2 text-sm"
-                >
-                  <FaUnlock size={14} />
-                  <span>Authenticate Gateway</span>
-                </button>
-              </div>
-            </form>
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    className="relative w-full font-bold py-3 rounded-xl cursor-pointer active:scale-95 transition-all duration-300 overflow-hidden flex items-center justify-center gap-2 text-sm"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(0,100,120,0.8) 0%, rgba(50,20,120,0.9) 50%, rgba(0,100,120,0.8) 100%)",
+                      border: "1px solid rgba(0,255,255,0.4)",
+                      color: "#00ffff",
+                      boxShadow: "0 4px 20px rgba(0,255,255,0.2)",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 30px rgba(0,255,255,0.4)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,255,255,0.2)"; }}
+                  >
+                    {/* Button shimmer overlay */}
+                    <div className="animate-holographic absolute inset-0 opacity-30 pointer-events-none" />
+                    <FaUnlock size={14} style={{ filter: "drop-shadow(0 0 4px rgba(0,255,255,0.8))" }} />
+                    <span style={{ textShadow: "0 0 8px rgba(0,255,255,0.6)" }}>Authenticate Gateway</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Bottom neon bar */}
+              <div className="absolute bottom-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.6) 50%, transparent 100%)" }} />
+            </div>
           </div>
         </div>
       )}
 
       {/* Backup Manager Modal */}
       {showBackupManager && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-gradient-to-br from-violet-50 via-white to-indigo-50 border border-violet-200/60 rounded-3xl shadow-[0_20px_60px_-10px_rgba(109,40,217,0.25)] w-full max-w-5xl h-[88vh] flex flex-col overflow-hidden relative">
-            
-            {/* Decorative top gradient bar */}
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-violet-500 via-indigo-500 to-cyan-500 rounded-t-3xl z-10" />
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-5xl h-[88vh] flex flex-col overflow-hidden relative rounded-3xl shadow-2xl"
+            style={{ background: "linear-gradient(160deg, #0a0a1a 0%, #0f0f2e 40%, #0a1628 100%)", border: "1px solid rgba(139,92,246,0.3)" }}>
 
-            {/* Header */}
-            <div className="bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 text-white p-5 flex justify-between items-center shrink-0 pt-6">
-              <div className="flex items-center gap-4">
-                <div className="bg-white/15 border border-white/25 text-white p-2.5 rounded-2xl shadow-lg">
-                  <FaDatabase size={22} />
+            {/* ── 3D Backlit Header ─────────────────────────────────────────── */}
+            <div className="relative overflow-hidden shrink-0 px-6 py-5"
+              style={{ background: "linear-gradient(135deg, #0d0d2b 0%, #1a0a3e 40%, #0a1828 100%)", borderBottom: "1px solid rgba(139,92,246,0.25)" }}>
+
+              {/* Particle grid background */}
+              <div className="absolute inset-0 opacity-20" style={{
+                backgroundImage: "radial-gradient(circle, rgba(139,92,246,0.6) 1px, transparent 1px)",
+                backgroundSize: "28px 28px"
+              }} />
+
+              {/* Scan-line animation */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute w-full h-[2px] opacity-30"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.8), rgba(0,255,200,0.5), transparent)", animation: "scanLine 3s linear infinite", top: 0 }} />
+              </div>
+
+              {/* Top glow bar */}
+              <div className="absolute top-0 inset-x-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,1), rgba(0,255,200,0.8), rgba(139,92,246,1), transparent)" }} />
+
+              <div className="relative z-10 flex justify-between items-center">
+                <div className="flex items-center gap-5">
+                  {/* 3D Backlit Database Icon */}
+                  <div className="relative">
+                    {/* Outer halo rings */}
+                    <div className="absolute inset-[-12px] rounded-full animate-ping opacity-20" style={{ background: "radial-gradient(circle, rgba(139,92,246,0.5), transparent 70%)" }} />
+                    <div className="absolute inset-[-6px] rounded-full animate-pulse" style={{ background: "radial-gradient(circle, rgba(139,92,246,0.3), transparent 70%)" }} />
+                    {/* Icon container */}
+                    <div className="relative w-14 h-14 rounded-2xl flex items-center justify-center"
+                      style={{
+                        background: "linear-gradient(135deg, rgba(139,92,246,0.3), rgba(0,200,150,0.15))",
+                        border: "1px solid rgba(139,92,246,0.5)",
+                        boxShadow: "0 0 30px rgba(139,92,246,0.6), 0 0 60px rgba(139,92,246,0.2), inset 0 0 15px rgba(139,92,246,0.15)"
+                      }}>
+                      <FaDatabase size={26} style={{ color: "#a78bfa", filter: "drop-shadow(0 0 12px rgba(167,139,250,1))" }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-extrabold text-lg tracking-tight"
+                      style={{ color: "#a78bfa", textShadow: "0 0 20px rgba(167,139,250,0.8), 0 0 40px rgba(167,139,250,0.4)" }}>
+                      System Backup & Recovery Console
+                    </h3>
+                    <p className="text-xs mt-0.5 font-medium" style={{ color: "rgba(148,163,184,0.7)" }}>
+                      Deleted entities preserved for 30 days • Auto-purge enabled
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" style={{ boxShadow: "0 0 6px rgba(52,211,153,0.8)" }} />
+                      <span className="text-[10px] font-bold" style={{ color: "rgba(52,211,153,0.9)" }}>SYSTEM ONLINE — {backup?.length || 0} RECORDS</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-extrabold text-lg tracking-tight text-white drop-shadow-sm">System Backup & Recovery Console</h3>
-                  <p className="text-indigo-200 text-xs mt-0.5 font-medium">Deleted entities preserved for 30 days • Auto-purge enabled</p>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowSchedulePanel(!showSchedulePanel)}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer border ${
+                      showSchedulePanel
+                        ? "text-violet-200 border-violet-400"
+                        : "border-violet-500/40 hover:border-violet-400/70"
+                    }`}
+                    style={{
+                      background: showSchedulePanel ? "rgba(139,92,246,0.3)" : "rgba(139,92,246,0.12)",
+                      color: "#c4b5fd",
+                      boxShadow: showSchedulePanel ? "0 0 15px rgba(139,92,246,0.3)" : "none"
+                    }}
+                    title="Schedule Backup"
+                  >
+                    <FaClock size={12} />
+                    <span>Schedule</span>
+                    {scheduleEnabled && (
+                      <span className="bg-emerald-400 text-emerald-900 text-[8px] font-extrabold px-1 rounded-full">ON</span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowBackupManager(false)}
+                    className="p-2.5 rounded-xl transition cursor-pointer border"
+                    style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.25)"; e.currentTarget.style.boxShadow = "0 0 15px rgba(239,68,68,0.3)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; e.currentTarget.style.boxShadow = "none"; }}
+                    title="Close Console"
+                  >
+                    <FaTimes size={16} />
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowSchedulePanel(!showSchedulePanel)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer border ${
-                    showSchedulePanel
-                      ? "bg-white text-violet-700 border-white shadow-md"
-                      : "bg-white/15 text-white border-white/25 hover:bg-white/25"
-                  }`}
-                  title="Schedule Backup"
-                >
-                  <FaClock size={12} />
-                  <span>Schedule</span>
-                  {scheduleEnabled && (
-                    <span className="bg-green-400 text-green-900 text-[8px] font-extrabold px-1 rounded-full">ON</span>
-                  )}
-                </button>
-                <button 
-                  onClick={() => setShowBackupManager(false)} 
-                  className="bg-white/15 hover:bg-white/30 border border-white/25 text-white p-2.5 rounded-xl transition cursor-pointer"
-                  title="Close Console"
-                >
-                  <FaTimes size={16} />
-                </button>
-              </div>
+
+              {/* Bottom border glow */}
+              <div className="absolute bottom-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.6), rgba(0,200,150,0.4), transparent)" }} />
             </div>
 
             {/* Schedule Backup Panel */}
             {showSchedulePanel && (
-              <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border-b border-indigo-200/60 p-5 shrink-0">
+              <div className="border-b p-5 shrink-0" style={{ background: "rgba(15,10,40,0.9)", borderColor: "rgba(139,92,246,0.2)" }}>
                 <div className="flex flex-col md:flex-row gap-5 items-start md:items-center">
                   {/* Enable/Disable Toggle */}
                   <div className="flex items-center gap-3">
@@ -911,31 +1058,96 @@ export default function Settings() {
                   </div>
 
                   {/* Interval & Time */}
-                  <div className="flex gap-3 flex-1">
-                    <div className="flex-1">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Frequency</label>
-                      <select
-                        value={scheduleInterval}
-                        onChange={(e) => setScheduleInterval(e.target.value)}
-                        disabled={!scheduleEnabled}
-                        className="w-full bg-white border border-violet-200 text-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-violet-400 disabled:opacity-50 cursor-pointer"
-                      >
-                        <option value="daily">Every Day</option>
-                        <option value="weekly">Every Week</option>
-                        <option value="biweekly">Every 2 Weeks</option>
-                        <option value="monthly">Every Month</option>
-                      </select>
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Backup Time</label>
-                      <input
-                        type="time"
-                        value={scheduleTime}
-                        onChange={(e) => setScheduleTime(e.target.value)}
-                        disabled={!scheduleEnabled}
-                        className="w-full bg-white border border-violet-200 text-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-violet-400 disabled:opacity-50"
-                      />
-                    </div>
+                  <div className="flex gap-3 flex-1 flex-wrap">
+                     <div className="flex flex-col flex-1 min-w-[320px]">
+                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Backup Frequency</label>
+                       <div className="flex gap-2 flex-wrap">
+                         <button
+                           type="button"
+                           onClick={() => {
+                             setScheduleInterval("daily");
+                             setScheduleEnabled(true);
+                           }}
+                           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 border ${
+                             scheduleInterval === "daily"
+                               ? "bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-500/20"
+                               : "bg-white text-slate-650 border-violet-200 hover:bg-slate-50"
+                           }`}
+                         >
+                           🗓️ Daily
+                         </button>
+                         <button
+                           type="button"
+                           onClick={() => {
+                             setScheduleInterval("weekly");
+                             setScheduleEnabled(true);
+                           }}
+                           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 border ${
+                             scheduleInterval === "weekly"
+                               ? "bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-500/20"
+                               : "bg-white text-slate-650 border-violet-200 hover:bg-slate-50"
+                           }`}
+                         >
+                           📆 Weekly
+                         </button>
+                         <button
+                           type="button"
+                           onClick={() => {
+                             setScheduleInterval("monthly");
+                             setScheduleEnabled(true);
+                           }}
+                           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 border ${
+                             scheduleInterval === "monthly"
+                               ? "bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-500/20"
+                               : "bg-white text-slate-655 border-violet-200 hover:bg-slate-50"
+                           }`}
+                         >
+                           📅 Monthly
+                         </button>
+                         <button
+                           type="button"
+                           onClick={() => {
+                             setScheduleInterval("custom");
+                             setScheduleEnabled(true);
+                           }}
+                           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 border ${
+                             scheduleInterval === "custom"
+                               ? "bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-500/20"
+                               : "bg-white text-slate-655 border-violet-200 hover:bg-slate-50"
+                           }`}
+                         >
+                           ⚙️ Custom Days
+                         </button>
+                       </div>
+                     </div>
+                     {scheduleInterval === "custom" && (
+                       <div className="min-w-[110px]">
+                         <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Every N Days</label>
+                         <input
+                           type="number"
+                           min="1"
+                           max="365"
+                           value={scheduleCustomDays}
+                           onChange={(e) => {
+                             setScheduleCustomDays(parseInt(e.target.value) || 1);
+                             setScheduleEnabled(true);
+                           }}
+                           className="w-full bg-white border border-violet-200 text-slate-700 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-violet-400"
+                         />
+                       </div>
+                     )}
+                     <div className="flex-1 min-w-[120px]">
+                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Backup Time</label>
+                       <input
+                         type="time"
+                         value={scheduleTime}
+                         onChange={(e) => {
+                           setScheduleTime(e.target.value);
+                           setScheduleEnabled(true);
+                         }}
+                         className="w-full bg-white border border-violet-200 text-slate-700 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-violet-400"
+                       />
+                     </div>
                   </div>
 
                   {/* Actions */}
@@ -964,23 +1176,27 @@ export default function Settings() {
             )}
 
             {/* Top Toolbar / Filters */}
-            <div className="p-4 border-b border-slate-200/80 flex flex-col sm:flex-row gap-3 bg-white/70 shrink-0">
+            <div className="p-4 border-b flex flex-col sm:flex-row gap-3 shrink-0" style={{ background: "rgba(10,8,28,0.9)", borderColor: "rgba(139,92,246,0.2)" }}>
               <div className="relative flex-1">
-                <FaSearch className="absolute left-3.5 top-3 text-slate-400" />
+                <FaSearch className="absolute left-3.5 top-3" style={{ color: "rgba(139,92,246,0.7)" }} />
                 <input
                   type="text"
                   placeholder="Search deleted records by detail..."
                   value={backupSearch}
                   onChange={(e) => setBackupSearch(e.target.value)}
-                  className="w-full bg-white border border-slate-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 text-slate-700 placeholder-slate-400 rounded-xl pl-10 pr-3.5 py-2.5 text-xs font-semibold focus:outline-none transition-all duration-300"
+                  className="w-full rounded-xl pl-10 pr-3.5 py-2.5 text-xs font-semibold focus:outline-none transition-all duration-300"
+                  style={{ background: "rgba(20,15,50,0.8)", border: "1px solid rgba(139,92,246,0.3)", color: "#c4b5fd", caretColor: "#a78bfa" }}
+                  onFocus={e => { e.target.style.borderColor = "rgba(139,92,246,0.7)"; e.target.style.boxShadow = "0 0 15px rgba(139,92,246,0.2)"; }}
+                  onBlur={e => { e.target.style.borderColor = "rgba(139,92,246,0.3)"; e.target.style.boxShadow = "none"; }}
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-slate-500 uppercase whitespace-nowrap"><FaFilter className="inline mr-1 text-violet-500" /> Filter</span>
+                <span className="text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: "rgba(139,92,246,0.8)" }}><FaFilter className="inline mr-1" style={{ color: "rgba(139,92,246,0.8)" }} />Filter</span>
                 <select
                   value={backupTypeFilter}
                   onChange={(e) => setBackupTypeFilter(e.target.value)}
-                  className="bg-white border border-slate-200 focus:border-violet-400 text-slate-700 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none cursor-pointer"
+                  className="rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none cursor-pointer"
+                  style={{ background: "rgba(20,15,50,0.8)", border: "1px solid rgba(139,92,246,0.3)", color: "#c4b5fd" }}
                 >
                   <option value="all">All Items</option>
                   <option value="user">Users</option>
@@ -994,21 +1210,21 @@ export default function Settings() {
             </div>
 
             {/* List Body */}
-            <div className="flex-1 overflow-y-auto p-5 bg-gradient-to-b from-violet-50/30 to-white">
+            <div className="flex-1 overflow-y-auto p-5" style={{ background: "linear-gradient(180deg, rgba(8,6,25,0.95) 0%, rgba(10,8,30,0.98) 100%)" }}>
               {filteredBackup.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-white rounded-2xl border border-dashed border-violet-200">
-                  <div className="bg-violet-100 text-violet-400 p-5 rounded-full mb-3">
-                    <FaDatabase size={36} />
+                <div className="h-full flex flex-col items-center justify-center text-center p-8 rounded-2xl border border-dashed" style={{ borderColor: "rgba(139,92,246,0.25)", background: "rgba(20,15,50,0.4)" }}>
+                  <div className="p-5 rounded-full mb-3" style={{ background: "rgba(139,92,246,0.15)", boxShadow: "0 0 30px rgba(139,92,246,0.2)" }}>
+                    <FaDatabase size={36} style={{ color: "#a78bfa", filter: "drop-shadow(0 0 10px rgba(167,139,250,0.6))" }} />
                   </div>
-                  <h4 className="font-bold text-slate-600 text-base">No Backup Records Found</h4>
-                  <p className="text-slate-400 text-xs mt-1 px-12 leading-relaxed">
+                  <h4 className="font-bold text-base" style={{ color: "#c4b5fd" }}>No Backup Records Found</h4>
+                  <p className="text-xs mt-1 px-12 leading-relaxed" style={{ color: "rgba(148,163,184,0.6)" }}>
                     {backupSearch || backupTypeFilter !== "all" 
                       ? "Try tweaking search parameters or filter options." 
                       : "Awesome! There are no deleted entities in the database."}
                   </p>
                 </div>
               ) : (
-                <div className="bg-white border border-violet-100 rounded-2xl overflow-hidden shadow-sm">
+                <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(139,92,246,0.2)", background: "rgba(15,10,40,0.6)" }}>
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider">
@@ -1032,15 +1248,19 @@ export default function Settings() {
                         <th className="p-3.5 text-center text-white">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-violet-50 text-slate-700 text-xs">
+                    <tbody className="divide-y text-xs" style={{ borderColor: "rgba(139,92,246,0.1)" }}>
                       {filteredBackup.map((item) => {
                         const isSelected = selectedBackupIds.includes(item.id);
                         return (
                           <tr 
                             key={item.id}
-                            className={`hover:bg-violet-50/70 transition-all duration-200 border-l-4 ${
-                              isSelected ? "bg-indigo-50/80 border-l-indigo-500" : "border-l-transparent hover:border-l-violet-400"
-                            }`}
+                            className="transition-all duration-200 border-l-4"
+                            style={{
+                              borderLeftColor: isSelected ? "#7c3aed" : "transparent",
+                              background: isSelected ? "rgba(109,40,217,0.15)" : "transparent"
+                            }}
+                            onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = "rgba(139,92,246,0.08)"; e.currentTarget.style.borderLeftColor = "#7c3aed"; }}
+                            onMouseLeave={e => { if (!isSelected) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderLeftColor = "transparent"; } }}
                           >
                             <td className="p-3.5 text-center">
                               <button
@@ -1060,15 +1280,15 @@ export default function Settings() {
                                 {getBackupTypeLabel(item.type)}
                               </span>
                             </td>
-                            <td className="p-3.5 font-medium text-slate-600 max-w-xs break-words">
+                            <td className="p-3.5 font-medium max-w-xs break-words" style={{ color: "rgba(203,213,225,0.85)" }}>
                               {formatBackupItemDetails(item)}
                             </td>
-                            <td className="p-3.5 font-semibold text-slate-500 whitespace-nowrap">
+                            <td className="p-3.5 font-semibold whitespace-nowrap" style={{ color: "rgba(148,163,184,0.7)" }}>
                               {new Date(item.deletedAt).toLocaleString("en-IN", {
                                 day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
                               })}
                             </td>
-                            <td className="p-3.5 font-bold text-rose-500 whitespace-nowrap">
+                            <td className="p-3.5 font-bold whitespace-nowrap" style={{ color: "#f87171" }}>
                               {getDaysRemaining(item.deletedAt)}
                             </td>
                             <td className="p-3.5">
@@ -1099,12 +1319,12 @@ export default function Settings() {
             </div>
 
             {/* Bottom Actions Bar */}
-            <div className="p-4 border-t border-violet-200/60 bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 text-white flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
-              <div className="text-xs font-semibold text-indigo-100">
+            <div className="p-4 border-t flex flex-col md:flex-row justify-between items-center gap-4 shrink-0" style={{ background: "rgba(10,5,30,0.98)", borderColor: "rgba(139,92,246,0.3)" }}>
+              <div className="text-xs font-semibold" style={{ color: "rgba(196,181,253,0.8)" }}>
                 {selectedBackupIds.length > 0 ? (
-                  <span>Selected: <strong className="text-white text-sm">{selectedBackupIds.length}</strong> items</span>
+                  <span>Selected: <strong className="text-violet-300 text-sm">{selectedBackupIds.length}</strong> items</span>
                 ) : (
-                  <span>Total backup logs: <strong className="text-white text-sm">{backup.length}</strong> items</span>
+                  <span>Total backup logs: <strong className="text-violet-300 text-sm">{backup.length}</strong> items</span>
                 )}
               </div>
               <div className="flex flex-wrap gap-2 text-xs font-bold">
@@ -1112,13 +1332,19 @@ export default function Settings() {
                   <>
                     <button
                       onClick={handleRestoreSelected}
-                      className="bg-white hover:bg-emerald-50 text-indigo-700 hover:text-emerald-700 px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-sm hover:scale-105 active:scale-95"
+                      className="px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-1.5 hover:scale-105 active:scale-95 font-bold text-xs"
+                      style={{ background: "rgba(52,211,153,0.15)", border: "1px solid rgba(52,211,153,0.4)", color: "#34d399" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(52,211,153,0.3)"; e.currentTarget.style.boxShadow = "0 0 15px rgba(52,211,153,0.25)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(52,211,153,0.15)"; e.currentTarget.style.boxShadow = "none"; }}
                     >
                       <FaHistory size={10} /> Restore Selected
                     </button>
                     <button
                       onClick={handlePermanentDeleteSelected}
-                      className="bg-white/15 hover:bg-rose-600 text-white border border-white/30 hover:border-transparent px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-sm hover:scale-105 active:scale-95"
+                      className="px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-1.5 hover:scale-105 active:scale-95 font-bold text-xs"
+                      style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", color: "#f87171" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.3)"; e.currentTarget.style.boxShadow = "0 0 15px rgba(239,68,68,0.25)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.15)"; e.currentTarget.style.boxShadow = "none"; }}
                     >
                       <FaTrash size={10} /> Delete Selected
                     </button>
@@ -1128,13 +1354,19 @@ export default function Settings() {
                   <>
                     <button
                       onClick={handleRestoreAll}
-                      className="bg-white/10 hover:bg-white/25 text-white border border-white/20 px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs font-bold hover:scale-105 active:scale-95"
+                      className="px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs font-bold hover:scale-105 active:scale-95"
+                      style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: "#c4b5fd" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.3)"; e.currentTarget.style.boxShadow = "0 0 15px rgba(139,92,246,0.25)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(139,92,246,0.15)"; e.currentTarget.style.boxShadow = "none"; }}
                     >
                       Restore All
                     </button>
                     <button
                       onClick={handlePermanentDeleteAll}
-                      className="bg-white/10 hover:bg-rose-600 text-rose-200 hover:text-white border border-rose-400/30 hover:border-transparent px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs font-bold hover:scale-105 active:scale-95"
+                      className="px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-1.5 text-xs font-bold hover:scale-105 active:scale-95"
+                      style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.3)"; e.currentTarget.style.boxShadow = "0 0 15px rgba(239,68,68,0.2)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; e.currentTarget.style.boxShadow = "none"; }}
                     >
                       Purge All
                     </button>
@@ -1145,6 +1377,7 @@ export default function Settings() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

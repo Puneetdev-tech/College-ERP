@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaLock, FaTimes } from "react-icons/fa";
+import { speak, playBeep } from "../components/useSpeech";
 
 import campus1 from "../../images/campus1.jpg"; 
 import campus2 from "../../images/campus2.jpg";
@@ -20,6 +21,14 @@ export default function Login() {
   const [error, setError] = useState("");
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
   const [passwordChangeMessage, setPasswordChangeMessage] = useState("");
+
+  // Welcome voice on page load
+  useEffect(() => {
+    const speakTimeout = setTimeout(() => {
+      speak("Welcome to R J I T Inventory. Please fill the required details for authentication.", { rate: 0.92, pitch: 1.08 });
+    }, 600);
+    return () => clearTimeout(speakTimeout);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -40,6 +49,7 @@ export default function Login() {
 
     const res = login(email.trim(), password);
     if (res.success) {
+      playBeep("success");
       navigate("/dashboard");
     } else {
       if (res.message && res.message.includes("Your password was changed by")) {
@@ -55,6 +65,7 @@ export default function Login() {
     setError("");
     const res = login(quickEmail, quickPassword);
     if (res.success) {
+      playBeep("success");
       navigate("/dashboard");
     } else {
       if (res.message && res.message.includes("Your password was changed by")) {

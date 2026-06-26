@@ -19,6 +19,7 @@ const DEFAULT_USERS = [
     role: "Admin",
     status: "Active",
     permissions: ROLE_DEFAULT_PERMISSIONS["Admin"],
+    chatbotAccess: true,
     photo: ""
   },
   {
@@ -29,6 +30,7 @@ const DEFAULT_USERS = [
     role: "Store Manager",
     status: "Active",
     permissions: ROLE_DEFAULT_PERMISSIONS["Store Manager"],
+    chatbotAccess: false,
     photo: ""
   },
   {
@@ -39,6 +41,7 @@ const DEFAULT_USERS = [
     role: "Purchase Officer",
     status: "Active",
     permissions: ROLE_DEFAULT_PERMISSIONS["Purchase Officer"],
+    chatbotAccess: false,
     photo: ""
   },
   {
@@ -49,6 +52,7 @@ const DEFAULT_USERS = [
     role: "Principal",
     status: "Active",
     permissions: ROLE_DEFAULT_PERMISSIONS["Principal"],
+    chatbotAccess: false,
     photo: ""
   },
   {
@@ -59,6 +63,7 @@ const DEFAULT_USERS = [
     role: "Account Office",
     status: "Active",
     permissions: ROLE_DEFAULT_PERMISSIONS["Account Office"],
+    chatbotAccess: false,
     photo: ""
   }
 ];
@@ -836,7 +841,7 @@ export function StoreProvider({ children }) {
   };
 
   // Helper action: Receive Order (Update status & increase stock count)
-  const receiveOrderItem = (orderId, firstArg, secondArg) => {
+  const receiveOrderItem = (orderId, firstArg, secondArg, invoiceDataUrl) => {
     const orderIndex = orders.findIndex((o) => o.id === orderId);
     if (orderIndex === -1) return { success: false, message: "Order not found!" };
 
@@ -877,7 +882,9 @@ export function StoreProvider({ children }) {
         status: newStatus,
         receivedQuantity: newReceived,
         pendingQuantity: newPending,
-        receiveDate: receiveDate
+        receiveDate: receiveDate,
+        // Persist invoice - only set if provided (keep existing if already stored)
+        ...(invoiceDataUrl ? { invoiceDataUrl } : {})
       };
       setOrders(updatedOrders);
       localStorage.setItem("rjit_orders", JSON.stringify(updatedOrders));
