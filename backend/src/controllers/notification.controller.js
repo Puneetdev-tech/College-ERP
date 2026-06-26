@@ -87,3 +87,33 @@ export const createNotification = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteNotification = async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    await prisma.notification.delete({
+      where: { id }
+    });
+    return res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const clearNotifications = async (req, res, next) => {
+  try {
+    const { status } = req.query; // 'read', 'unread', or 'all'
+    let whereClause = {};
+    if (status === "read") {
+      whereClause = { read: true };
+    } else if (status === "unread") {
+      whereClause = { read: false };
+    }
+    await prisma.notification.deleteMany({
+      where: whereClause
+    });
+    return res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+};

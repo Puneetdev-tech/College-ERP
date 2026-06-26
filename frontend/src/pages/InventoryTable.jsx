@@ -446,241 +446,404 @@ export default function InventoryTable() {
                 <th className="p-4 text-left">Date Added / Updated</th>
               </tr>
             </thead>
-
             <tbody>
-              {groupsList.map((group) => {
-                const isGroupExpanded = !!(expandedGroups[group.key] || search.trim().length > 0);
-                const minP = group.minPrice;
-                const maxP = group.maxPrice;
-                const priceDisplay = minP === maxP 
-                  ? `₹${minP.toLocaleString("en-IN")}` 
-                  : `₹${minP.toLocaleString("en-IN")} - ₹${maxP.toLocaleString("en-IN")}`;
-
-                // Sort items inside the group by activity date or name
-                const sortedItems = [...group.items].sort((a, b) => {
-                  const dateA = a.updatedAt || a.createdAt || "";
-                  const dateB = b.updatedAt || b.createdAt || "";
-                  if (dateA && dateB) {
-                    return new Date(dateB.replace(" ", "T")) - new Date(dateA.replace(" ", "T"));
-                  }
-                  if (dateA) return -1;
-                  if (dateB) return 1;
-                  return a.item.localeCompare(b.item);
-                });
-
-                return (
-                  <React.Fragment key={group.key}>
-                    {/* Parent Row */}
-                    <tr
-                      className="border-b bg-slate-50/50 hover:bg-slate-100/50 transition duration-150 cursor-pointer"
-                      onClick={() => toggleGroup(group.key)}
-                    >
-                      <td className="p-4">
-                        <div className="flex items-center gap-2 font-bold text-slate-800">
-                          {isGroupExpanded ? (
-                            <FaChevronDown className="text-blue-600 flex-shrink-0 text-sm" />
-                          ) : (
-                            <FaChevronRight className="text-slate-400 flex-shrink-0 text-sm" />
-                          )}
-                          <span className="capitalize">{group.subcategory}</span>
-                          <span className="ml-2 text-[10px] font-bold text-slate-500 bg-slate-200/60 border border-slate-300/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                            {group.items.length} spec{group.items.length > 1 ? "s" : ""}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
-                          CATEGORY_BADGES[group.category] || "bg-blue-50 text-blue-600 border-blue-150"
-                        }`}>
-                          {group.category}
-                        </span>
-                      </td>
-                      <td className="p-4 font-extrabold text-slate-700">{group.totalStock}</td>
-                      <td className="p-4 text-slate-600 font-medium">{priceDisplay}</td>
-                      <td className="p-4 font-extrabold text-slate-800">₹{group.totalValue.toLocaleString("en-IN")}</td>
-                      <td className="p-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-white font-semibold text-xs
-                          ${
-                            group.status === "Good"
-                              ? "bg-green-500"
-                              : group.status === "Medium"
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                          }`}
+              {paramCategory ? (
+                // Flat mode: Render individual items directly when filtered by a subcategory
+                [...filteredInventory]
+                  .sort((a, b) => {
+                    const dateA = a.updatedAt || a.createdAt || "";
+                    const dateB = b.updatedAt || b.createdAt || "";
+                    if (dateA && dateB) {
+                      return new Date(dateB.replace(" ", "T")) - new Date(dateA.replace(" ", "T"));
+                    }
+                    if (dateA) return -1;
+                    if (dateB) return 1;
+                    return a.item.localeCompare(b.item);
+                  })
+                  .map((item) => {
+                    const isItemExpanded = !!expandedItems[item.id];
+                    return (
+                      <React.Fragment key={item.id}>
+                        <tr
+                          className="border-b hover:bg-slate-50 transition cursor-pointer select-none bg-white"
+                          onClick={() => toggleItem(item.id)}
                         >
-                          {group.status}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                          <FaClock className="text-slate-400 flex-shrink-0" />
-                          <span>
-                            {group.updatedAt
-                              ? <><span className="text-blue-500 font-semibold">Updated: </span>{formatDateTime(group.updatedAt)}</>
-                              : group.createdAt
-                              ? formatDateTime(group.createdAt)
-                              : "—"
-                            }
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* Child Rows (Specifications) */}
-                    {isGroupExpanded &&
-                      sortedItems.map((item) => {
-                        const isItemExpanded = !!expandedItems[item.id];
-                        return (
-                          <React.Fragment key={item.id}>
-                            <tr
-                              className="border-b border-slate-100 hover:bg-slate-50 transition cursor-pointer select-none bg-slate-50/20"
-                              onClick={(e) => {
-                                toggleItem(item.id);
-                              }}
+                          <td className="p-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-1.5 h-6 bg-blue-300 rounded-full flex-shrink-0" />
+                              <div>
+                                <div className="font-bold text-slate-850 flex items-center gap-2 flex-wrap">
+                                  <span>{item.item}</span>
+                                  <span className="text-xs text-slate-400 font-normal font-mono bg-slate-100 border px-1.5 py-0.5 rounded">
+                                    Spec: {item.type}
+                                  </span>
+                                  {getOrdersWithInvoice(item).length > 0 && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const inv = getOrdersWithInvoice(item)[0];
+                                        setInvoiceModalUrl(inv.invoiceDataUrl);
+                                        setInvoiceModalName(`Invoice_${inv.id}`);
+                                      }}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition cursor-pointer"
+                                      title="View attached invoice"
+                                    >
+                                      <FaFileInvoice className="text-[9px]" />
+                                      View Invoice
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400 mt-0.5 font-medium hover:text-indigo-650 transition flex items-center gap-1">
+                                  <FaHistory className="text-slate-350" />
+                                  <span>Click to view order history</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
+                              CATEGORY_BADGES[item.category] || "bg-blue-50 text-blue-600 border-blue-150"
+                            }`}>
+                              {item.category}
+                            </span>
+                          </td>
+                          <td className="p-4 font-bold text-slate-650">{item.stock}</td>
+                          <td className="p-4 text-slate-600">₹{item.price.toLocaleString("en-IN")}</td>
+                          <td className="p-4 font-bold text-slate-700">₹{(item.stock * item.price).toLocaleString("en-IN")}</td>
+                          <td className="p-4">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-white font-semibold text-[10px]
+                              ${
+                                item.status === "Good"
+                                  ? "bg-green-500/85"
+                                  : item.status === "Medium"
+                                  ? "bg-yellow-500/85"
+                                  : "bg-red-500/85"
+                              }`}
                             >
-                              <td className="p-4 pl-10">
-                                <div className="flex items-center gap-2.5">
-                                  <div className="w-1.5 h-6 bg-blue-300 rounded-full flex-shrink-0" />
-                                  <div>
-                                    <div className="font-bold text-slate-850 flex items-center gap-2 flex-wrap">
-                                      <span>{item.item}</span>
-                                      <span className="text-xs text-slate-400 font-normal font-mono bg-slate-100 border px-1.5 py-0.5 rounded">
-                                        Spec: {item.type}
-                                      </span>
-                                      {getOrdersWithInvoice(item).length > 0 && (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const inv = getOrdersWithInvoice(item)[0];
-                                            setInvoiceModalUrl(inv.invoiceDataUrl);
-                                            setInvoiceModalName(`Invoice_${inv.id}`);
-                                          }}
-                                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition cursor-pointer"
-                                          title="View attached invoice"
-                                        >
-                                          <FaFileInvoice className="text-[9px]" />
-                                          View Invoice
-                                        </button>
-                                      )}
-                                    </div>
-                                    <div className="text-[10px] text-slate-400 mt-0.5 font-medium hover:text-indigo-650 transition flex items-center gap-1">
-                                      <FaHistory className="text-slate-350" />
-                                      <span>Click to view order history</span>
+                              {item.status}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                              <FaClock className="text-slate-350 flex-shrink-0" />
+                              <span>
+                                {item.updatedAt
+                                  ? <><span className="text-blue-400 font-semibold">Updated: </span>{formatDateTime(item.updatedAt)}</>
+                                  : item.createdAt
+                                  ? formatDateTime(item.createdAt)
+                                  : "—"
+                                }
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Nested Order History */}
+                        {isItemExpanded && (
+                          <tr className="bg-slate-100/30">
+                            <td colSpan={7} className="p-4 pl-12 pr-6">
+                              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                                <div className="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
+                                  <FaHistory className="text-indigo-500 text-sm" />
+                                  <h4 className="font-bold text-xs text-slate-800 uppercase tracking-wide">
+                                    Order history for <span className="text-indigo-600">{item.item}</span> — {item.type}
+                                  </h4>
+                                </div>
+
+                                {getOrderHistory(item).length > 0 ? (
+                                  <div className="relative border-l-2 border-indigo-100 pl-4 ml-2 space-y-4 py-1">
+                                    {getOrderHistory(item).map((order) => (
+                                      <div
+                                        key={order.id}
+                                        className="relative before:absolute before:-left-[21px] before:top-1.5 before:w-2.5 before:h-2.5 before:rounded-full before:bg-indigo-400 before:border-2 before:border-white animate-fadeIn"
+                                      >
+                                        <div className="flex flex-wrap justify-between items-start gap-2 text-xs">
+                                          <div>
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-bold text-slate-700">Order Ref: #{order.id}</span>
+                                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap ${
+                                                order.status === "Received" ? "bg-green-50 border-green-200 text-green-700" :
+                                                order.status === "Partially Received" ? "bg-blue-50 border-blue-200 text-blue-700" :
+                                                order.status === "Approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
+                                                order.status === "Rejected" ? "bg-rose-50 border-rose-250 text-rose-700" :
+                                                "bg-yellow-50 border-yellow-200 text-yellow-700"
+                                              }`}>
+                                                {order.status}
+                                              </span>
+                                            </div>
+                                            <p className="text-slate-500 mt-1">
+                                              Supplier: <strong className="text-slate-700">{order.supplier}</strong>
+                                            </p>
+                                            <p className="text-slate-400 text-[10px] mt-0.5">
+                                              Requested by {order.faculty || order.placedBy || "Store"} for {order.department}
+                                            </p>
+                                          </div>
+                                          <div className="text-right">
+                                            <p className="font-bold text-slate-700">
+                                              {order.quantity} unit{order.quantity > 1 ? "s" : ""} @ ₹{order.pricePerUnit?.toLocaleString("en-IN")}/unit
+                                            </p>
+                                            {(order.receivedQuantity !== undefined || order.status === "Partially Received") && (
+                                              <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                                                Rec: <span className="text-emerald-600 font-bold">{order.receivedQuantity || 0}</span> | Pend: <span className="text-amber-600 font-bold">{order.pendingQuantity !== undefined ? order.pendingQuantity : (order.quantity - (order.receivedQuantity || 0))}</span>
+                                              </p>
+                                            )}
+                                            <p className="font-extrabold text-indigo-650 text-sm mt-0.5">
+                                              Total: ₹{(order.quantity * (order.pricePerUnit || 0)).toLocaleString("en-IN")}
+                                            </p>
+                                            <p className="text-slate-400 text-[10px] font-mono mt-1">
+                                              Date Placed: {formatDateTime(order.orderDate)}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-4 text-xs font-semibold text-slate-400 italic">
+                                    No purchase orders found for this specification.
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
+              ) : (
+                // Grouped mode: Group by subcategory when viewing everything
+                groupsList.map((group) => {
+                  const isGroupExpanded = !!(expandedGroups[group.key] || search.trim().length > 0);
+                  const minP = group.minPrice;
+                  const maxP = group.maxPrice;
+                  const priceDisplay = minP === maxP 
+                    ? `₹${minP.toLocaleString("en-IN")}` 
+                    : `₹${minP.toLocaleString("en-IN")} - ₹${maxP.toLocaleString("en-IN")}`;
+
+                  const sortedItems = [...group.items].sort((a, b) => {
+                    const dateA = a.updatedAt || a.createdAt || "";
+                    const dateB = b.updatedAt || b.createdAt || "";
+                    if (dateA && dateB) {
+                      return new Date(dateB.replace(" ", "T")) - new Date(dateA.replace(" ", "T"));
+                    }
+                    if (dateA) return -1;
+                    if (dateB) return 1;
+                    return a.item.localeCompare(b.item);
+                  });
+
+                  return (
+                    <React.Fragment key={group.key}>
+                      {/* Parent Row */}
+                      <tr
+                        className="border-b bg-slate-50/50 hover:bg-slate-100/50 transition duration-150 cursor-pointer"
+                        onClick={() => toggleGroup(group.key)}
+                      >
+                        <td className="p-4">
+                          <div className="flex items-center gap-2 font-bold text-slate-800">
+                            {isGroupExpanded ? (
+                              <FaChevronDown className="text-blue-600 flex-shrink-0 text-sm" />
+                            ) : (
+                              <FaChevronRight className="text-slate-400 flex-shrink-0 text-sm" />
+                            )}
+                            <span className="capitalize">{group.subcategory}</span>
+                            <span className="ml-2 text-[10px] font-bold text-slate-500 bg-slate-200/60 border border-slate-300/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                              {group.items.length} spec{group.items.length > 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
+                            CATEGORY_BADGES[group.category] || "bg-blue-50 text-blue-600 border-blue-150"
+                          }`}>
+                            {group.category}
+                          </span>
+                        </td>
+                        <td className="p-4 font-extrabold text-slate-700">{group.totalStock}</td>
+                        <td className="p-4 text-slate-600 font-medium">{priceDisplay}</td>
+                        <td className="p-4 font-extrabold text-slate-800">₹{group.totalValue.toLocaleString("en-IN")}</td>
+                        <td className="p-4">
+                          <span
+                            className={`px-3 py-1 rounded-full text-white font-semibold text-xs
+                            ${
+                              group.status === "Good"
+                                ? "bg-green-500"
+                                : group.status === "Medium"
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                            }`}
+                          >
+                            {group.status}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                            <FaClock className="text-slate-400 flex-shrink-0" />
+                            <span>
+                              {group.updatedAt
+                                ? <><span className="text-blue-500 font-semibold">Updated: </span>{formatDateTime(group.updatedAt)}</>
+                                : group.createdAt
+                                ? formatDateTime(group.createdAt)
+                                : "—"
+                              }
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Child Rows (Specifications) */}
+                      {isGroupExpanded &&
+                        sortedItems.map((item) => {
+                          const isItemExpanded = !!expandedItems[item.id];
+                          return (
+                            <React.Fragment key={item.id}>
+                              <tr
+                                className="border-b border-slate-100 hover:bg-slate-50 transition cursor-pointer select-none bg-slate-50/20"
+                                onClick={() => toggleItem(item.id)}
+                              >
+                                <td className="p-4 pl-10">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-1.5 h-6 bg-blue-300 rounded-full flex-shrink-0" />
+                                    <div>
+                                      <div className="font-bold text-slate-855 flex items-center gap-2 flex-wrap">
+                                        <span>{item.item}</span>
+                                        <span className="text-xs text-slate-400 font-normal font-mono bg-slate-100 border px-1.5 py-0.5 rounded">
+                                          Spec: {item.type}
+                                        </span>
+                                        {getOrdersWithInvoice(item).length > 0 && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const inv = getOrdersWithInvoice(item)[0];
+                                              setInvoiceModalUrl(inv.invoiceDataUrl);
+                                              setInvoiceModalName(`Invoice_${inv.id}`);
+                                            }}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition cursor-pointer"
+                                            title="View attached invoice"
+                                          >
+                                            <FaFileInvoice className="text-[9px]" />
+                                            View Invoice
+                                          </button>
+                                        )}
+                                      </div>
+                                      <div className="text-[10px] text-slate-400 mt-0.5 font-medium hover:text-indigo-650 transition flex items-center gap-1">
+                                        <FaHistory className="text-slate-350" />
+                                        <span>Click to view order history</span>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              </td>
-                              <td className="p-4 text-xs text-slate-450 pl-6 font-medium">
-                                {item.category}
-                              </td>
-                              <td className="p-4 font-bold text-slate-650">{item.stock}</td>
-                              <td className="p-4 text-slate-600">₹{item.price.toLocaleString("en-IN")}</td>
-                              <td className="p-4 font-bold text-slate-700">₹{(item.stock * item.price).toLocaleString("en-IN")}</td>
-                              <td className="p-4">
-                                <span
-                                  className={`px-2.5 py-0.5 rounded-full text-white font-semibold text-[10px]
-                                  ${
-                                    item.status === "Good"
-                                      ? "bg-green-500/85"
-                                      : item.status === "Medium"
-                                      ? "bg-yellow-500/85"
-                                      : "bg-red-500/85"
-                                  }`}
-                                >
-                                  {item.status}
-                                </span>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                                  <FaClock className="text-slate-350 flex-shrink-0" />
-                                  <span>
-                                    {item.updatedAt
-                                      ? <><span className="text-blue-400 font-semibold">Updated: </span>{formatDateTime(item.updatedAt)}</>
-                                      : item.createdAt
-                                      ? formatDateTime(item.createdAt)
-                                      : "—"
-                                    }
+                                </td>
+                                <td className="p-4 text-xs text-slate-450 pl-6 font-medium">
+                                  {item.category}
+                                </td>
+                                <td className="p-4 font-bold text-slate-650">{item.stock}</td>
+                                <td className="p-4 text-slate-600">₹{item.price.toLocaleString("en-IN")}</td>
+                                <td className="p-4 font-bold text-slate-700">₹{(item.stock * item.price).toLocaleString("en-IN")}</td>
+                                <td className="p-4">
+                                  <span
+                                    className={`px-2.5 py-0.5 rounded-full text-white font-semibold text-[10px]
+                                    ${
+                                      item.status === "Good"
+                                        ? "bg-green-500/85"
+                                        : item.status === "Medium"
+                                        ? "bg-yellow-500/85"
+                                        : "bg-red-500/85"
+                                    }`}
+                                  >
+                                    {item.status}
                                   </span>
-                                </div>
-                              </td>
-                            </tr>
-
-                            {/* Nested Order History */}
-                            {isItemExpanded && (
-                              <tr className="bg-slate-100/30">
-                                <td colSpan={7} className="p-4 pl-12 pr-6">
-                                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                                    <div className="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
-                                      <FaHistory className="text-indigo-500 text-sm" />
-                                      <h4 className="font-bold text-xs text-slate-800 uppercase tracking-wide">
-                                        Order history for <span className="text-indigo-600">{item.item}</span> — {item.type}
-                                      </h4>
-                                    </div>
-
-                                    {getOrderHistory(item).length > 0 ? (
-                                      <div className="relative border-l-2 border-indigo-100 pl-4 ml-2 space-y-4 py-1">
-                                        {getOrderHistory(item).map((order) => (
-                                          <div
-                                            key={order.id}
-                                            className="relative before:absolute before:-left-[21px] before:top-1.5 before:w-2.5 before:h-2.5 before:rounded-full before:bg-indigo-400 before:border-2 before:border-white animate-fadeIn"
-                                          >
-                                            <div className="flex flex-wrap justify-between items-start gap-2 text-xs">
-                                              <div>
-                                                <div className="flex items-center gap-2">
-                                                  <span className="font-bold text-slate-700">Order Ref: #{order.id}</span>
-                                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap ${
-                                                    order.status === "Received" ? "bg-green-50 border-green-200 text-green-700" :
-                                                    order.status === "Partially Received" ? "bg-blue-50 border-blue-200 text-blue-700" :
-                                                    order.status === "Approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
-                                                    order.status === "Rejected" ? "bg-rose-50 border-rose-250 text-rose-700" :
-                                                    "bg-yellow-50 border-yellow-200 text-yellow-700"
-                                                  }`}>
-                                                    {order.status}
-                                                  </span>
-                                                </div>
-                                                <p className="text-slate-500 mt-1">
-                                                  Supplier: <strong className="text-slate-700">{order.supplier}</strong>
-                                                </p>
-                                                <p className="text-slate-400 text-[10px] mt-0.5">
-                                                  Requested by {order.faculty || order.placedBy || "Store"} for {order.department}
-                                                </p>
-                                              </div>
-                                              <div className="text-right">
-                                                <p className="font-bold text-slate-700">
-                                                  {order.quantity} unit{order.quantity > 1 ? "s" : ""} @ ₹{order.pricePerUnit?.toLocaleString("en-IN")}/unit
-                                                </p>
-                                                {(order.receivedQuantity !== undefined || order.status === "Partially Received") && (
-                                                  <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
-                                                    Rec: <span className="text-emerald-600 font-bold">{order.receivedQuantity || 0}</span> | Pend: <span className="text-amber-600 font-bold">{order.pendingQuantity !== undefined ? order.pendingQuantity : (order.quantity - (order.receivedQuantity || 0))}</span>
-                                                  </p>
-                                                )}
-                                                <p className="font-extrabold text-indigo-650 text-sm mt-0.5">
-                                                  Total: ₹{(order.quantity * (order.pricePerUnit || 0)).toLocaleString("en-IN")}
-                                                </p>
-                                                <p className="text-slate-400 text-[10px] font-mono mt-1">
-                                                  Date Placed: {formatDateTime(order.orderDate)}
-                                                </p>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <div className="text-center py-4 text-xs font-semibold text-slate-400 italic">
-                                        No purchase orders found for this specification.
-                                      </div>
-                                    )}
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                                    <FaClock className="text-slate-350 flex-shrink-0" />
+                                    <span>
+                                      {item.updatedAt
+                                        ? <><span className="text-blue-400 font-semibold">Updated: </span>{formatDateTime(item.updatedAt)}</>
+                                        : item.createdAt
+                                        ? formatDateTime(item.createdAt)
+                                        : "—"
+                                      }
+                                    </span>
                                   </div>
                                 </td>
                               </tr>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                  </React.Fragment>
-                );
-              })}
+
+                              {/* Nested Order History */}
+                              {isItemExpanded && (
+                                <tr className="bg-slate-100/30">
+                                  <td colSpan={7} className="p-4 pl-12 pr-6">
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                                      <div className="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
+                                        <FaHistory className="text-indigo-500 text-sm" />
+                                        <h4 className="font-bold text-xs text-slate-800 uppercase tracking-wide">
+                                          Order history for <span className="text-indigo-600">{item.item}</span> — {item.type}
+                                        </h4>
+                                      </div>
+
+                                      {getOrderHistory(item).length > 0 ? (
+                                        <div className="relative border-l-2 border-indigo-100 pl-4 ml-2 space-y-4 py-1">
+                                          {getOrderHistory(item).map((order) => (
+                                            <div
+                                              key={order.id}
+                                              className="relative before:absolute before:-left-[21px] before:top-1.5 before:w-2.5 before:h-2.5 before:rounded-full before:bg-indigo-400 before:border-2 before:border-white"
+                                            >
+                                              <div className="flex flex-wrap justify-between items-start gap-2 text-xs">
+                                                <div>
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-slate-700">Order Ref: #{order.id}</span>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap ${
+                                                      order.status === "Received" ? "bg-green-50 border-green-200 text-green-700" :
+                                                      order.status === "Partially Received" ? "bg-blue-50 border-blue-200 text-blue-700" :
+                                                      order.status === "Approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
+                                                      order.status === "Rejected" ? "bg-rose-50 border-rose-250 text-rose-700" :
+                                                      "bg-yellow-50 border-yellow-200 text-yellow-700"
+                                                    }`}>
+                                                      {order.status}
+                                                    </span>
+                                                  </div>
+                                                  <p className="text-slate-500 mt-1">
+                                                    Supplier: <strong className="text-slate-700">{order.supplier}</strong>
+                                                  </p>
+                                                  <p className="text-slate-400 text-[10px] mt-0.5">
+                                                    Requested by {order.faculty || order.placedBy || "Store"} for {order.department}
+                                                  </p>
+                                                </div>
+                                                <div className="text-right">
+                                                  <p className="font-bold text-slate-700">
+                                                    {order.quantity} unit{order.quantity > 1 ? "s" : ""} @ ₹{order.pricePerUnit?.toLocaleString("en-IN")}/unit
+                                                  </p>
+                                                  {(order.receivedQuantity !== undefined || order.status === "Partially Received") && (
+                                                    <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                                                      Rec: <span className="text-emerald-600 font-bold">{order.receivedQuantity || 0}</span> | Pend: <span className="text-amber-600 font-bold">{order.pendingQuantity !== undefined ? order.pendingQuantity : (order.quantity - (order.receivedQuantity || 0))}</span>
+                                                    </p>
+                                                  )}
+                                                  <p className="font-extrabold text-indigo-650 text-sm mt-0.5">
+                                                    Total: ₹{(order.quantity * (order.pricePerUnit || 0)).toLocaleString("en-IN")}
+                                                  </p>
+                                                  <p className="text-slate-400 text-[10px] font-mono mt-1">
+                                                    Date Placed: {formatDateTime(order.orderDate)}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <div className="text-center py-4 text-xs font-semibold text-slate-400 italic">
+                                          No purchase orders found for this specification.
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                    </React.Fragment>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
