@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaLock, FaTimes } from "react-icons/fa";
+import { FaLock, FaTimes, FaEye, FaEyeSlash } from "react-icons/fa";
 import { speak, playBeep } from "../components/useSpeech";
 
 import campus1 from "../../images/campus1.jpg"; 
@@ -18,6 +18,7 @@ export default function Login() {
   const [currentImage, setCurrentImage] = useState(0);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
   const [passwordChangeMessage, setPasswordChangeMessage] = useState("");
@@ -26,7 +27,7 @@ export default function Login() {
   useEffect(() => {
     const speakTimeout = setTimeout(() => {
       speak("Welcome to R J I T Inventory. Please fill the required details for authentication.", { rate: 0.92, pitch: 1.08 });
-    }, 600);
+    }, 50);
     return () => clearTimeout(speakTimeout);
   }, []);
 
@@ -61,21 +62,6 @@ export default function Login() {
     }
   };
 
-  const handleQuickLogin = (quickEmail, quickPassword) => {
-    setError("");
-    const res = login(quickEmail, quickPassword);
-    if (res.success) {
-      playBeep("success");
-      navigate("/dashboard");
-    } else {
-      if (res.message && res.message.includes("Your password was changed by")) {
-        setPasswordChangeMessage(res.message);
-        setShowPasswordChangeModal(true);
-      } else {
-        setError(res.message);
-      }
-    }
-  };
 
   return (
     <div className="relative h-screen w-screen">
@@ -149,13 +135,23 @@ export default function Login() {
             className="w-full mb-4 p-3 rounded-xl bg-white/20 text-white placeholder-gray-300 outline-none border border-transparent focus:border-white/40 transition-colors"
           />
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full mb-6 p-3 rounded-xl bg-white/20 text-white placeholder-gray-300 outline-none border border-transparent focus:border-white/40 transition-colors"
-          />
+          <div className="relative mb-6">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 pr-10 rounded-xl bg-white/20 text-white placeholder-gray-300 outline-none border border-transparent focus:border-white/40 transition-colors"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-3 text-gray-300 hover:text-white transition duration-150 cursor-pointer"
+            >
+              {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+            </button>
+          </div>
 
           <button
             type="submit"
@@ -163,43 +159,6 @@ export default function Login() {
           >
             Login
           </button>
-
-          {/* Quick Login Section */}
-          <div className="mt-6 border-t border-white/15 pt-5">
-            <p className="text-center text-xs font-semibold text-gray-300 mb-3 uppercase tracking-wider">
-              Quick Login Demo
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("rahul@rjit.edu.in", "admin")}
-                className="bg-white/5 border border-white/10 hover:bg-white/15 hover:border-white/30 text-white text-xs py-2 rounded-xl transition cursor-pointer font-medium text-center"
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("priya@rjit.edu.in", "manager")}
-                className="bg-white/5 border border-white/10 hover:bg-white/15 hover:border-white/30 text-white text-xs py-2 rounded-xl transition cursor-pointer font-medium text-center"
-              >
-                Store Manager
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("amit@rjit.edu.in", "officer")}
-                className="bg-white/5 border border-white/10 hover:bg-white/15 hover:border-white/30 text-white text-xs py-2 rounded-xl transition cursor-pointer font-medium text-center"
-              >
-                Purchase Officer
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("principal@rjit.edu.in", "principal")}
-                className="bg-white/5 border border-white/10 hover:bg-white/15 hover:border-white/30 text-white text-xs py-2 rounded-xl transition cursor-pointer font-medium text-center"
-              >
-                Principal
-              </button>
-            </div>
-          </div>
         </form>
       </div>
 

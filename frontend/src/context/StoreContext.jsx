@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 
 const StoreContext = createContext();
 
@@ -14,8 +14,8 @@ const DEFAULT_USERS = [
   {
     id: 1,
     name: "Rahul Sharma",
-    email: "rahul@rjit.edu.in",
-    password: "admin",
+    email: "rahul@rjit.ac.in",
+    password: "admin@RJIT2026",
     role: "Admin",
     status: "Active",
     permissions: ROLE_DEFAULT_PERMISSIONS["Admin"],
@@ -25,8 +25,8 @@ const DEFAULT_USERS = [
   {
     id: 2,
     name: "Priya Singh",
-    email: "priya@rjit.edu.in",
-    password: "manager",
+    email: "priya@rjit.ac.in",
+    password: "manager@RJIT2026",
     role: "Store Manager",
     status: "Active",
     permissions: ROLE_DEFAULT_PERMISSIONS["Store Manager"],
@@ -36,8 +36,8 @@ const DEFAULT_USERS = [
   {
     id: 3,
     name: "Amit Verma",
-    email: "amit@rjit.edu.in",
-    password: "officer",
+    email: "amit@rjit.ac.in",
+    password: "officer@RJIT2026",
     role: "Purchase Officer",
     status: "Active",
     permissions: ROLE_DEFAULT_PERMISSIONS["Purchase Officer"],
@@ -47,8 +47,8 @@ const DEFAULT_USERS = [
   {
     id: 4,
     name: "Dr. Roy",
-    email: "principal@rjit.edu.in",
-    password: "principal",
+    email: "principal@rjit.ac.in",
+    password: "principal@RJIT2026",
     role: "Principal",
     status: "Active",
     permissions: ROLE_DEFAULT_PERMISSIONS["Principal"],
@@ -58,8 +58,8 @@ const DEFAULT_USERS = [
   {
     id: 5,
     name: "Sanjay Mehta",
-    email: "accounts@rjit.edu.in",
-    password: "accounts",
+    email: "accounts@rjit.ac.in",
+    password: "accounts@RJIT2026",
     role: "Account Office",
     status: "Active",
     permissions: ROLE_DEFAULT_PERMISSIONS["Account Office"],
@@ -69,23 +69,39 @@ const DEFAULT_USERS = [
 ];
 
 export function StoreProvider({ children }) {
+  // One-time database reset to remove demo data
+  const resetKey = "rjit_database_reset_v4_clean";
+  if (typeof window !== "undefined" && !localStorage.getItem(resetKey)) {
+    localStorage.setItem("rjit_inventory", JSON.stringify([]));
+    localStorage.setItem("rjit_orders", JSON.stringify([]));
+    localStorage.setItem("rjit_issuedStock", JSON.stringify([]));
+    localStorage.setItem("rjit_maintenanceLogs", JSON.stringify([]));
+    localStorage.setItem("rjit_notifications", JSON.stringify([]));
+    localStorage.setItem(resetKey, "true");
+  }
+
   // Backup State
   const [backup, setBackup] = useState(() => {
-    const saved = localStorage.getItem("rjit_backup");
-    let initialBackup = saved ? JSON.parse(saved) : [];
-    
-    // Auto-delete backup entries after 30 days
-    const now = Date.now();
-    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-    const filtered = initialBackup.filter(item => {
-      const deletedTime = new Date(item.deletedAt).getTime();
-      return (now - deletedTime) < thirtyDays;
-    });
-    
-    if (filtered.length !== initialBackup.length) {
-      localStorage.setItem("rjit_backup", JSON.stringify(filtered));
+    try {
+      const saved = localStorage.getItem("rjit_backup");
+      let initialBackup = saved ? JSON.parse(saved) : [];
+      
+      // Auto-delete backup entries after 30 days
+      const now = Date.now();
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+      const filtered = (initialBackup || []).filter(item => {
+        if (!item || !item.deletedAt) return false;
+        const deletedTime = new Date(item.deletedAt).getTime();
+        return (now - deletedTime) < thirtyDays;
+      });
+      
+      if (filtered.length !== initialBackup.length) {
+        localStorage.setItem("rjit_backup", JSON.stringify(filtered));
+      }
+      return filtered;
+    } catch (e) {
+      return [];
     }
-    return filtered;
   });
 
   const addBackupItem = (type, data) => {
@@ -104,50 +120,82 @@ export function StoreProvider({ children }) {
 
   // User management states
   const [usersList, setUsersList] = useState(() => {
-    const saved = localStorage.getItem("rjit_users");
-    let users = saved ? JSON.parse(saved) : DEFAULT_USERS;
-    let migrated = false;
-    users = users.map(u => {
-      const defaultPerms = ROLE_DEFAULT_PERMISSIONS[u.role] || [];
-      let updatedPerms = [...(u.permissions || [])];
-      let migratedUser = false;
-      defaultPerms.forEach(p => {
-        if (!updatedPerms.includes(p)) {
-          updatedPerms.push(p);
-          migratedUser = true;
+    try {
+      const saved = localStorage.getItem("rjit_users");
+      let users = saved ? JSON.parse(saved) : DEFAULT_USERS;
+      let migrated = false;
+      users = (users || []).map(u => {
+        if (!u) return u;
+        if (u.password === "admin") { u.password = "admin@RJIT2026"; migrated = true; }
+        else if (u.password === "manager") { u.password = "manager@RJIT2026"; migrated = true; }
+        else if (u.password === "officer") { u.password = "officer@RJIT2026"; migrated = true; }
+        else if (u.password === "principal") { u.password = "principal@RJIT2026"; migrated = true; }
+        else if (u.password === "accounts") { u.password = "accounts@RJIT2026"; migrated = true; }
+        
+        if (u.email && u.email.toLowerCase().endsWith("@rjit.edu.in")) {
+          u.email = u.email.replace(/@rjit\.edu\.in$/i, "@rjit.ac.in");
+          migrated = true;
         }
-      });
-      if (migratedUser) {
-        migrated = true;
-        return { ...u, permissions: updatedPerms };
+        const defaultPerms = ROLE_DEFAULT_PERMISSIONS[u.role] || [];
+        let updatedPerms = [...(u.permissions || [])];
+        let migratedUser = false;
+        defaultPerms.forEach(p => {
+          if (!updatedPerms.includes(p)) {
+            updatedPerms.push(p);
+            migratedUser = true;
+          }
+        });
+        if (migratedUser) {
+          migrated = true;
+          u = { ...u, permissions: updatedPerms };
+        }
+        return u;
+      }).filter(Boolean);
+      if (migrated) {
+        localStorage.setItem("rjit_users", JSON.stringify(users));
       }
-      return u;
-    });
-    if (migrated) {
-      localStorage.setItem("rjit_users", JSON.stringify(users));
+      return users;
+    } catch (e) {
+      return DEFAULT_USERS;
     }
-    return users;
   });
 
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem("rjit_currentUser");
-    if (saved) {
-      const user = JSON.parse(saved);
-      const defaultPerms = ROLE_DEFAULT_PERMISSIONS[user.role] || [];
-      let updatedPerms = [...(user.permissions || [])];
-      let needUpdate = false;
-      defaultPerms.forEach(p => {
-        if (!updatedPerms.includes(p)) {
-          updatedPerms.push(p);
-          needUpdate = true;
+    try {
+      const saved = localStorage.getItem("rjit_currentUser");
+      if (saved && saved !== "undefined") {
+        const user = JSON.parse(saved);
+        if (user) {
+          let migrated = false;
+          if (user.password === "admin") { user.password = "admin@RJIT2026"; migrated = true; }
+          else if (user.password === "manager") { user.password = "manager@RJIT2026"; migrated = true; }
+          else if (user.password === "officer") { user.password = "officer@RJIT2026"; migrated = true; }
+          else if (user.password === "principal") { user.password = "principal@RJIT2026"; migrated = true; }
+          else if (user.password === "accounts") { user.password = "accounts@RJIT2026"; migrated = true; }
+          
+          if (user.email && user.email.toLowerCase().endsWith("@rjit.edu.in")) {
+            user.email = user.email.replace(/@rjit\.edu\.in$/i, "@rjit.ac.in");
+            migrated = true;
+          }
+          const defaultPerms = ROLE_DEFAULT_PERMISSIONS[user.role] || [];
+          let updatedPerms = [...(user.permissions || [])];
+          let needUpdate = false;
+          defaultPerms.forEach(p => {
+            if (!updatedPerms.includes(p)) {
+              updatedPerms.push(p);
+              needUpdate = true;
+            }
+          });
+          if (needUpdate || migrated) {
+            const updatedUser = { ...user, password: user.password, permissions: updatedPerms };
+            localStorage.setItem("rjit_currentUser", JSON.stringify(updatedUser));
+            return updatedUser;
+          }
+          return user;
         }
-      });
-      if (needUpdate) {
-        const updatedUser = { ...user, permissions: updatedPerms };
-        localStorage.setItem("rjit_currentUser", JSON.stringify(updatedUser));
-        return updatedUser;
       }
-      return user;
+    } catch (e) {
+      // ignore
     }
     return null;
   });
@@ -162,8 +210,8 @@ export function StoreProvider({ children }) {
         logo: "/rjit_logo.png",
         address: "123 Campus Lane, Okhla, New Delhi",
         phone: "+91 11 2690 7400",
-        email: "info@rjit.edu.in",
-        website: "www.rjit.edu.in"
+        email: "info@rjit.ac.in",
+        website: "www.rjit.ac.in"
       }
     };
     if (saved) {
@@ -171,6 +219,18 @@ export function StoreProvider({ children }) {
         const parsed = JSON.parse(saved);
         if (!parsed.collegeInfo) parsed.collegeInfo = defaultSettings.collegeInfo;
         if (!parsed.collegeInfo.logo) parsed.collegeInfo.logo = "/rjit_logo.png";
+        let migrated = false;
+        if (parsed.collegeInfo.email === "info@rjit.edu.in") {
+          parsed.collegeInfo.email = "info@rjit.ac.in";
+          migrated = true;
+        }
+        if (parsed.collegeInfo.website === "www.rjit.edu.in") {
+          parsed.collegeInfo.website = "www.rjit.ac.in";
+          migrated = true;
+        }
+        if (migrated) {
+          localStorage.setItem("rjit_settings", JSON.stringify(parsed));
+        }
         return parsed;
       } catch (e) {
         return defaultSettings;
@@ -302,7 +362,7 @@ export function StoreProvider({ children }) {
     const saved = localStorage.getItem("rjit_inventory");
     
     // Define the new default stationery items
-    const newStationeryItems = [
+    let newStationeryItems = [
       { id: 101, item: "A4 size paper Rim", category: "Stationery", subcategory: "A4 size paper Rim", type: "Rim", stock: 250, price: 320, status: "Good", createdAt: "2026-06-01 09:25:00" },
       { id: 102, item: "Add Gel pen", category: "Stationery", subcategory: "Add Gel pen", type: "Blue/Black", stock: 120, price: 15, status: "Good", createdAt: "2026-06-01 09:26:00" },
       { id: 103, item: "Add gel refill", category: "Stationery", subcategory: "Add gel refill", type: "0.5mm", stock: 200, price: 5, status: "Good", createdAt: "2026-06-01 09:27:00" },
@@ -322,7 +382,7 @@ export function StoreProvider({ children }) {
     ].map(item => ({ ...item, category: "Stationary" }));
 
     // Define new default Sanitary items
-    const newSanitoryItems = [
+    let newSanitoryItems = [
       { id: 201, item: "Nariyal Jharu", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 50, price: 40, status: "Good", createdAt: "2026-06-01 10:20:00" },
       { id: 202, item: "Phenyl", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 30, price: 80, status: "Good", createdAt: "2026-06-01 10:21:00" },
       { id: 203, item: "Acid", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 20, price: 60, status: "Good", createdAt: "2026-06-01 10:22:00" },
@@ -403,142 +463,242 @@ export function StoreProvider({ children }) {
       { id: 278, item: "Termite Medicine", category: "Cleaning", subcategory: "Cleaning", type: "Standard", stock: 20, price: 380, status: "Good", createdAt: "2026-06-01 11:37:00" },
     ].map(item => ({ ...item, category: "Sanitory" }));
 
-    if (saved) {
-      let parsed = JSON.parse(saved);
-      let needSave = false;
-      
-      // Category Normalization Migration
-      parsed = parsed.map(item => {
-        let cat = item.category || "";
-        let updatedCat = cat;
-        if (cat === "Stationery") updatedCat = "Stationary";
-        else if (cat === "Cleaning") updatedCat = "Sanitory";
-        else if (cat === "Equipment") updatedCat = "laboratory";
-        
-        if (updatedCat !== cat) {
-          needSave = true;
-          return { ...item, category: updatedCat };
+    // Dynamically apply correct category/subcategory/specification schema on default lists
+    const mapItemSchema = (item) => {
+      let name = item.item || "";
+      let sub = item.subcategory || "";
+      let type = item.type || "Standard";
+      const n = name.toLowerCase();
+
+      if (item.category === "Sanitory") {
+        if (n.includes("paint")) {
+          sub = "Paint";
+          type = name;
+        } else if (n.includes("jharu") || n.includes("broom")) {
+          sub = "Jharu";
+          type = name;
+        } else if (n.includes("phenyl") || n.includes("harpic") || n.includes("cleaner") || n.includes("acid") || n.includes("spray") || n.includes("lizol") || n.includes("powder")) {
+          sub = "Cleaners & Disinfectants";
+          type = name;
+        } else if (n.includes("soap") || n.includes("hand wash") || n.includes("handwash")) {
+          sub = "Soap / Hand Wash";
+          type = name;
+        } else if (n.includes("dustbin")) {
+          sub = "Dustbin";
+          type = name;
+        } else if (n.includes("pipe") || n.includes("socket") || n.includes("valve") || n.includes("nozzle") || n.includes("fta") || n.includes("mta") || n.includes("reducer") || n.includes("union") || n.includes("cock") || n.includes("gitti") || n.includes("washer")) {
+          sub = "Pipe / Fitting";
+          type = name;
+        } else if (n.includes("tape")) {
+          sub = "Tape";
+          type = name;
+        } else if (n.includes("screw")) {
+          sub = "Screw / Hardware";
+          type = name;
+        } else if (n.includes("pocha") || n.includes("mop") || n.includes("wiper")) {
+          sub = "Mops & Wipers";
+          type = name;
+        } else {
+          sub = name;
+          type = "Standard";
         }
-        return item;
-      });
-
-      // Migrate if user has old stationery list
-      const stationeryCount = parsed.filter(item => item.id >= 101 && item.id <= 117).length;
-      // Migrate if user has old sanitary list
-      const sanitoryCount = parsed.filter(item => item.id >= 201 && item.id <= 279).length;
-      
-      let migrated = parsed;
-
-      if (stationeryCount !== 17) {
-        const filtered = migrated.filter(item => item.category !== "Stationary" && item.category !== "Stationery" && !(item.id >= 101 && item.id <= 117));
-        migrated = [...filtered, ...newStationeryItems];
-        needSave = true;
+      } else if (item.category === "Stationary") {
+        if (n.includes("register")) {
+          sub = "Register";
+          type = name;
+        } else if (n.includes("pen") && !n.includes("open")) {
+          sub = "Pen";
+          type = name;
+        } else if (n.includes("paper")) {
+          sub = "Paper";
+          type = name;
+        } else if (n.includes("envelope")) {
+          sub = "Envelope";
+          type = name;
+        } else if (n.includes("cell")) {
+          sub = "Cell";
+          type = name;
+        } else if (n.includes("marker")) {
+          sub = "Marker";
+          type = name;
+        }
       }
+      return { ...item, subcategory: sub, type: type };
+    };
 
-      if (sanitoryCount !== 79) {
-        const filtered = migrated.filter(item => item.category !== "Sanitory" && item.category !== "Cleaning" && !(item.id >= 201 && item.id <= 279));
-        migrated = [...filtered, ...newSanitoryItems];
-        needSave = true;
-      }
+    newStationeryItems = newStationeryItems.map(mapItemSchema);
+    newSanitoryItems = newSanitoryItems.map(mapItemSchema);
 
-      if (needSave) {
-        localStorage.setItem("rjit_inventory", JSON.stringify(migrated));
-        return migrated.sort((a, b) => {
-          if (a.createdAt && b.createdAt) return new Date(b.createdAt) - new Date(a.createdAt);
-          return b.id - a.id;
-        });
-      }
+    const defaultList = [];
 
-      return [...parsed].sort((a, b) => {
-        if (a.createdAt && b.createdAt) return new Date(b.createdAt) - new Date(a.createdAt);
-        return b.id - a.id;
-      });
-    }
-
-    return [
-      { id: 1, item: "Desktop Computer", category: "Electronics", subcategory: "Computer", type: "i5 16GB", stock: 25, price: 45000, status: "Good", createdAt: "2026-06-01 09:00:00" },
-      { id: 2, item: "Laser Printer", category: "Electronics", subcategory: "Printer", type: "LaserJet", stock: 4, price: 12000, status: "Low", createdAt: "2026-06-01 09:05:00" },
-      { id: 3, item: "Office Chair", category: "Furniture", subcategory: "Chair", type: "Ergonomic Mesh", stock: 18, price: 3500, status: "Good", createdAt: "2026-06-01 09:10:00" },
-      { id: 4, item: "Football", category: "Sports", subcategory: "Balls", type: "Leather size 5", stock: 10, price: 800, status: "Good", createdAt: "2026-06-01 09:15:00" },
-      { id: 5, item: "Microscope", category: "laboratory", subcategory: "Lab Equipment", type: "Compound 1000x", stock: 15, price: 10000, status: "Good", createdAt: "2026-06-01 09:20:00" },
-      ...newStationeryItems,
-      ...newSanitoryItems,
-      { id: 10, item: "Study Desk", category: "Furniture", subcategory: "Desk", type: "Study Desk", stock: 30, price: 5000, status: "Good", createdAt: "2026-06-01 09:45:00" },
-      { id: 11, item: "Bed (Iron Frame)", category: "Furniture", subcategory: "Bed", type: "Iron Frame Bed", stock: 50, price: 5000, status: "Good", createdAt: "2026-06-01 09:50:00" },
-      { id: 12, item: "Reading Chair", category: "Furniture", subcategory: "Chair", type: "Reading Chair", stock: 80, price: 1500, status: "Good", createdAt: "2026-06-01 09:55:00" },
-      { id: 13, item: "Executive Desk", category: "Furniture", subcategory: "Desk", type: "Executive Desk", stock: 15, price: 7000, status: "Good", createdAt: "2026-06-01 10:00:00" },
-      { id: 14, item: "Wi-Fi Router", category: "Electronics", subcategory: "Router", type: "Dual Band Wi-Fi", stock: 5, price: 3000, status: "Good", createdAt: "2026-06-01 10:05:00" },
-      { id: 15, item: "Barcode Scanner", category: "Electronics", subcategory: "Barcode Scanner", type: "Laser Scanner", stock: 3, price: 3000, status: "Good", createdAt: "2026-06-01 10:10:00" }
-    ];
-  });
-
-  // Initial issued stock log
-  const [issuedStock, setIssuedStock] = useState(() => {
-    const saved = localStorage.getItem("rjit_issuedStock");
     if (saved) {
       try {
         let parsed = JSON.parse(saved);
         let needSave = false;
-        const migrated = parsed.map(log => {
-          let cat = log.category || "";
+        
+        // Category Normalization Migration
+        parsed = (parsed || []).map(item => {
+          if (!item) return item;
+          let cat = item.category || "";
           let updatedCat = cat;
           if (cat === "Stationery") updatedCat = "Stationary";
           else if (cat === "Cleaning") updatedCat = "Sanitory";
+          else if (cat === "Sanitary") updatedCat = "Sanitory";
           else if (cat === "Equipment") updatedCat = "laboratory";
-
-          let dept = log.department || "";
-          let updatedDept = dept;
-          if (dept === "IT Department" || dept === "IT,CSE") updatedDept = "Electronics";
-          else if (dept === "Laboratory") updatedDept = "laboratory";
-          else if (dept === "Hostel" || dept === "Office" || dept === "Library") updatedDept = "Furniture";
-          else if (dept === "Medical") updatedDept = "Sanitory";
-          else if (dept === "Stationery") updatedDept = "Stationary";
-          else if (dept === "Cleaning") updatedDept = "Sanitory";
-
-          if (updatedCat !== cat || updatedDept !== dept) {
+          
+          if (updatedCat !== cat) {
             needSave = true;
-            return { ...log, category: updatedCat, department: updatedDept };
+            return { ...item, category: updatedCat };
           }
-          return log;
-        });
-        if (needSave) {
-          localStorage.setItem("rjit_issuedStock", JSON.stringify(migrated));
+          return item;
+        }).filter(Boolean);
+
+        // One-time schema migration for existing items
+        const migrationKey = "rjit_migrated_v3_unique_subcats";
+        const alreadyMigrated = localStorage.getItem(migrationKey);
+
+        if (!alreadyMigrated) {
+          parsed = parsed.map(mapItemSchema);
+          needSave = true;
+          localStorage.setItem(migrationKey, "true");
         }
-        return migrated;
+
+        if (needSave) {
+          localStorage.setItem("rjit_inventory", JSON.stringify(parsed));
+        }
+
+        return [...parsed].sort((a, b) => {
+          if (a.createdAt && b.createdAt) return new Date(b.createdAt) - new Date(a.createdAt);
+          return b.id - a.id;
+        });
       } catch (e) {
-        // ignore errors
+        // ignore
       }
     }
-    return [
-      {
-        id: 1,
-        item: "Desktop Computer",
-        category: "Electronics",
-        subcategory: "Computer",
-        type: "i5 16GB",
-        department: "Electronics",
-        faculty: "Mr. Sharma",
-        quantity: 5,
-        date: "2026-06-01 10:30 AM"
-      },
-      {
-        id: 2,
-        item: "Projector",
-        category: "Electronics",
-        subcategory: "Projector",
-        type: "Full HD 4K",
-        department: "laboratory",
-        faculty: "Dr. Singh",
-        quantity: 2,
-        date: "2026-06-03 02:15 PM"
+
+    return defaultList;
+  });
+
+  // Initial issued stock log
+  const [issuedStock, setIssuedStock] = useState(() => {
+    const defaultIssued = [];
+
+    try {
+      const saved = localStorage.getItem("rjit_issuedStock");
+      if (saved) {
+        let parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          let needSave = false;
+          const migrated = parsed.map(log => {
+            if (!log) return log;
+            let cat = log.category || "";
+            let updatedCat = cat;
+            if (cat === "Stationery") updatedCat = "Stationary";
+            else if (cat === "Cleaning") updatedCat = "Sanitory";
+            else if (cat === "Sanitary") updatedCat = "Sanitory";
+            else if (cat === "Equipment") updatedCat = "laboratory";
+
+            let dept = log.department || "";
+            let updatedDept = dept;
+            if (dept === "IT Department" || dept === "IT,CSE") updatedDept = "Electronics";
+            else if (dept === "Laboratory") updatedDept = "laboratory";
+            else if (dept === "Hostel" || dept === "Office" || dept === "Library") updatedDept = "Furniture";
+            else if (dept === "Medical") updatedDept = "Sanitory";
+            else if (dept === "Stationery") updatedDept = "Stationary";
+            else if (dept === "Cleaning") updatedDept = "Sanitory";
+
+            let sub = log.subcategory || "";
+            let type = log.type || "Standard";
+            let name = log.item || sub;
+            const n = name.toLowerCase();
+
+            if (updatedCat === "Sanitory") {
+              if (n.includes("paint")) {
+                sub = "Paint";
+                type = name;
+              } else if (n.includes("jharu") || n.includes("broom")) {
+                sub = "Jharu";
+                type = name;
+              } else if (n.includes("phenyl") || n.includes("harpic") || n.includes("cleaner") || n.includes("acid") || n.includes("spray") || n.includes("lizol") || n.includes("powder")) {
+                sub = "Cleaners & Disinfectants";
+                type = name;
+              } else if (n.includes("soap") || n.includes("hand wash") || n.includes("handwash")) {
+                sub = "Soap / Hand Wash";
+                type = name;
+              } else if (n.includes("dustbin")) {
+                sub = "Dustbin";
+                type = name;
+              } else if (n.includes("pipe") || n.includes("socket") || n.includes("valve") || n.includes("nozzle") || n.includes("fta") || n.includes("mta") || n.includes("reducer") || n.includes("union") || n.includes("cock") || n.includes("gitti") || n.includes("washer")) {
+                sub = "Pipe / Fitting";
+                type = name;
+              } else if (n.includes("tape")) {
+                sub = "Tape";
+                type = name;
+              } else if (n.includes("screw")) {
+                sub = "Screw / Hardware";
+                type = name;
+              } else if (n.includes("pocha") || n.includes("mop") || n.includes("wiper")) {
+                sub = "Mops & Wipers";
+                type = name;
+              } else {
+                if (sub === "Cleaning" || !sub) {
+                  sub = name;
+                  type = "Standard";
+                }
+              }
+            } else if (updatedCat === "Stationary") {
+              if (n.includes("register")) {
+                sub = "Register";
+                type = name;
+              } else if (n.includes("pen") && !n.includes("open")) {
+                sub = "Pen";
+                type = name;
+              } else if (n.includes("paper")) {
+                sub = "Paper";
+                type = name;
+              } else if (n.includes("envelope")) {
+                sub = "Envelope";
+                type = name;
+              } else if (n.includes("cell")) {
+                sub = "Cell";
+                type = name;
+              } else if (n.includes("marker")) {
+                sub = "Marker";
+                type = name;
+              }
+            }
+
+            if (updatedCat !== cat || updatedDept !== dept || sub !== log.subcategory || type !== log.type) {
+              needSave = true;
+              return { ...log, category: updatedCat, department: updatedDept, subcategory: sub, type: type };
+            }
+            return log;
+          }).filter(Boolean);
+          if (needSave) {
+            localStorage.setItem("rjit_issuedStock", JSON.stringify(migrated));
+          }
+          return migrated;
+        }
       }
-    ];
+    } catch (e) {
+      // ignore
+    }
+
+    return defaultIssued;
   });
 
   // Approval sequence (list of user IDs in sequence)
   const [approvalSequence, setApprovalSequence] = useState(() => {
-    const saved = localStorage.getItem("rjit_approvalSequence");
-    return saved ? JSON.parse(saved) : [5, 4]; // Accounts Office then Principal by default
+    try {
+      const saved = localStorage.getItem("rjit_approvalSequence");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      // ignore
+    }
+    return [5, 4]; // Accounts Office then Principal by default
   });
 
   const updateApprovalSequence = (newSeq) => {
@@ -548,46 +708,22 @@ export function StoreProvider({ children }) {
 
   // Notifications State
   const [notifications, setNotifications] = useState(() => {
-    const saved = localStorage.getItem("rjit_notifications");
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 1,
-        type: "Low Stock",
-        message: "A4 Sheets stock below minimum level",
-        time: "10 minutes ago",
-        read: false,
-        color: "bg-red-100 text-red-800",
-        iconType: "low-stock"
-      },
-      {
-        id: 2,
-        type: "Stock Received",
-        message: "20 Desktop Computers received",
-        time: "1 hour ago",
-        read: false,
-        color: "bg-green-100 text-green-800",
-        iconType: "received"
-      },
-      {
-        id: 3,
-        type: "Stock Issued",
-        message: "5 Projectors issued to Laboratory",
-        time: "3 hours ago",
-        read: false,
-        color: "bg-blue-100 text-blue-800",
-        iconType: "issued"
-      },
-      {
-        id: 4,
-        type: "Purchase Order",
-        message: "New Purchase Order PO001 created",
-        time: "Yesterday",
-        read: false,
-        color: "bg-yellow-100 text-yellow-800",
-        iconType: "order"
+    const defaultNotifs = [];
+
+    try {
+      const saved = localStorage.getItem("rjit_notifications");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       }
-    ];
+    } catch (e) {
+      // ignore
+    }
+
+    return defaultNotifs;
   });
+
+
 
   const markAllRead = useCallback(() => {
     setNotifications(prev => {
@@ -647,83 +783,110 @@ export function StoreProvider({ children }) {
 
   // Initial placed & received orders log
   const [orders, setOrders] = useState(() => {
+    const defaultOrders = [];
+
     const saved = localStorage.getItem("rjit_orders");
     if (saved) {
       try {
         let parsed = JSON.parse(saved);
-        let needSave = false;
-        const migrated = parsed.map(o => {
-          let cat = o.category || "";
-          let updatedCat = cat;
-          if (cat === "Stationery") updatedCat = "Stationary";
-          else if (cat === "Cleaning") updatedCat = "Sanitory";
-          else if (cat === "Equipment") updatedCat = "laboratory";
+        if (Array.isArray(parsed)) {
+          let needSave = false;
+          const migrated = parsed.map(o => {
+            if (!o) return o;
+            let cat = o.category || "";
+            let updatedCat = cat;
+            if (cat === "Stationery") updatedCat = "Stationary";
+            else if (cat === "Cleaning") updatedCat = "Sanitory";
+            else if (cat === "Sanitary") updatedCat = "Sanitory";
+            else if (cat === "Equipment") updatedCat = "laboratory";
 
-          let dept = o.department || "";
-          let updatedDept = dept;
-          if (dept === "IT Department" || dept === "IT,CSE") updatedDept = "Electronics";
-          else if (dept === "Laboratory") updatedDept = "laboratory";
-          else if (dept === "Hostel" || dept === "Office" || dept === "Library") updatedDept = "Furniture";
-          else if (dept === "Medical") updatedDept = "Sanitory";
-          else if (dept === "Stationery") updatedDept = "Stationary";
-          else if (dept === "Cleaning") updatedDept = "Sanitory";
+            let dept = o.department || "";
+            let updatedDept = dept;
+            if (dept === "IT Department" || dept === "IT,CSE") updatedDept = "Electronics";
+            else if (dept === "Laboratory") updatedDept = "laboratory";
+            else if (dept === "Hostel" || dept === "Office" || dept === "Library") updatedDept = "Furniture";
+            else if (dept === "Medical") updatedDept = "Sanitory";
+            else if (dept === "Stationery") updatedDept = "Stationary";
+            else if (dept === "Cleaning") updatedDept = "Sanitory";
 
-          if (updatedCat !== cat || updatedDept !== dept) {
-            needSave = true;
-            return { ...o, category: updatedCat, department: updatedDept };
+            let sub = o.subcategory || "";
+            let type = o.type || "Standard";
+            let name = o.item || sub;
+            const n = name.toLowerCase();
+
+            if (updatedCat === "Sanitory") {
+              if (n.includes("paint")) {
+                sub = "Paint";
+                type = name;
+              } else if (n.includes("jharu") || n.includes("broom")) {
+                sub = "Jharu";
+                type = name;
+              } else if (n.includes("phenyl") || n.includes("harpic") || n.includes("cleaner") || n.includes("acid") || n.includes("spray") || n.includes("lizol") || n.includes("powder")) {
+                sub = "Cleaners & Disinfectants";
+                type = name;
+              } else if (n.includes("soap") || n.includes("hand wash") || n.includes("handwash")) {
+                sub = "Soap / Hand Wash";
+                type = name;
+              } else if (n.includes("dustbin")) {
+                sub = "Dustbin";
+                type = name;
+              } else if (n.includes("pipe") || n.includes("socket") || n.includes("valve") || n.includes("nozzle") || n.includes("fta") || n.includes("mta") || n.includes("reducer") || n.includes("union") || n.includes("cock") || n.includes("gitti") || n.includes("washer")) {
+                sub = "Pipe / Fitting";
+                type = name;
+              } else if (n.includes("tape")) {
+                sub = "Tape";
+                type = name;
+              } else if (n.includes("screw")) {
+                sub = "Screw / Hardware";
+                type = name;
+              } else if (n.includes("pocha") || n.includes("mop") || n.includes("wiper")) {
+                sub = "Mops & Wipers";
+                type = name;
+              } else {
+                if (sub === "Cleaning" || !sub) {
+                  sub = name;
+                  type = "Standard";
+                }
+              }
+            } else if (updatedCat === "Stationary") {
+              if (n.includes("register")) {
+                sub = "Register";
+                type = name;
+              } else if (n.includes("pen") && !n.includes("open")) {
+                sub = "Pen";
+                type = name;
+              } else if (n.includes("paper")) {
+                sub = "Paper";
+                type = name;
+              } else if (n.includes("envelope")) {
+                sub = "Envelope";
+                type = name;
+              } else if (n.includes("cell")) {
+                sub = "Cell";
+                type = name;
+              } else if (n.includes("marker")) {
+                sub = "Marker";
+                type = name;
+              }
+            }
+
+            if (updatedCat !== cat || updatedDept !== dept || sub !== o.subcategory || type !== o.type) {
+              needSave = true;
+              return { ...o, category: updatedCat, department: updatedDept, subcategory: sub, type: type };
+            }
+            return o;
+          }).filter(Boolean);
+          if (needSave) {
+            localStorage.setItem("rjit_orders", JSON.stringify(migrated));
           }
-          return o;
-        });
-        if (needSave) {
-          localStorage.setItem("rjit_orders", JSON.stringify(migrated));
+          return migrated;
         }
-        return migrated;
       } catch (e) {
         // ignore errors
       }
     }
 
-    // Initial default orders matching the default sequence [5, 4]
-    return [
-      {
-        id: "PO001",
-        supplier: "HP Technologies",
-        item: "Desktop Computer",
-        category: "Electronics",
-        subcategory: "Computer",
-        type: "i5 16GB",
-        quantity: 20,
-        pricePerUnit: 45000,
-        status: "Pending",
-        orderDate: "2026-06-02 10:00 AM",
-        department: "Electronics",
-        faculty: "Mr. Sharma",
-        placedBy: "Mr. Sharma",
-        approvalChain: [
-          { userId: 5, name: "Sanjay Mehta", role: "Account Office", status: "Pending", approvedAt: null },
-          { userId: 4, name: "Dr. Roy", role: "Principal", status: "Pending", approvedAt: null }
-        ]
-      },
-      {
-        id: "PO002",
-        supplier: "Dell India",
-        item: "Laser Printer",
-        category: "Electronics",
-        subcategory: "Printer",
-        type: "LaserJet",
-        quantity: 10,
-        pricePerUnit: 12000,
-        status: "Approved",
-        orderDate: "2026-06-03 02:30 PM",
-        department: "laboratory",
-        faculty: "Dr. Singh",
-        placedBy: "Dr. Singh",
-        approvalChain: [
-          { userId: 5, name: "Sanjay Mehta", role: "Account Office", status: "Approved", approvedAt: "2026-06-03 03:00 PM" },
-          { userId: 4, name: "Dr. Roy", role: "Principal", status: "Approved", approvedAt: "2026-06-03 04:30 PM" }
-        ]
-      }
-    ];
+    return defaultOrders;
   });
 
   // Helper action: Issue Stock
@@ -889,12 +1052,25 @@ export function StoreProvider({ children }) {
       setOrders(updatedOrders);
       localStorage.setItem("rjit_orders", JSON.stringify(updatedOrders));
 
+      // Normalize Category name
+      let cat = order.category || "";
+      if (cat.trim().toLowerCase() === "stationery") cat = "Stationary";
+      else if (cat.trim().toLowerCase() === "cleaning") cat = "Sanitory";
+      else if (cat.trim().toLowerCase() === "sanitary") cat = "Sanitory";
+      else if (cat.trim().toLowerCase() === "equipment") cat = "laboratory";
+      else if (cat.trim().toLowerCase() === "laboratory") cat = "laboratory";
+      else if (cat.trim().toLowerCase() === "it" || cat.trim().toLowerCase() === "cse" || cat.trim().toLowerCase() === "it,cse") cat = "IT,CSE";
+
+      const finalSubcat = (order.subcategory || "").trim().replace(/\s+/g, " ");
+      const finalType = (order.type || "Standard").trim().replace(/\s+/g, " ");
+      const finalItem = (order.item || finalSubcat).trim().replace(/\s+/g, " ");
+
       // 2. Increase inventory stock
       const itemIndex = inventory.findIndex(
         (item) =>
-          (item.category || "").toLowerCase() === (order.category || "").toLowerCase() &&
-          (item.subcategory || "").toLowerCase() === (order.subcategory || "").toLowerCase() &&
-          (item.type || "").toLowerCase() === (order.type || "").toLowerCase()
+          (item.category || "").toLowerCase() === cat.toLowerCase() &&
+          (item.subcategory || "").toLowerCase() === finalSubcat.toLowerCase() &&
+          (item.type || "").toLowerCase() === finalType.toLowerCase()
       );
 
       let updatedInventory;
@@ -916,10 +1092,10 @@ export function StoreProvider({ children }) {
         // Create new item in inventory if not present
         const newItem = {
           id: Date.now(),
-          item: order.item,
-          category: order.category,
-          subcategory: order.subcategory,
-          type: order.type,
+          item: finalItem,
+          category: cat,
+          subcategory: finalSubcat,
+          type: finalType,
           stock: qtyToReceive,
           price: order.pricePerUnit || 1000,
           status: "Good",
@@ -1041,11 +1217,23 @@ export function StoreProvider({ children }) {
 
   // Helper action: Add Inventory Item
   const addInventoryItem = (itemDetails) => {
+    let cat = itemDetails.category || "";
+    if (cat.trim().toLowerCase() === "stationery") cat = "Stationary";
+    else if (cat.trim().toLowerCase() === "cleaning") cat = "Sanitory";
+    else if (cat.trim().toLowerCase() === "sanitary") cat = "Sanitory";
+    else if (cat.trim().toLowerCase() === "equipment") cat = "laboratory";
+    else if (cat.trim().toLowerCase() === "laboratory") cat = "laboratory";
+    else if (cat.trim().toLowerCase() === "it" || cat.trim().toLowerCase() === "cse" || cat.trim().toLowerCase() === "it,cse") cat = "IT,CSE";
+
+    const finalSubcat = (itemDetails.subcategory || "").trim().replace(/\s+/g, " ");
+    const finalType = (itemDetails.type || "Standard").trim().replace(/\s+/g, " ");
+    const finalItem = (itemDetails.item || finalSubcat).trim().replace(/\s+/g, " ");
+
     const existingIndex = inventory.findIndex(
       (item) =>
-        (item.category || "").toLowerCase() === (itemDetails.category || "").toLowerCase() &&
-        (item.subcategory || "").toLowerCase() === (itemDetails.subcategory || "").toLowerCase() &&
-        (item.type || "").toLowerCase() === (itemDetails.type || "").toLowerCase()
+        (item.category || "").toLowerCase() === cat.toLowerCase() &&
+        (item.subcategory || "").toLowerCase() === finalSubcat.toLowerCase() &&
+        (item.type || "").toLowerCase() === finalType.toLowerCase()
     );
 
     const nowStr = getNowString();
@@ -1067,10 +1255,10 @@ export function StoreProvider({ children }) {
     } else {
       const newItem = {
         id: Date.now(),
-        item: itemDetails.item,
-        category: itemDetails.category,
-        subcategory: itemDetails.subcategory,
-        type: itemDetails.type || "Standard",
+        item: finalItem,
+        category: cat,
+        subcategory: finalSubcat,
+        type: finalType,
         stock: itemDetails.stock,
         price: itemDetails.price,
         status: itemDetails.stock <= (systemSettings.lowStockThreshold || 10) ? "Low" : itemDetails.stock <= 15 ? "Medium" : "Good",
@@ -1085,111 +1273,14 @@ export function StoreProvider({ children }) {
 
   // Maintenance logs state
   const [maintenanceLogs, setMaintenanceLogs] = useState(() => {
-    const saved = localStorage.getItem("rjit_maintenanceLogs");
-    if (saved) return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem("rjit_maintenanceLogs");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      // ignore
+    }
     
-    return [
-      {
-        id: "ro-1",
-        name: "CV RAMAN RO",
-        category: "RO",
-        location: "C.V. Raman Hostel",
-        initialPrice: 15000,
-        installDate: "2025-01-10",
-        status: "Active",
-        history: [
-          { id: "h-1-1", partRepaired: "Membrane Filter", quantity: 1, pricePerQty: 1500, totalAmount: 1500, date: "2025-08-12", technician: "Rakesh Verma", notes: "Routine membrane replacement" },
-          { id: "h-1-2", partRepaired: "Pre-Filter Spun", quantity: 2, pricePerQty: 250, totalAmount: 500, date: "2026-03-10", technician: "Amit Sharma", notes: "Replaced dirty filter cartridges" }
-        ]
-      },
-      {
-        id: "ro-2",
-        name: "ABDUL KALAM RO",
-        category: "RO",
-        location: "Abdul Kalam Block",
-        initialPrice: 16500,
-        installDate: "2025-02-15",
-        status: "Active",
-        history: [
-          { id: "h-2-1", partRepaired: "Booster Pump 75 GPD", quantity: 1, pricePerQty: 2200, totalAmount: 2200, date: "2025-11-20", technician: "Rajesh Kumar", notes: "Pump pressure was low" },
-          { id: "h-2-2", partRepaired: "Activated Carbon Filter", quantity: 1, pricePerQty: 450, totalAmount: 450, date: "2026-04-05", technician: "Rajesh Kumar", notes: "Scheduled maintenance" }
-        ]
-      },
-      {
-        id: "ro-3",
-        name: "KALPANA CHAWLA RO",
-        category: "RO",
-        location: "Kalpana Chawla Hostel",
-        initialPrice: 15000,
-        installDate: "2025-01-20",
-        status: "Active",
-        history: [
-          { id: "h-3-1", partRepaired: "SMPS Power Adapter", quantity: 1, pricePerQty: 800, totalAmount: 800, date: "2025-09-05", technician: "Vijay Singh", notes: "Adapter burned due to voltage fluctuation" }
-        ]
-      },
-      {
-        id: "ro-4",
-        name: "RO NEAR CIVIL LAB",
-        category: "RO",
-        location: "Civil Engineering Lab Block",
-        initialPrice: 18000,
-        installDate: "2024-11-05",
-        status: "Active",
-        history: [
-          { id: "h-4-1", partRepaired: "UV Lamp", quantity: 1, pricePerQty: 650, totalAmount: 650, date: "2025-06-12", technician: "Amit Sharma", notes: "Choke and lamp replacement" },
-          { id: "h-4-2", partRepaired: "Sediment Filter", quantity: 2, pricePerQty: 300, totalAmount: 600, date: "2025-12-18", technician: "Suresh Pal", notes: "Annual filter replacement" }
-        ]
-      },
-      {
-        id: "ro-5",
-        name: "1ST FLOOR RO",
-        category: "RO",
-        location: "Main Building - 1st Floor",
-        initialPrice: 14500,
-        installDate: "2025-03-01",
-        status: "Active",
-        history: [
-          { id: "h-5-1", partRepaired: "Solenoid Valve", quantity: 1, pricePerQty: 400, totalAmount: 400, date: "2025-10-14", technician: "Vijay Singh", notes: "Water leakage issue resolved" }
-        ]
-      },
-      {
-        id: "ro-6",
-        name: "2ND FLOOR RO",
-        category: "RO",
-        location: "Main Building - 2nd Floor",
-        initialPrice: 14500,
-        installDate: "2025-03-01",
-        status: "Active",
-        history: [
-          { id: "h-6-1", partRepaired: "FR (Flow Restrictor)", quantity: 1, pricePerQty: 150, totalAmount: 150, date: "2025-10-15", technician: "Vijay Singh", notes: "Replaced flow restrictor" }
-        ]
-      },
-      {
-        id: "ro-7",
-        name: "RO INFRONT OF WORKSHOP",
-        category: "RO",
-        location: "Mechanical Workshop Gate",
-        initialPrice: 20000,
-        installDate: "2024-08-20",
-        status: "Active",
-        history: [
-          { id: "h-7-1", partRepaired: "RO Membrane & Carbon Filter", quantity: 1, pricePerQty: 2100, totalAmount: 2100, date: "2025-05-22", technician: "Rakesh Verma", notes: "Complete filter service" },
-          { id: "h-7-2", partRepaired: "Pre-Filter Spun", quantity: 3, pricePerQty: 250, totalAmount: 750, date: "2026-01-10", technician: "Amit Sharma", notes: "Workshop dust caused fast clogging" }
-        ]
-      },
-      {
-        id: "ro-8",
-        name: "LIBRARY RO",
-        category: "RO",
-        location: "Central Library Ground Floor",
-        initialPrice: 15500,
-        installDate: "2024-12-10",
-        status: "Active",
-        history: [
-          { id: "h-8-1", partRepaired: "TDS Controller Valve", quantity: 1, pricePerQty: 350, totalAmount: 350, date: "2025-07-08", technician: "Suresh Pal", notes: "Adjusted TDS level to 120" }
-        ]
-      }
-    ];
+    return [];
   });
 
   const addMaintenanceLog = (roId, log) => {
@@ -1221,7 +1312,6 @@ export function StoreProvider({ children }) {
 
   // Dynamic Inventory Categories/Departments
   const [inventoryCategories, setInventoryCategories] = useState(() => {
-    const saved = localStorage.getItem("rjit_inventoryCategories");
     const defaultCategories = [
       { id: "stationary", name: "Stationary", icon: "FaPen", desc: "Admin stationery, files, registers, folders, writing assets and stock registers.", color: "from-blue-600 to-indigo-750" },
       { id: "sanitory", name: "Sanitory", icon: "FaBroom", desc: "Sanitation items, cleaning supplies, soaps, brushes, and hygiene products.", color: "from-teal-500 to-emerald-600" },
@@ -1233,21 +1323,25 @@ export function StoreProvider({ children }) {
       { id: "laboratory", name: "laboratory", icon: "FaFlask", desc: "Glassware, scientific machinery, chemicals and compound microscopes.", color: "from-violet-500 to-fuchsia-600" }
     ];
 
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      const hasSanitory = parsed.some(c => c.id === "sanitory");
-      if (!hasSanitory) {
-        const updated = [...parsed, defaultCategories.find(c => c.id === "sanitory")].filter(Boolean);
-        localStorage.setItem("rjit_inventoryCategories", JSON.stringify(updated));
-        return updated;
+    try {
+      const saved = localStorage.getItem("rjit_inventoryCategories");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const hasSanitory = (parsed || []).some(c => c && c.id === "sanitory");
+        if (!hasSanitory) {
+          const updated = [...parsed, defaultCategories.find(c => c.id === "sanitory")].filter(Boolean);
+          localStorage.setItem("rjit_inventoryCategories", JSON.stringify(updated));
+          return updated;
+        }
+        return parsed;
       }
-      return parsed;
+    } catch (e) {
+      // ignore
     }
     return defaultCategories;
   });
 
   const [inventorySubcategories, setInventorySubcategories] = useState(() => {
-    const saved = localStorage.getItem("rjit_inventorySubcategories");
     const defaultSubcategories = [
       { categoryId: "stationary", name: "Stationery" },
       { categoryId: "sanitory", name: "Cleaning" },
@@ -1260,15 +1354,20 @@ export function StoreProvider({ children }) {
       { categoryId: "laboratory", name: "Stationery" }
     ];
 
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      const hasSanitorySub = parsed.some(s => s.categoryId === "sanitory" && s.name === "Cleaning");
-      if (!hasSanitorySub) {
-        const updated = [...parsed, { categoryId: "sanitory", name: "Cleaning" }];
-        localStorage.setItem("rjit_inventorySubcategories", JSON.stringify(updated));
-        return updated;
+    try {
+      const saved = localStorage.getItem("rjit_inventorySubcategories");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const hasSanitorySub = (parsed || []).some(s => s && s.categoryId === "sanitory" && s.name === "Cleaning");
+        if (!hasSanitorySub) {
+          const updated = [...parsed, { categoryId: "sanitory", name: "Cleaning" }];
+          localStorage.setItem("rjit_inventorySubcategories", JSON.stringify(updated));
+          return updated;
+        }
+        return parsed;
       }
-      return parsed;
+    } catch (e) {
+      // ignore
     }
     return defaultSubcategories;
   });
@@ -1307,6 +1406,32 @@ export function StoreProvider({ children }) {
       localStorage.setItem("rjit_inventorySubcategories", JSON.stringify(updated));
       return updated;
     });
+
+    // Mirror deletion to maintenanceCategories (case-insensitive check)
+    const targetMaintId = categoryId.toUpperCase();
+    setMaintenanceCategories(prev => {
+      const updated = prev.filter(c => c.id.toUpperCase() !== targetMaintId);
+      localStorage.setItem("rjit_maintenanceCategories", JSON.stringify(updated));
+      return updated;
+    });
+
+    // Mirror cleanup to maintenanceLogs
+    setMaintenanceLogs(prev => {
+      const updated = prev.filter(ro => ro.category.toUpperCase() !== targetMaintId);
+      localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
+      return updated;
+    });
+
+    // Clean up items inside that category from inventory ledger list
+    setInventory(prevInv => {
+      const catName = catObj ? catObj.name : "";
+      const updatedInv = prevInv.filter(i => {
+        const matchCat = (i.category || "").toLowerCase() === catName.toLowerCase() || (i.category || "").toLowerCase() === categoryId.toLowerCase();
+        return !matchCat;
+      });
+      localStorage.setItem("rjit_inventory", JSON.stringify(updatedInv));
+      return updatedInv;
+    });
   };
 
   const addInventorySubcategory = (categoryId, name) => {
@@ -1326,12 +1451,29 @@ export function StoreProvider({ children }) {
       localStorage.setItem("rjit_inventorySubcategories", JSON.stringify(updated));
       return updated;
     });
+
+    // Also clean up items inside that subcategory from inventory ledger list
+    setInventory(prevInv => {
+      const catObj = inventoryCategories.find(c => c.id === categoryId);
+      const catName = catObj ? catObj.name : "";
+      const updatedInv = prevInv.filter(i => {
+        const matchCat = (i.category || "").toLowerCase() === catName.toLowerCase() || (i.category || "").toLowerCase() === categoryId.toLowerCase();
+        const matchSub = (i.subcategory || "").toLowerCase() === name.toLowerCase();
+        return !(matchCat && matchSub);
+      });
+      localStorage.setItem("rjit_inventory", JSON.stringify(updatedInv));
+      return updatedInv;
+    });
   };
 
   // Dynamic Maintenance Categories
   const [maintenanceCategories, setMaintenanceCategories] = useState(() => {
-    const saved = localStorage.getItem("rjit_maintenanceCategories");
-    if (saved) return JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem("rjit_maintenanceCategories");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      // ignore
+    }
     return [
       { id: "RO", name: "RO (Water Purifiers)", icon: "FaTint" },
       { id: "AC", name: "Air Conditioners", icon: "FaWrench" },
@@ -1367,11 +1509,25 @@ export function StoreProvider({ children }) {
       localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
       return updated;
     });
+
+    // Also clean up from inventoryCategories (case-insensitive ID check)
+    setInventoryCategories(prev => {
+      const updated = prev.filter(c => c.id !== id.toLowerCase());
+      localStorage.setItem("rjit_inventoryCategories", JSON.stringify(updated));
+      return updated;
+    });
+
+    // Also clean up items from inventory
+    setInventory(prevInv => {
+      const updatedInv = prevInv.filter(i => (i.category || "").toLowerCase() !== id.toLowerCase());
+      localStorage.setItem("rjit_inventory", JSON.stringify(updatedInv));
+      return updatedInv;
+    });
   };
 
   const addMaintenanceSubcategory = (category, name, location, initialPrice, installDate) => {
+    const id = `maint-${category.toLowerCase()}-${Date.now()}`;
     setMaintenanceLogs(prev => {
-      const id = `maint-${category.toLowerCase()}-${Date.now()}`;
       const newRo = {
         id,
         name,
@@ -1386,6 +1542,25 @@ export function StoreProvider({ children }) {
       localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
       return updated;
     });
+
+    setInventory(prevInv => {
+      const exists = prevInv.some(i => i.id === id);
+      if (exists) return prevInv;
+      const updatedInv = [{
+        id,
+        item: name,
+        category: category,
+        subcategory: category,
+        type: location || "Campus",
+        stock: 1,
+        price: parseFloat(initialPrice || 0),
+        status: "Good",
+        createdAt: installDate ? `${installDate} 00:00:00` : getNowString(),
+        isMaintenanceAsset: true
+      }, ...prevInv];
+      localStorage.setItem("rjit_inventory", JSON.stringify(updatedInv));
+      return updatedInv;
+    });
   };
 
   const deleteMaintenanceSubcategory = (itemId) => {
@@ -1397,6 +1572,12 @@ export function StoreProvider({ children }) {
       const updated = prev.filter(ro => ro.id !== itemId);
       localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
       return updated;
+    });
+
+    setInventory(prevInv => {
+      const updatedInv = prevInv.filter(i => i.id !== itemId);
+      localStorage.setItem("rjit_inventory", JSON.stringify(updatedInv));
+      return updatedInv;
     });
   };
 
@@ -1459,6 +1640,20 @@ export function StoreProvider({ children }) {
       localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
       return updated;
     });
+
+    setInventory(prevInv => {
+      const updatedInv = prevInv.map(i => {
+        if (i.id === roId) {
+          return {
+            ...i,
+            status: status === "Active" ? "Good" : "Low"
+          };
+        }
+        return i;
+      });
+      localStorage.setItem("rjit_inventory", JSON.stringify(updatedInv));
+      return updatedInv;
+    });
   };
 
   const updateMaintenanceUnitDetails = (roId, details) => {
@@ -1477,6 +1672,23 @@ export function StoreProvider({ children }) {
       });
       localStorage.setItem("rjit_maintenanceLogs", JSON.stringify(updated));
       return updated;
+    });
+
+    setInventory(prevInv => {
+      const updatedInv = prevInv.map(i => {
+        if (i.id === roId) {
+          return {
+            ...i,
+            item: details.name,
+            type: details.location || "Campus",
+            price: parseFloat(details.initialPrice || 0),
+            createdAt: details.installDate ? `${details.installDate} 00:00:00` : i.createdAt
+          };
+        }
+        return i;
+      });
+      localStorage.setItem("rjit_inventory", JSON.stringify(updatedInv));
+      return updatedInv;
     });
   };
 
@@ -1734,6 +1946,123 @@ export function StoreProvider({ children }) {
     return reg ? reg.name : categoryName;
   }, [inventoryCategories, getCategoriesForRegister]);
 
+  // Dynamic categories and maintenance assets mirroring effect
+  useEffect(() => {
+    // 1. Sync maintenance logs to inventory
+    setInventory(prev => {
+      let changed = false;
+      const invList = [...prev];
+      (maintenanceLogs || []).forEach(ro => {
+        if (ro.status !== "Decommissioned") {
+          const exists = invList.some(item => item.id === ro.id);
+          if (!exists) {
+            invList.push({
+              id: ro.id,
+              item: ro.name,
+              category: ro.category,
+              subcategory: ro.category,
+              type: ro.location || "Campus",
+              stock: 1,
+              price: ro.initialPrice || 0,
+              status: ro.status === "Active" ? "Good" : "Low",
+              createdAt: ro.installDate ? `${ro.installDate} 00:00:00` : "2026-06-01 00:00:00",
+              isMaintenanceAsset: true
+            });
+            changed = true;
+          }
+        }
+      });
+      if (changed) {
+        localStorage.setItem("rjit_inventory", JSON.stringify(invList));
+        return invList;
+      }
+      return prev;
+    });
+  }, [maintenanceLogs]);
+
+  useEffect(() => {
+    // 2. Auto-sync maintenance categories into inventoryCategories
+    setInventoryCategories(prev => {
+      let changed = false;
+      const currentCats = [...prev];
+      (maintenanceCategories || []).forEach(mc => {
+        const exists = currentCats.some(ic => 
+          (ic.name && mc.name && ic.name.toLowerCase() === mc.name.toLowerCase()) || 
+          (ic.id && mc.id && ic.id.toLowerCase() === mc.id.toLowerCase())
+        );
+        if (!exists) {
+          currentCats.push({
+            id: mc.id ? mc.id.toLowerCase() : "maint_cat",
+            name: mc.name,
+            icon: mc.icon || "FaTools",
+            desc: `Maintenance Assets: ${mc.name}`,
+            color: "from-blue-600 to-indigo-750"
+          });
+          changed = true;
+        }
+      });
+      if (changed) {
+        localStorage.setItem("rjit_inventoryCategories", JSON.stringify(currentCats));
+        return currentCats;
+      }
+      return prev;
+    });
+  }, [maintenanceCategories]);
+
+  const ledgerHistory = useMemo(() => {
+    const list = [];
+    
+    // Add all received orders
+    orders.forEach(o => {
+      if (o.status === "Received" || o.status === "Partially Received") {
+        list.push({
+          id: `rec-${o.id}-${o.receiveDate || o.orderDate}`,
+          date: o.receiveDate || o.orderDate,
+          item: o.item,
+          category: o.category,
+          subcategory: o.subcategory,
+          type: o.type,
+          billNumber: o.id,
+          quantity: o.receivedQuantity || o.quantity,
+          price: o.pricePerUnit || 0,
+          amount: (o.receivedQuantity || o.quantity) * (o.pricePerUnit || 0),
+          dealerName: o.supplier || "Unknown Supplier",
+          remarks: o.remarks || "Stock Received",
+          typeOfTx: "Receive"
+        });
+      }
+    });
+
+    // Add all issued stock
+    issuedStock.forEach(i => {
+      const matchingInv = inventory.find(
+        inv =>
+          (inv.category || "").toLowerCase() === (i.category || "").toLowerCase() &&
+          (inv.subcategory || "").toLowerCase() === (i.subcategory || "").toLowerCase() &&
+          (inv.type || "").toLowerCase() === (i.type || "").toLowerCase()
+      );
+      const price = matchingInv ? matchingInv.price : (i.price || 0);
+
+      list.push({
+        id: `issue-${i.id}`,
+        date: i.date,
+        item: i.item,
+        category: i.category,
+        subcategory: i.subcategory,
+        type: i.type,
+        billNumber: "—",
+        quantity: -i.quantity,
+        price: price,
+        amount: i.quantity * price,
+        dealerName: i.department || "Internal Issue",
+        remarks: i.remarks || `Issued to ${i.department} (Faculty: ${i.faculty || 'N/A'})`,
+        typeOfTx: "Issue"
+      });
+    });
+
+    return list;
+  }, [orders, issuedStock, inventory]);
+
   return (
     <StoreContext.Provider
       value={{
@@ -1786,7 +2115,8 @@ export function StoreProvider({ children }) {
         restoreBackupItem,
         restoreAllBackup,
         permanentlyDeleteBackupItem,
-        permanentlyDeleteAllBackup
+        permanentlyDeleteAllBackup,
+        ledgerHistory
       }}
     >
       {children}

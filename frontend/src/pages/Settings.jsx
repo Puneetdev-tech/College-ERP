@@ -30,6 +30,7 @@ export default function Settings() {
   const [profileEmail, setProfileEmail] = useState(currentUser?.email || "");
   const [profilePhone, setProfilePhone] = useState(currentUser?.phone || "+91 98765 43210");
   const [profilePhoto, setProfilePhoto] = useState(currentUser?.photo || "");
+  const [voiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem("rjit_voice_enabled") !== "false");
 
   // Change Password States
   const [currentPassword, setCurrentPassword] = useState("");
@@ -582,6 +583,26 @@ export default function Settings() {
                       className="w-full border p-3 rounded-xl bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed font-semibold text-sm"
                     />
                   </div>
+                </div>
+                
+                <div className="flex items-center gap-2 pt-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    id="voiceToggle"
+                    checked={voiceEnabled}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      setVoiceEnabled(enabled);
+                      localStorage.setItem("rjit_voice_enabled", String(enabled));
+                      if (enabled) {
+                        speak("Voice guidance enabled.");
+                      }
+                    }}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                  />
+                  <label htmlFor="voiceToggle" className="text-xs font-bold text-slate-500 uppercase cursor-pointer">
+                    Enable Voice Commands / TTS Guidance
+                  </label>
                 </div>
 
                 <div className="flex justify-end pt-4 border-t border-slate-100">

@@ -197,15 +197,35 @@ export default function PlaceOrder() {
     setShowModal(false);
   };
 
+  // Filter for 2026 onwards
+  const orders2026 = orders.filter((o) => {
+    const dateStr = o.orderDate || o.receiveDate;
+    if (dateStr) {
+      const clean = String(dateStr).trim();
+      let year = 0;
+      if (clean.startsWith("20")) {
+        year = parseInt(clean.substring(0, 4), 10);
+      } else {
+        const parts = clean.split(/[-/]/);
+        if (parts.length === 3) {
+          const yr = parseInt(parts[2].split(" ")[0], 10);
+          year = yr < 100 ? yr + 2000 : yr;
+        }
+      }
+      if (year > 0 && year < 2026) return false;
+    }
+    return true;
+  });
+
   // Metrics
-  const totalOrders = orders.length;
-  const pendingCount = orders.filter((o) => o.status === "Pending").length;
-  const approvedCount = orders.filter((o) => o.status === "Approved").length;
-  const completedCount = orders.filter((o) => o.status === "Received").length;
-  const uniqueSuppliers = new Set(orders.map((o) => o.supplier)).size;
+  const totalOrders = orders2026.length;
+  const pendingCount = orders2026.filter((o) => o.status === "Pending").length;
+  const approvedCount = orders2026.filter((o) => o.status === "Approved").length;
+  const completedCount = orders2026.filter((o) => o.status === "Received").length;
+  const uniqueSuppliers = new Set(orders2026.map((o) => o.supplier)).size;
 
   // Filter orders matching search
-  const filteredOrders = orders.filter((o) => {
+  const filteredOrders = orders2026.filter((o) => {
     if (!search.trim()) return true;
     const s = (search || "").toLowerCase();
     return (
@@ -456,19 +476,6 @@ export default function PlaceOrder() {
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Item Name</label>
-                    <input
-                      placeholder="e.g. Desktop Computer"
-                      value={item}
-                      onChange={(e) => setItem(e.target.value)}
-                      className="border border-slate-200 p-3.5 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
                     <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Category / Register</label>
                     <select
                       value={category}
@@ -480,6 +487,9 @@ export default function PlaceOrder() {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div className="relative">
                     <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Subcategory</label>
                     <input
@@ -487,9 +497,7 @@ export default function PlaceOrder() {
                       value={subcategory}
                       onChange={(e) => {
                         setSubcategory(e.target.value);
-                        if (!item || item === subcategory) {
-                          setItem(e.target.value);
-                        }
+                        setItem(e.target.value);
                       }}
                       onFocus={() => setShowSubcatSuggestions(true)}
                       onBlur={() => setTimeout(() => setShowSubcatSuggestions(false), 200)}
@@ -520,9 +528,7 @@ export default function PlaceOrder() {
                       </div>
                     )}
                   </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-4">
                   <div className="relative">
                     <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Specification / Type</label>
                     <input
@@ -556,6 +562,9 @@ export default function PlaceOrder() {
                       </div>
                     )}
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Quantity</label>
                     <input
@@ -758,8 +767,8 @@ export default function PlaceOrder() {
               <div className="text-right">
                 <h1 className="text-2xl font-bold">{systemSettings?.collegeInfo?.name || "RJ Institute of Technology"}</h1>
                 <p className="text-xs text-slate-555">{systemSettings?.collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
-                <p className="text-xs text-slate-500">Phone: {systemSettings?.collegeInfo?.phone || "+91 11 2690 7400"} | Email: {systemSettings?.collegeInfo?.email || "info@rjit.edu.in"}</p>
-                <p className="text-xs text-slate-500">Website: {systemSettings?.collegeInfo?.website || "www.rjit.edu.in"}</p>
+                <p className="text-xs text-slate-500">Phone: {systemSettings?.collegeInfo?.phone || "+91 11 2690 7400"} | Email: {systemSettings?.collegeInfo?.email || "info@rjit.ac.in"}</p>
+                <p className="text-xs text-slate-500">Website: {systemSettings?.collegeInfo?.website || "www.rjit.ac.in"}</p>
               </div>
             </div>
             

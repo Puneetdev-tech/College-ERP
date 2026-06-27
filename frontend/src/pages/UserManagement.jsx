@@ -484,7 +484,7 @@ export default function UserManagement() {
                       <label className="block text-slate-500 font-bold text-[10px] uppercase mb-1 tracking-wider">Email</label>
                       <input
                         type="email"
-                        placeholder="e.g. accounts@rjit.edu.in"
+                        placeholder="e.g. accounts@rjit.ac.in"
                         value={newApprEmail}
                         onChange={(e) => setNewApprEmail(e.target.value)}
                         className="w-full border border-slate-200 p-2.5 rounded-xl bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"

@@ -18,7 +18,7 @@ async function downloadExcelReport(startDate, endDate, { orders, issuedStock, in
 
   const collegeName = systemSettings?.collegeInfo?.name || "RJ Institute of Technology";
   const collegeAddress = systemSettings?.collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi";
-  const collegeDetails = `Phone: ${systemSettings?.collegeInfo?.phone || "+91 11 2690 7400"} | Email: ${systemSettings?.collegeInfo?.email || "info@rjit.edu.in"} | Web: ${systemSettings?.collegeInfo?.website || "www.rjit.edu.in"}`;
+  const collegeDetails = `Phone: ${systemSettings?.collegeInfo?.phone || "+91 11 2690 7400"} | Email: ${systemSettings?.collegeInfo?.email || "info@rjit.ac.in"} | Web: ${systemSettings?.collegeInfo?.website || "www.rjit.ac.in"}`;
 
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Audit Report");
@@ -2410,10 +2410,10 @@ export default function InventoryChatbot() {
               <h1 className="text-2xl font-bold" style={{ fontSize: "1.5rem", fontWeight: "bold", margin: 0 }}>{systemSettings?.collegeInfo?.name || "RJ Institute of Technology"}</h1>
               <p className="text-xs text-slate-500" style={{ fontSize: "0.75rem", color: "#64748b", margin: "0.125rem 0 0 0" }}>{systemSettings?.collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
               <p className="text-xs text-slate-500" style={{ fontSize: "0.75rem", color: "#64748b", margin: "0.125rem 0 0 0" }}>
-                Phone: {systemSettings?.collegeInfo?.phone || "+91 11 2690 7400"} | Email: {systemSettings?.collegeInfo?.email || "info@rjit.edu.in"}
+                Phone: {systemSettings?.collegeInfo?.phone || "+91 11 2690 7400"} | Email: {systemSettings?.collegeInfo?.email || "info@rjit.ac.in"}
               </p>
               <p className="text-xs text-slate-500" style={{ fontSize: "0.75rem", color: "#64748b", margin: "0.125rem 0 0 0" }}>
-                Website: {systemSettings?.collegeInfo?.website || "www.rjit.edu.in"}
+                Website: {systemSettings?.collegeInfo?.website || "www.rjit.ac.in"}
               </p>
             </div>
           </div>

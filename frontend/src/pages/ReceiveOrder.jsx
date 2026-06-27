@@ -11,7 +11,8 @@ import {
   FaUpload,
   FaArrowRight,
   FaTimesCircle,
-  FaEye
+  FaEye,
+  FaFilter
 } from "react-icons/fa";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
@@ -48,6 +49,13 @@ export default function ReceiveOrder() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [search, setSearch] = useState(searchParamVal);
   const [animateIn, setAnimateIn] = useState(false);
+
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [supplierFilter, setSupplierFilter] = useState("all");
+  const [showFiltersPanel, setShowFiltersPanel] = useState(false);
 
   // Modal form states
   const [remarks, setRemarks] = useState("");
@@ -120,22 +128,83 @@ export default function ReceiveOrder() {
     }
   };
 
-  // Metrics
-  const readyToReceiveCount = orders.filter((o) => o.status === "Approved" || o.status === "Partially Received").length;
-  const totalReceivedCount = orders.filter((o) => o.status === "Received").length;
-  const pendingApprovalCount = orders.filter((o) => o.status === "Pending").length;
+  // Filter for 2026 onwards
+  const orders2026 = orders.filter((o) => {
+    const dateStr = o.orderDate || o.receiveDate;
+    if (dateStr) {
+      const clean = String(dateStr).trim();
+      let year = 0;
+      if (clean.startsWith("20")) {
+        year = parseInt(clean.substring(0, 4), 10);
+      } else {
+        const parts = clean.split(/[-/]/);
+        if (parts.length === 3) {
+          const yr = parseInt(parts[2].split(" ")[0], 10);
+          year = yr < 100 ? yr + 2000 : yr;
+        }
+      }
+      if (year > 0 && year < 2026) return false;
+    }
+    return true;
+  });
 
-  // Filter based on search query
-  const filteredOrders = orders.filter((o) => {
-    if (!search.trim()) return true;
-    const s = (search || "").toLowerCase();
-    return (
-      (o.id || "").toLowerCase().includes(s) ||
-      (o.supplier || "").toLowerCase().includes(s) ||
-      (o.item || "").toLowerCase().includes(s) ||
-      (o.category || "").toLowerCase().includes(s) ||
-      (o.status || "").toLowerCase().includes(s)
-    );
+  // Metrics
+  const readyToReceiveCount = orders2026.filter((o) => o.status === "Approved" || o.status === "Partially Received").length;
+  const totalReceivedCount = orders2026.filter((o) => o.status === "Received").length;
+  const pendingApprovalCount = orders2026.filter((o) => o.status === "Pending").length;
+
+  const uniqueCategories = Array.from(new Set(orders2026.map(o => o.category).filter(Boolean)));
+  const uniqueSuppliers = Array.from(new Set(orders2026.map(o => o.supplier).filter(Boolean)));
+
+  // Filter based on search query and other filters
+  const filteredOrders = orders2026.filter((o) => {
+    // 1. Search Query
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      const matchesSearch = (
+        (o.id || "").toLowerCase().includes(s) ||
+        (o.supplier || "").toLowerCase().includes(s) ||
+        (o.item || "").toLowerCase().includes(s) ||
+        (o.category || "").toLowerCase().includes(s) ||
+        (o.status || "").toLowerCase().includes(s)
+      );
+      if (!matchesSearch) return false;
+    }
+
+    // 2. Status Filter
+    if (statusFilter !== "all" && (o.status || "").toLowerCase() !== statusFilter.toLowerCase()) {
+      return false;
+    }
+
+    // 3. Category Filter
+    if (categoryFilter !== "all" && (o.category || "").toLowerCase() !== categoryFilter.toLowerCase()) {
+      return false;
+    }
+
+    // 4. Supplier Filter
+    if (supplierFilter !== "all" && (o.supplier || "").toLowerCase() !== supplierFilter.toLowerCase()) {
+      return false;
+    }
+
+    // 5. Date Range Filter
+    const orderDateStr = o.orderDate || o.receiveDate;
+    if (orderDateStr) {
+      const oDate = new Date(orderDateStr.split(" ")[0]);
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (oDate < start) return false;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (oDate > end) return false;
+      }
+    } else if (startDate || endDate) {
+      return false;
+    }
+
+    return true;
   });  return (
     <div style={{ background: "linear-gradient(135deg, #f5f3ff 0%, #faf8ff 45%, #f0f2fe 100%)", minHeight: "100vh" }}
       className="text-slate-800 transition-colors duration-300">
@@ -236,46 +305,145 @@ export default function ReceiveOrder() {
 
         </div>
 
-        {/* ── SEARCH BAR ─────────────────────────────── */}
-        <div className={`bg-white border border-slate-100 rounded-3xl p-5 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between transition-all duration-700 delay-150 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+        {/* ── SEARCH & FILTERS BAR ─────────────────────────── */}
+        <div className={`bg-white border border-slate-100 rounded-3xl p-5 shadow-sm mb-6 transition-all duration-700 delay-150 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
           style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
-          <div className="relative w-full md:w-96">
-            <FaSearch className="absolute left-4 top-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search incoming orders..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setSearchParams({ search: e.target.value });
-              }}
-              className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-100 border border-transparent focus:border-purple-500/20 outline-none font-semibold text-sm transition-all focus:bg-white focus:ring-2 focus:ring-purple-500/10"
-            />
-            {search && (
-              <button 
-                onClick={() => {
-                  setSearch("");
-                  setSearchParams({});
-                }} 
-                className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full md:w-96">
+              <FaSearch className="absolute left-4 top-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search incoming orders..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setSearchParams({ search: e.target.value });
+                }}
+                className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-100 border border-transparent focus:border-purple-500/20 outline-none font-semibold text-sm transition-all focus:bg-white focus:ring-2 focus:ring-purple-500/10"
+              />
+              {search && (
+                <button 
+                  onClick={() => {
+                    setSearch("");
+                    setSearchParams({});
+                  }} 
+                  className="absolute right-4 top-4 text-slate-400 hover:text-slate-650"
+                >
+                  <FaTimes />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+              <button
+                onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+                className={`px-5 py-3 border rounded-xl flex items-center gap-1.5 font-bold cursor-pointer shadow-sm transition text-xs select-none ${
+                  showFiltersPanel || statusFilter !== "all" || categoryFilter !== "all" || supplierFilter !== "all" || startDate || endDate
+                    ? "bg-purple-50 border-purple-300 text-purple-650"
+                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
               >
-                <FaTimes />
+                <FaFilter className="text-xs" />
+                <span>Filters</span>
               </button>
-            )}
+            </div>
           </div>
 
-          {search && (
-            <div className="flex items-center gap-2 bg-purple-50 border border-purple-150 text-purple-700 px-4 py-2 rounded-2xl text-xs font-bold animate-fadeIn">
-              <span>Filter: <strong>"{search}"</strong></span>
-              <button
-                onClick={() => {
-                  setSearch("");
-                  setSearchParams({});
-                }}
-                className="hover:text-red-500 font-extrabold text-sm ml-2.5 transition cursor-pointer"
-              >
-                ×
-              </button>
+          {/* Sliding Filters Panel */}
+          {showFiltersPanel && (
+            <div className="bg-slate-50 border border-slate-200/70 p-5 rounded-2xl mt-4 shadow-sm space-y-4 animate-slide-down">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-500 text-slate-600 cursor-pointer font-semibold"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Partially Received">Partially Received</option>
+                    <option value="Received">Received</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Category
+                  </label>
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-500 text-slate-600 cursor-pointer font-semibold"
+                  >
+                    <option value="all">All Categories</option>
+                    {uniqueCategories.map(cat => (
+                      <option key={cat} value={cat.toLowerCase()}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Supplier
+                  </label>
+                  <select
+                    value={supplierFilter}
+                    onChange={(e) => setSupplierFilter(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-500 text-slate-600 cursor-pointer font-semibold"
+                  >
+                    <option value="all">All Suppliers</option>
+                    {uniqueSuppliers.map(sup => (
+                      <option key={sup} value={sup.toLowerCase()}>{sup}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-500 text-slate-600 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-500 text-slate-600 font-semibold"
+                  />
+                </div>
+              </div>
+
+              {(statusFilter !== "all" || categoryFilter !== "all" || supplierFilter !== "all" || startDate || endDate) && (
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={() => {
+                      setStatusFilter("all");
+                      setCategoryFilter("all");
+                      setSupplierFilter("all");
+                      setStartDate("");
+                      setEndDate("");
+                    }}
+                    className="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

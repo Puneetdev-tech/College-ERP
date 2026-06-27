@@ -43,15 +43,24 @@ const formatDateTime = (dateTimeStr) => {
 
 const parseDate = (dateStr) => {
   if (!dateStr) return new Date(0);
-  let d = new Date(dateStr);
-  if (!isNaN(d.getTime())) return d;
+  if (dateStr instanceof Date) return dateStr;
+  let d = new Date(String(dateStr).replace(" ", "T"));
+  if (!isNaN(d.getTime())) {
+    if (d.getFullYear() < 100) {
+      d.setFullYear(d.getFullYear() + 2000);
+    }
+    return d;
+  }
   try {
-    const parts = dateStr.split(/[\s,]+/);
-    const dateParts = parts[0].split("/");
+    const parts = String(dateStr).split(/[\s,]+/);
+    const dateParts = parts[0].split(/[-/]/);
     if (dateParts.length === 3) {
       const day = parseInt(dateParts[0], 10);
       const month = parseInt(dateParts[1], 10) - 1;
-      const year = parseInt(dateParts[2], 10);
+      let year = parseInt(dateParts[2], 10);
+      if (year < 100) {
+        year += 2000;
+      }
       let hour = 0, minute = 0;
       if (parts[1]) {
         const timeParts = parts[1].split(":");
@@ -100,14 +109,15 @@ export default function IssueStock() {
   }, [searchParamVal]);
 
   // Form states
-  const [category, setCategory] = useState("Electronics");
-  const [subcategory, setSubcategory] = useState("Computer");
+  const [category, setCategory] = useState(() => (inventoryCategories || [])[0]?.name || "Electronics");
+  const [subcategory, setSubcategory] = useState("");
   const [type, setType] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [department, setDepartment] = useState("");
   const [faculty, setFaculty] = useState("");
   const [issueDate, setIssueDate] = useState(getCurrentDateTimeString());
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showSubcatSuggestions, setShowSubcatSuggestions] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -169,11 +179,12 @@ export default function IssueStock() {
     }
   };
 
-  const totalDisbursedQty = issuedStock.reduce((acc, log) => acc + log.quantity, 0);
-  const totalTransactions = issuedStock.length;
-  const uniqueDepartments = new Set(issuedStock.map(log => log.department)).size;
+  const issuedStock2026 = issuedStock.filter(log => parseDate(log.date).getFullYear() >= 2026);
+  const totalDisbursedQty = issuedStock2026.reduce((acc, log) => acc + log.quantity, 0);
+  const totalTransactions = issuedStock2026.length;
+  const uniqueDepartments = new Set(issuedStock2026.map(log => log.department)).size;
 
-  const filteredIssued = issuedStock.filter(log => {
+  const filteredIssued = issuedStock2026.filter(log => {
     if (!search.trim()) return true;
     const s = (search || "").toLowerCase();
     const formattedId = `#is-${String(log.id).padStart(3, "0")}`.toLowerCase();
@@ -182,7 +193,9 @@ export default function IssueStock() {
       (log.item || "").toLowerCase().includes(s) ||
       (log.category || "").toLowerCase().includes(s) ||
       (log.department || "").toLowerCase().includes(s) ||
-      (log.faculty || "").toLowerCase().includes(s)
+      (log.faculty || "").toLowerCase().includes(s) ||
+      String(log.quantity).includes(s) ||
+      (log.date || "").toLowerCase().includes(s)
     );
   });
 
@@ -526,9 +539,11 @@ export default function IssueStock() {
                         {registersList.map(reg => <option key={reg} value={reg}>{reg}</option>)}
                       </select>
                     </div>
-                    <div>
+                    <div className="relative">
                       <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Subcategory</label>
-                      <select
+                      <input
+                        type="text"
+                        placeholder="Enter or select subcategory"
                         value={subcategory}
                         onChange={(e) => {
                           const newSub = e.target.value;
@@ -538,10 +553,32 @@ export default function IssueStock() {
                             .map(item => item.type)));
                           setType(newTypes.length > 0 ? newTypes[0] : "");
                         }}
-                        className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-medium cursor-pointer transition-all"
-                      >
-                        {subcategories.map(sub => <option key={sub} value={sub}>{sub}</option>)}
-                      </select>
+                        onFocus={() => setShowSubcatSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowSubcatSuggestions(false), 200)}
+                        className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-medium text-slate-800 transition-all"
+                        required
+                      />
+                      {showSubcatSuggestions && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                          {subcategories.filter(sub => (sub || "").toLowerCase().includes(subcategory.toLowerCase())).length > 0 ? (
+                            subcategories.filter(sub => (sub || "").toLowerCase().includes(subcategory.toLowerCase())).map((sub, idx) => (
+                              <div key={idx} onMouseDown={() => {
+                                setSubcategory(sub);
+                                const newTypes = Array.from(new Set(registerItems
+                                  .filter(item => (item.subcategory || "").toLowerCase() === sub.toLowerCase())
+                                  .map(item => item.type)));
+                                setType(newTypes.length > 0 ? newTypes[0] : "");
+                                setShowSubcatSuggestions(false);
+                              }}
+                                className="p-3 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer text-sm text-slate-800 font-medium transition">
+                                {sub}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-3 text-sm text-slate-400 italic">No matching subcategories (type custom)</div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 

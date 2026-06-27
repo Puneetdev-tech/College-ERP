@@ -19,20 +19,27 @@ const FEMALE_VOICE_KEYWORDS = [
   "Woman",
 ];
 
+// Preload voices immediately on load
+if (typeof window !== "undefined" && window.speechSynthesis) {
+  window.speechSynthesis.getVoices();
+}
+
 function getBestFemaleVoice() {
-  const voices = window.speechSynthesis.getVoices();
+  const voices = window.speechSynthesis.getVoices() || [];
   for (const keyword of FEMALE_VOICE_KEYWORDS) {
     const match = voices.find((v) =>
-      v.name.toLowerCase().includes(keyword.toLowerCase())
+      v && v.name && v.name.toLowerCase().includes(keyword.toLowerCase())
     );
     if (match) return match;
   }
   // Fallback: any English voice
-  return voices.find((v) => v.lang.startsWith("en")) || null;
+  return voices.find((v) => v && v.lang && v.lang.startsWith("en")) || null;
 }
 
 export function speak(text, { rate = 0.93, pitch = 1.1, volume = 0.88 } = {}) {
-  if (!window.speechSynthesis) return;
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  const voiceEnabled = window.localStorage.getItem("rjit_voice_enabled") !== "false";
+  if (!voiceEnabled) return;
   window.speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
@@ -46,15 +53,7 @@ export function speak(text, { rate = 0.93, pitch = 1.1, volume = 0.88 } = {}) {
     window.speechSynthesis.speak(utterance);
   };
 
-  // Voices may not be loaded immediately
-  if (window.speechSynthesis.getVoices().length > 0) {
-    trySpeak();
-  } else {
-    window.speechSynthesis.onvoiceschanged = () => {
-      trySpeak();
-      window.speechSynthesis.onvoiceschanged = null;
-    };
-  }
+  trySpeak();
 }
 
 // ─── Web Audio UI Sounds ────────────────────────────────────────────────────
@@ -68,6 +67,8 @@ function createCtx() {
 
 // Named beep/chime helper
 export function playBeep(type = "success") {
+  const voiceEnabled = typeof window !== "undefined" && window.localStorage.getItem("rjit_voice_enabled") !== "false";
+  if (!voiceEnabled) return;
   const ctx = createCtx();
   if (!ctx) return;
 
@@ -287,6 +288,8 @@ export function playBeep(type = "success") {
 
 // Rich UI sound effects for interaction feedback
 export function playUISound(type) {
+  const voiceEnabled = typeof window !== "undefined" && window.localStorage.getItem("rjit_voice_enabled") !== "false";
+  if (!voiceEnabled) return;
   const ctx = createCtx();
   if (!ctx) return;
 

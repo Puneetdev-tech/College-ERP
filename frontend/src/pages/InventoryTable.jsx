@@ -31,8 +31,38 @@ const CATEGORY_BADGES = {
   "Miscellaneous": "bg-slate-50 text-slate-700 border-slate-200"
 };
 
+const getItemGroup = (name) => {
+  const n = (name || "").toLowerCase();
+  if (n.includes("pen") && !n.includes("open")) return "Pen";
+  if (n.includes("register")) return "Register";
+  if (n.includes("paint")) return "Paint";
+  if (n.includes("cell")) return "Cell";
+  if (n.includes("paper")) return "Paper";
+  if (n.includes("envelope")) return "Envelope";
+  if (n.includes("marker")) return "Marker";
+  if (n.includes("soap") || n.includes("hand wash") || n.includes("handwash")) return "Soap / Hand Wash";
+  if (n.includes("dustbin")) return "Dustbin";
+  if (n.includes("pipe")) return "Pipe / Fitting";
+  if (n.includes("tape")) return "Tape";
+  if (n.includes("screw")) return "Screw / Hardware";
+  if (n.includes("chair")) return "Chair";
+  if (n.includes("desk") || n.includes("table")) return "Desk / Table";
+  if (n.includes("computer") || n.includes("pc") || n.includes("desktop")) return "Computer";
+  if (n.includes("printer")) return "Printer";
+  if (n.includes("phenyl") || n.includes("harpic") || n.includes("cleaner") || n.includes("acid")) return "Cleaners & Disinfectants";
+  if (n.includes("pocha") || n.includes("mop") || n.includes("wiper")) return "Mops & Wipers";
+  if (n.includes("jharu") || n.includes("broom")) return "Jharu / Broom";
+  
+  const words = name.split(/\s+/).filter(Boolean);
+  if (words.length > 0) {
+    const first = words[0];
+    return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+  }
+  return name || "Other";
+};
+
 export default function InventoryTable() {
-  const { inventory, addInventoryItem, systemSettings, orders, getRegisterForCategory } = useStore();
+  const { inventory, addInventoryItem, systemSettings, orders, getRegisterForCategory, ledgerHistory } = useStore();
   const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -40,19 +70,27 @@ export default function InventoryTable() {
   const paramDepartment = searchParams.get("department");
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
-  const [expandedGroups, setExpandedGroups] = useState({});
   const [expandedItems, setExpandedItems] = useState({});
   const [invoiceModalUrl, setInvoiceModalUrl] = useState(null);
   const [invoiceModalName, setInvoiceModalName] = useState("");
   
+  // History Modal States
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [expandedVariantsHistory, setExpandedVariantsHistory] = useState({});
+
+  const toggleVariantHistory = (subitemId) => {
+    setExpandedVariantsHistory(prev => ({ ...prev, [subitemId]: !prev[subitemId] }));
+  };
+
   // Filtering & Sorting States
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("default");
-
-  const toggleGroup = (key) => {
-    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  const [dateFilter, setDateFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  // Always show all 14 columns directly as requested
 
   const toggleItem = (id) => {
     setExpandedItems((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -139,6 +177,45 @@ export default function InventoryTable() {
       return false;
     }
 
+    // Date Filter
+    if (dateFilter !== "all") {
+      const itemDateStr = item.updatedAt || item.createdAt;
+      if (!itemDateStr) return false;
+      const itemDate = new Date(itemDateStr.replace(" ", "T"));
+      if (isNaN(itemDate.getTime())) return false;
+      
+      const now = new Date();
+      
+      if (dateFilter === "today") {
+        const todayStr = now.toDateString();
+        if (itemDate.toDateString() !== todayStr) return false;
+      } else if (dateFilter === "yesterday") {
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toDateString();
+        if (itemDate.toDateString() !== yesterdayStr) return false;
+      } else if (dateFilter === "week") {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        if (itemDate < oneWeekAgo) return false;
+      } else if (dateFilter === "month") {
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+        if (itemDate < oneMonthAgo) return false;
+      } else if (dateFilter === "custom") {
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (itemDate < start) return false;
+        }
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (itemDate > end) return false;
+        }
+      }
+    }
+
     return (
       (item.item || "").toLowerCase().includes(search.toLowerCase()) ||
       (item.category || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -147,69 +224,48 @@ export default function InventoryTable() {
     );
   });
 
-  // Grouping logic for items in filteredInventory
-  // Group by item.subcategory (case-insensitive key normalization, e.g., "chair" or "desk")
-  const groupedInventory = {};
-  filteredInventory.forEach((item) => {
-    const rawSubcategory = item.subcategory || "Other";
-    const subcatKey = rawSubcategory.trim().toLowerCase();
-    if (!groupedInventory[subcatKey]) {
-      groupedInventory[subcatKey] = {
-        key: subcatKey,
-        subcategory: rawSubcategory,
-        category: item.category,
-        items: [],
-        totalStock: 0,
-        totalValue: 0,
-        minPrice: Infinity,
-        maxPrice: -Infinity,
-        status: "Good",
-        updatedAt: null,
-        createdAt: null,
-      };
+  // Group by parent item name (dynamically grouped)
+  const groupedInventoryMap = {};
+  filteredInventory.forEach(item => {
+    const key = getItemGroup(item.item || item.subcategory);
+    if (!groupedInventoryMap[key]) {
+      groupedInventoryMap[key] = [];
     }
-
-    const group = groupedInventory[subcatKey];
-    group.items.push(item);
-    group.totalStock += item.stock;
-    group.totalValue += item.stock * item.price;
-    if (item.price < group.minPrice) group.minPrice = item.price;
-    if (item.price > group.maxPrice) group.maxPrice = item.price;
-
-    // Date calculations
-    if (item.updatedAt) {
-      if (!group.updatedAt || new Date(item.updatedAt.replace(" ", "T")) > new Date(group.updatedAt.replace(" ", "T"))) {
-        group.updatedAt = item.updatedAt;
-      }
-    }
-    if (item.createdAt) {
-      if (!group.createdAt || new Date(item.createdAt.replace(" ", "T")) > new Date(group.createdAt.replace(" ", "T"))) {
-        group.createdAt = item.createdAt;
-      }
-    }
+    groupedInventoryMap[key].push(item);
   });
 
-  // Post-process statuses and prices for each group
-  Object.values(groupedInventory).forEach((group) => {
-    let hasLow = false;
-    let hasMedium = false;
-    group.items.forEach((it) => {
-      if (it.status === "Low" || it.stock <= 4) {
-        hasLow = true;
-      } else if (it.status === "Medium" || it.stock <= 10) {
-        hasMedium = true;
+  const groupedItems = Object.entries(groupedInventoryMap).map(([parentName, items]) => {
+    const totalStock = items.reduce((sum, i) => sum + i.stock, 0);
+    const totalValue = items.reduce((sum, i) => sum + (i.stock * i.price), 0);
+    const averagePrice = items.length > 0 ? items.reduce((sum, i) => sum + i.price, 0) / items.length : 0;
+    
+    // Get most recent timestamp
+    let mostRecentTime = 0;
+    items.forEach(i => {
+      const timeStr = i.updatedAt || i.createdAt;
+      if (timeStr) {
+        const t = new Date(timeStr.replace(" ", "T")).getTime();
+        if (t > mostRecentTime) mostRecentTime = t;
       }
     });
-    group.status = hasLow ? "Low" : hasMedium ? "Medium" : "Good";
+
+    return {
+      parentName,
+      items,
+      totalStock,
+      totalValue,
+      averagePrice,
+      mostRecentTime,
+      category: items[0]?.category || "Other"
+    };
   });
 
-  const groupsList = Object.values(groupedInventory);
-  groupsList.sort((a, b) => {
+  const sortedGroupedItems = [...groupedItems].sort((a, b) => {
     if (sortBy === "name-asc") {
-      return a.subcategory.localeCompare(b.subcategory);
+      return a.parentName.localeCompare(b.parentName);
     }
     if (sortBy === "name-desc") {
-      return b.subcategory.localeCompare(a.subcategory);
+      return b.parentName.localeCompare(a.parentName);
     }
     if (sortBy === "stock-desc") {
       return b.totalStock - a.totalStock;
@@ -223,15 +279,7 @@ export default function InventoryTable() {
     if (sortBy === "value-asc") {
       return a.totalValue - b.totalValue;
     }
-
-    const dateA = a.updatedAt || a.createdAt || "";
-    const dateB = b.updatedAt || b.createdAt || "";
-    if (dateA && dateB) {
-      return new Date(dateB.replace(" ", "T")) - new Date(dateA.replace(" ", "T"));
-    }
-    if (dateA) return -1;
-    if (dateB) return 1;
-    return a.subcategory.localeCompare(b.subcategory);
+    return b.mostRecentTime - a.mostRecentTime;
   });
 
   // Query order history matching item category, subcategory and specification (type)
@@ -378,12 +426,13 @@ export default function InventoryTable() {
                 className="w-full pl-12 py-3.5 rounded-xl bg-slate-100 outline-none text-sm font-medium"
               />
             </div>
+
             <button
               onClick={() => setShowFiltersPanel(!showFiltersPanel)}
               className={`px-5 py-3 border rounded-xl flex items-center gap-1.5 font-bold cursor-pointer shadow-sm transition text-xs select-none ${
-                showFiltersPanel || statusFilter !== "all" || sortBy !== "default"
+                showFiltersPanel || statusFilter !== "all" || sortBy !== "default" || dateFilter !== "all"
                   ? "bg-blue-50 border-blue-300 text-blue-600"
-                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-55"
+                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
               <FaFilter className="text-xs" />
@@ -393,294 +442,291 @@ export default function InventoryTable() {
 
           {/* Sliding Filters Panel */}
           {showFiltersPanel && (
-            <div className="bg-slate-50 border border-slate-200/70 p-4 rounded-2xl mt-4 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4 animate-slide-down">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  Stock Status Filter
-                </label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-slate-650 cursor-pointer font-semibold"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="Good">🟢 Good (Stock &gt; 10)</option>
-                  <option value="Medium">🟡 Medium (Stock 5 to 10)</option>
-                  <option value="Low">🔴 Low (Stock &le; 4)</option>
-                </select>
+            <div className="bg-slate-50 border border-slate-200/70 p-4 rounded-2xl mt-4 shadow-sm space-y-4 animate-slide-down">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Stock Status Filter
+                  </label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-slate-650 cursor-pointer font-semibold"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="Good">🟢 Good (Stock &gt; 10)</option>
+                    <option value="Medium">🟡 Medium (Stock 5 to 10)</option>
+                    <option value="Low">🔴 Low (Stock &le; 4)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Sort Categories By
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-slate-650 cursor-pointer font-semibold"
+                  >
+                    <option value="default">Default (Recent Activity)</option>
+                    <option value="name-asc">🔤 Category Name: A to Z</option>
+                    <option value="name-desc">🔤 Category Name: Z to A</option>
+                    <option value="stock-desc">📦 Aggregate Stock: High to Low</option>
+                    <option value="stock-asc">📦 Aggregate Stock: Low to High</option>
+                    <option value="value-desc">💰 Valuation: High to Low</option>
+                    <option value="value-asc">💰 Valuation: Low to High</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Filter By Date
+                  </label>
+                  <select
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-slate-650 cursor-pointer font-semibold"
+                  >
+                    <option value="all">Any Time</option>
+                    <option value="today">Today</option>
+                    <option value="yesterday">Yesterday</option>
+                    <option value="week">Last 7 Days</option>
+                    <option value="month">Last 30 Days</option>
+                    <option value="custom">Custom Date Range</option>
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  Sort Categories By
-                </label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-slate-650 cursor-pointer font-semibold"
-                >
-                  <option value="default">Default (Recent Activity)</option>
-                  <option value="name-asc">🔤 Category Name: A to Z</option>
-                  <option value="name-desc">🔤 Category Name: Z to A</option>
-                  <option value="stock-desc">📦 Aggregate Stock: High to Low</option>
-                  <option value="stock-asc">📦 Aggregate Stock: Low to High</option>
-                  <option value="value-desc">💰 Valuation: High to Low</option>
-                  <option value="value-asc">💰 Valuation: Low to High</option>
-                </select>
-              </div>
+              {dateFilter === "custom" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-200/60 animate-fadeIn">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-slate-650 font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-slate-650 font-semibold"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Inventory List Table */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden overflow-x-auto">
-          <table className="w-full min-w-[800px]">
+          <table className="w-full min-w-[1000px]">
             <thead className="bg-blue-700 text-white">
               <tr>
-                <th className="p-4 text-left">Item Details</th>
-                <th className="p-4 text-left">Category</th>
-                <th className="p-4 text-left">Stock</th>
-                <th className="p-4 text-left">Unit Price</th>
-                <th className="p-4 text-left">Total Price</th>
-                <th className="p-4 text-left">Status</th>
-                <th className="p-4 text-left">Date Added / Updated</th>
+                <th className="p-4 text-left text-xs uppercase tracking-wider w-16">S No</th>
+                <th className="p-4 text-left text-xs uppercase tracking-wider">Item Group</th>
+                <th className="p-4 text-left text-xs uppercase tracking-wider">Category / Register</th>
+                <th className="p-4 text-left text-xs uppercase tracking-wider">Subcategories</th>
+                <th className="p-4 text-left text-xs uppercase tracking-wider">Total Stock</th>
+                <th className="p-4 text-left text-xs uppercase tracking-wider">Average Price</th>
+                <th className="p-4 text-left text-xs uppercase tracking-wider">Total Valuation</th>
+                <th className="p-4 text-center text-xs uppercase tracking-wider w-32">Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              {groupsList.map((group) => {
-                const isGroupExpanded = !!(expandedGroups[group.key] || search.trim().length > 0);
-                const minP = group.minPrice;
-                const maxP = group.maxPrice;
-                const priceDisplay = minP === maxP 
-                  ? `₹${minP.toLocaleString("en-IN")}` 
-                  : `₹${minP.toLocaleString("en-IN")} - ₹${maxP.toLocaleString("en-IN")}`;
-
-                // Sort items inside the group by activity date or name
-                const sortedItems = [...group.items].sort((a, b) => {
-                  const dateA = a.updatedAt || a.createdAt || "";
-                  const dateB = b.updatedAt || b.createdAt || "";
-                  if (dateA && dateB) {
-                    return new Date(dateB.replace(" ", "T")) - new Date(dateA.replace(" ", "T"));
-                  }
-                  if (dateA) return -1;
-                  if (dateB) return 1;
-                  return a.item.localeCompare(b.item);
-                });
+              {sortedGroupedItems.map((group, index) => {
+                const isGroupExpanded = !!expandedItems[group.parentName];
+                const badgeClass = CATEGORY_BADGES[group.category] || "bg-slate-50 text-slate-700 border-slate-200";
 
                 return (
-                  <React.Fragment key={group.key}>
-                    {/* Parent Row */}
+                  <React.Fragment key={group.parentName}>
                     <tr
-                      className="border-b bg-slate-50/50 hover:bg-slate-100/50 transition duration-150 cursor-pointer"
-                      onClick={() => toggleGroup(group.key)}
+                      className="border-b border-slate-200 hover:bg-slate-50 transition cursor-pointer select-none bg-white text-slate-800"
+                      onClick={() => {
+                        setExpandedItems(prev => ({ ...prev, [group.parentName]: !prev[group.parentName] }));
+                      }}
                     >
-                      <td className="p-4">
-                        <div className="flex items-center gap-2 font-bold text-slate-800">
-                          {isGroupExpanded ? (
-                            <FaChevronDown className="text-blue-600 flex-shrink-0 text-sm" />
-                          ) : (
-                            <FaChevronRight className="text-slate-400 flex-shrink-0 text-sm" />
-                          )}
-                          <span className="capitalize">{group.subcategory}</span>
-                          <span className="ml-2 text-[10px] font-bold text-slate-500 bg-slate-200/60 border border-slate-300/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                            {group.items.length} spec{group.items.length > 1 ? "s" : ""}
-                          </span>
+                      {/* S No */}
+                      <td className="p-4 text-xs font-semibold text-slate-500">
+                        {index + 1}
+                      </td>
+                      {/* Parent Item Name */}
+                      <td className="p-4 font-bold text-slate-800 text-sm">
+                        <div className="flex items-center gap-2">
+                          {isGroupExpanded ? <FaChevronDown className="text-slate-400 text-xs" /> : <FaChevronRight className="text-slate-400 text-xs" />}
+                          <span>{group.parentName}</span>
                         </div>
                       </td>
-                      <td className="p-4">
-                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
-                          CATEGORY_BADGES[group.category] || "bg-blue-50 text-blue-600 border-blue-150"
-                        }`}>
-                          {group.category}
+                      {/* Category */}
+                      <td className="p-4 text-xs font-semibold">
+                        <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-xl border ${badgeClass}`}>
+                          {getRegisterForCategory(group.category)}
                         </span>
                       </td>
-                      <td className="p-4 font-extrabold text-slate-700">{group.totalStock}</td>
-                      <td className="p-4 text-slate-600 font-medium">{priceDisplay}</td>
-                      <td className="p-4 font-extrabold text-slate-800">₹{group.totalValue.toLocaleString("en-IN")}</td>
-                      <td className="p-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-white font-semibold text-xs
-                          ${
-                            group.status === "Good"
-                              ? "bg-green-500"
-                              : group.status === "Medium"
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                          }`}
+                      {/* Subcategories count */}
+                      <td className="p-4 text-xs font-semibold text-slate-600">
+                        {group.items.length} variant{group.items.length > 1 ? "s" : ""}
+                      </td>
+                      {/* Total Stock */}
+                      <td className="p-4 text-xs font-bold text-slate-700">
+                        {group.totalStock}
+                      </td>
+                      {/* Average price */}
+                      <td className="p-4 text-xs font-bold text-slate-700">
+                        ₹{group.averagePrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                      </td>
+                      {/* Total valuation */}
+                      <td className="p-4 text-xs font-extrabold text-slate-800">
+                        ₹{group.totalValue.toLocaleString("en-IN")}
+                      </td>
+                      {/* Actions */}
+                      <td className="p-4 text-center">
+                        <button
+                          type="button"
+                          className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition cursor-pointer"
                         >
-                          {group.status}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                          <FaClock className="text-slate-400 flex-shrink-0" />
-                          <span>
-                            {group.updatedAt
-                              ? <><span className="text-blue-500 font-semibold">Updated: </span>{formatDateTime(group.updatedAt)}</>
-                              : group.createdAt
-                              ? formatDateTime(group.createdAt)
-                              : "—"
-                            }
-                          </span>
-                        </div>
+                          {isGroupExpanded ? "Collapse" : "View Variants"}
+                        </button>
                       </td>
                     </tr>
 
-                    {/* Child Rows (Specifications) */}
-                    {isGroupExpanded &&
-                      sortedItems.map((item) => {
-                        const isItemExpanded = !!expandedItems[item.id];
-                        return (
-                          <React.Fragment key={item.id}>
-                            <tr
-                              className="border-b border-slate-100 hover:bg-slate-50 transition cursor-pointer select-none bg-slate-50/20"
-                              onClick={(e) => {
-                                toggleItem(item.id);
-                              }}
-                            >
-                              <td className="p-4 pl-10">
-                                <div className="flex items-center gap-2.5">
-                                  <div className="w-1.5 h-6 bg-blue-300 rounded-full flex-shrink-0" />
-                                  <div>
-                                    <div className="font-bold text-slate-850 flex items-center gap-2 flex-wrap">
-                                      <span>{item.item}</span>
-                                      <span className="text-xs text-slate-400 font-normal font-mono bg-slate-100 border px-1.5 py-0.5 rounded">
-                                        Spec: {item.type}
-                                      </span>
-                                      {getOrdersWithInvoice(item).length > 0 && (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const inv = getOrdersWithInvoice(item)[0];
-                                            setInvoiceModalUrl(inv.invoiceDataUrl);
-                                            setInvoiceModalName(`Invoice_${inv.id}`);
-                                          }}
-                                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold hover:bg-indigo-100 transition cursor-pointer"
-                                          title="View attached invoice"
-                                        >
-                                          <FaFileInvoice className="text-[9px]" />
-                                          View Invoice
-                                        </button>
-                                      )}
-                                    </div>
-                                    <div className="text-[10px] text-slate-400 mt-0.5 font-medium hover:text-indigo-650 transition flex items-center gap-1">
-                                      <FaHistory className="text-slate-350" />
-                                      <span>Click to view order history</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="p-4 text-xs text-slate-450 pl-6 font-medium">
-                                {item.category}
-                              </td>
-                              <td className="p-4 font-bold text-slate-650">{item.stock}</td>
-                              <td className="p-4 text-slate-600">₹{item.price.toLocaleString("en-IN")}</td>
-                              <td className="p-4 font-bold text-slate-700">₹{(item.stock * item.price).toLocaleString("en-IN")}</td>
-                              <td className="p-4">
-                                <span
-                                  className={`px-2.5 py-0.5 rounded-full text-white font-semibold text-[10px]
-                                  ${
-                                    item.status === "Good"
-                                      ? "bg-green-500/85"
-                                      : item.status === "Medium"
-                                      ? "bg-yellow-500/85"
-                                      : "bg-red-500/85"
-                                  }`}
-                                >
-                                  {item.status}
-                                </span>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                                  <FaClock className="text-slate-350 flex-shrink-0" />
-                                  <span>
-                                    {item.updatedAt
-                                      ? <><span className="text-blue-400 font-semibold">Updated: </span>{formatDateTime(item.updatedAt)}</>
-                                      : item.createdAt
-                                      ? formatDateTime(item.createdAt)
-                                      : "—"
-                                    }
-                                  </span>
-                                </div>
-                              </td>
-                            </tr>
+                    {/* Subcategories (Variants) Expanded Section */}
+                    {isGroupExpanded && (
+                      <tr className="bg-slate-50/70 border-b border-slate-200">
+                        <td colSpan={8} className="p-4 pl-12 pr-6">
+                          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <table className="w-full text-left">
+                              <thead className="bg-slate-100 text-slate-600 border-b border-slate-200">
+                                <tr>
+                                  <th className="p-3 text-xs font-bold uppercase tracking-wider">Subcategory / Variant</th>
+                                  <th className="p-3 text-xs font-bold uppercase tracking-wider">Specification</th>
+                                  <th className="p-3 text-xs font-bold uppercase tracking-wider">Unit Rate</th>
+                                  <th className="p-3 text-xs font-bold uppercase tracking-wider">Current Stock</th>
+                                  <th className="p-3 text-xs font-bold uppercase tracking-wider">Status</th>
+                                  <th className="p-3 text-xs font-bold uppercase tracking-wider">Valuation</th>
+                                  <th className="p-3 text-center text-xs font-bold uppercase tracking-wider w-40">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100">
+                                {group.items.map((subitem) => {
+                                  const valuation = subitem.stock * subitem.price;
+                                  const variantHistory = [...(ledgerHistory || [])]
+                                    .filter(
+                                      (log) =>
+                                        (log.subcategory || "").toLowerCase() === (subitem.subcategory || "").toLowerCase() &&
+                                        (log.type || "").toLowerCase() === (subitem.type || "").toLowerCase()
+                                    )
+                                    .sort((a, b) => new Date(String(b.date || b.createdAt).replace(" ", "T")).getTime() - new Date(String(a.date || a.createdAt).replace(" ", "T")).getTime());
 
-                            {/* Nested Order History */}
-                            {isItemExpanded && (
-                              <tr className="bg-slate-100/30">
-                                <td colSpan={7} className="p-4 pl-12 pr-6">
-                                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                                    <div className="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
-                                      <FaHistory className="text-indigo-500 text-sm" />
-                                      <h4 className="font-bold text-xs text-slate-800 uppercase tracking-wide">
-                                        Order history for <span className="text-indigo-600">{item.item}</span> — {item.type}
-                                      </h4>
-                                    </div>
-
-                                    {getOrderHistory(item).length > 0 ? (
-                                      <div className="relative border-l-2 border-indigo-100 pl-4 ml-2 space-y-4 py-1">
-                                        {getOrderHistory(item).map((order) => (
-                                          <div
-                                            key={order.id}
-                                            className="relative before:absolute before:-left-[21px] before:top-1.5 before:w-2.5 before:h-2.5 before:rounded-full before:bg-indigo-400 before:border-2 before:border-white animate-fadeIn"
-                                          >
-                                            <div className="flex flex-wrap justify-between items-start gap-2 text-xs">
-                                              <div>
-                                                <div className="flex items-center gap-2">
-                                                  <span className="font-bold text-slate-700">Order Ref: #{order.id}</span>
-                                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap ${
-                                                    order.status === "Received" ? "bg-green-50 border-green-200 text-green-700" :
-                                                    order.status === "Partially Received" ? "bg-blue-50 border-blue-200 text-blue-700" :
-                                                    order.status === "Approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
-                                                    order.status === "Rejected" ? "bg-rose-50 border-rose-250 text-rose-700" :
-                                                    "bg-yellow-50 border-yellow-200 text-yellow-700"
-                                                  }`}>
-                                                    {order.status}
-                                                  </span>
-                                                </div>
-                                                <p className="text-slate-500 mt-1">
-                                                  Supplier: <strong className="text-slate-700">{order.supplier}</strong>
-                                                </p>
-                                                <p className="text-slate-400 text-[10px] mt-0.5">
-                                                  Requested by {order.faculty || order.placedBy || "Store"} for {order.department}
-                                                </p>
-                                              </div>
-                                              <div className="text-right">
-                                                <p className="font-bold text-slate-700">
-                                                  {order.quantity} unit{order.quantity > 1 ? "s" : ""} @ ₹{order.pricePerUnit?.toLocaleString("en-IN")}/unit
-                                                </p>
-                                                {(order.receivedQuantity !== undefined || order.status === "Partially Received") && (
-                                                  <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
-                                                    Rec: <span className="text-emerald-600 font-bold">{order.receivedQuantity || 0}</span> | Pend: <span className="text-amber-600 font-bold">{order.pendingQuantity !== undefined ? order.pendingQuantity : (order.quantity - (order.receivedQuantity || 0))}</span>
-                                                  </p>
-                                                )}
-                                                <p className="font-extrabold text-indigo-650 text-sm mt-0.5">
-                                                  Total: ₹{(order.quantity * (order.pricePerUnit || 0)).toLocaleString("en-IN")}
-                                                </p>
-                                                <p className="text-slate-400 text-[10px] font-mono mt-1">
-                                                  Date Placed: {formatDateTime(order.orderDate)}
-                                                </p>
-                                              </div>
-                                            </div>
+                                  return (
+                                    <React.Fragment key={subitem.id}>
+                                      <tr 
+                                        className="hover:bg-slate-50/50 transition-colors cursor-pointer select-none"
+                                        onClick={() => toggleVariantHistory(subitem.id)}
+                                      >
+                                        <td className="p-3 text-xs font-bold text-slate-800">
+                                          <div className="flex items-center gap-1.5">
+                                            {expandedVariantsHistory[subitem.id] ? <FaChevronDown className="text-[9px] text-slate-400" /> : <FaChevronRight className="text-[9px] text-slate-400" />}
+                                            <span>{subitem.subcategory}</span>
                                           </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <div className="text-center py-4 text-xs font-semibold text-slate-400 italic">
-                                        No purchase orders found for this specification.
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
+                                        </td>
+                                        <td className="p-3 text-xs font-mono text-slate-500">
+                                          {subitem.type || "—"}
+                                        </td>
+                                        <td className="p-3 text-xs font-semibold text-slate-700">
+                                          ₹{subitem.price.toLocaleString("en-IN")}
+                                        </td>
+                                        <td className="p-3 text-xs font-bold text-slate-800">
+                                          {subitem.stock}
+                                        </td>
+                                        <td className="p-3 text-xs">
+                                          <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold text-white uppercase tracking-wide ${
+                                            subitem.stock <= 4 ? "bg-red-500" : subitem.stock <= 10 ? "bg-yellow-500" : "bg-green-500"
+                                          }`}>
+                                            {subitem.stock <= 4 ? "Low" : subitem.stock <= 10 ? "Medium" : "Good"}
+                                          </span>
+                                        </td>
+                                        <td className="p-3 text-xs font-bold text-slate-900">
+                                          ₹{valuation.toLocaleString("en-IN")}
+                                        </td>
+                                        <td className="p-3 text-center flex justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedVariant(subitem);
+                                              setShowHistoryModal(true);
+                                            }}
+                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold hover:bg-indigo-100 transition cursor-pointer"
+                                          >
+                                            <FaHistory className="text-[10px]" />
+                                            <span>Ledger History</span>
+                                          </button>
+                                        </td>
+                                      </tr>
+                                      {expandedVariantsHistory[subitem.id] && (
+                                        <tr>
+                                          <td colSpan={7} className="p-3 bg-slate-50/30">
+                                            <div className="pl-6 pr-4 py-3 bg-white rounded-xl border border-slate-150 shadow-sm space-y-2">
+                                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Transaction Activity History</p>
+                                              {variantHistory.length > 0 ? (
+                                                <div className="space-y-1.5">
+                                                  {variantHistory.slice(0, 5).map((log, idx) => {
+                                                    const isIssue = log.quantity < 0;
+                                                    return (
+                                                      <div key={idx} className="flex justify-between items-center text-xs font-medium py-1 border-b border-slate-100 last:border-b-0">
+                                                        <span className="text-slate-500">{formatDateTime(log.date)}</span>
+                                                        <span className="text-slate-700">
+                                                          {isIssue ? `Issued to ${log.dealerName}` : `Received from ${log.dealerName}`}
+                                                        </span>
+                                                        <span className={`font-bold ${isIssue ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                                          {isIssue ? `${log.quantity} units` : `+${log.quantity} units`}
+                                                        </span>
+                                                      </div>
+                                                    );
+                                                  })}
+                                                  {variantHistory.length > 5 && (
+                                                    <p className="text-[9px] text-indigo-600 font-bold italic pt-1">
+                                                      * Showing latest 5 entries. Click 'Ledger History' button for full logs.
+                                                    </p>
+                                                  )}
+                                                </div>
+                                              ) : (
+                                                <p className="text-xs text-slate-400 italic">No transaction history found for this variant.</p>
+                                              )}
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      )}
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   </React.Fragment>
                 );
               })}
+              {sortedGroupedItems.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="p-8 text-center text-slate-400 italic font-semibold text-sm">
+                    No items found matching the current filters.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -860,6 +906,130 @@ export default function InventoryTable() {
                   </a>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 14-Column Ledger History Modal */}
+      {showHistoryModal && selectedVariant && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden w-full max-w-[95vw] max-h-[90vh] flex flex-col border border-slate-100 animate-scaleUp">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-8 py-5 bg-gradient-to-r from-blue-700 to-indigo-850 text-white shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/10">
+                  <FaHistory size={18} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base tracking-tight">Ledger Transaction History</h3>
+                  <p className="text-blue-200 text-xs mt-0.5 font-semibold">
+                    {selectedVariant.item} &raquo; <span className="text-white">{selectedVariant.subcategory}</span> ({selectedVariant.type || "Nos."})
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl text-xs font-bold cursor-pointer transition flex items-center gap-1.5 font-mono select-none uppercase tracking-wide"
+                >
+                  Print Ledger
+                </button>
+                <button
+                  onClick={() => {
+                    setShowHistoryModal(false);
+                    setSelectedVariant(null);
+                  }}
+                  className="p-2 bg-white/15 hover:bg-white/30 rounded-xl transition cursor-pointer border border-white/20 text-white font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-auto p-6 bg-slate-50">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[900px] text-xs">
+                  <thead className="bg-slate-100 text-slate-700 border-b border-slate-200 font-bold uppercase tracking-wider">
+                    <tr>
+                      <th className="p-3 text-left w-12">S No</th>
+                      <th className="p-3 text-left w-28">Date</th>
+                      <th className="p-3 text-left">Name of Item</th>
+                      <th className="p-3 text-left w-24">Bill Number</th>
+                      <th className="p-3 text-right">Quantity</th>
+                      <th className="p-3 text-right">Unit Rate</th>
+                      <th className="p-3 text-right">Amount</th>
+                      <th className="p-3 text-left">Dealer Name</th>
+                      <th className="p-3 text-left">Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-150 bg-white">
+                    {(() => {
+                      const historyData = [...(ledgerHistory || [])]
+                        .filter(
+                          (log) =>
+                            (log.subcategory || "").toLowerCase() === (selectedVariant.subcategory || "").toLowerCase() &&
+                            (log.type || "").toLowerCase() === (selectedVariant.type || "").toLowerCase()
+                        )
+                        // Sort chronologically oldest-to-newest for registry books
+                        .sort((a, b) => {
+                          const dateA = new Date(String(a.date || a.createdAt).replace(" ", "T")).getTime();
+                          const dateB = new Date(String(b.date || b.createdAt).replace(" ", "T")).getTime();
+                          return dateA - dateB;
+                        });
+
+                      if (historyData.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={14} className="p-8 text-center text-slate-400 italic font-semibold">
+                              No ledger transaction history found for this variant.
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return historyData.map((log, index) => {
+                        const dateStr = log.date || log.createdAt || "—";
+                        const formattedDate = formatDateTime(dateStr);
+                        const quantity = log.quantity !== undefined ? log.quantity : log.stock;
+                        const unitRate = log.price;
+                        const amount = log.amount !== undefined ? log.amount : (quantity * unitRate);
+                        const dealerName = log.dealerName || "—";
+                        const remarks = log.remarks || "—";
+                        const billNumber = log.billNumber || "—";
+
+                        return (
+                          <tr key={log.id || index} className="hover:bg-slate-50 transition-colors">
+                            <td className="p-3 font-semibold text-slate-400 text-center">{index + 1}</td>
+                            <td className="p-3 whitespace-nowrap font-medium text-slate-650">{formattedDate}</td>
+                            <td className="p-3 font-bold text-slate-800">{log.subcategory}</td>
+                            <td className="p-3 font-mono font-semibold text-slate-600">{billNumber}</td>
+                            <td className="p-3 text-right font-semibold text-slate-700">{quantity}</td>
+                            <td className="p-3 text-right font-semibold text-slate-700">₹{unitRate.toLocaleString("en-IN")}</td>
+                            <td className="p-3 text-right font-bold text-slate-800">₹{amount.toLocaleString("en-IN")}</td>
+                            <td className="p-3 text-slate-700 font-medium">{dealerName}</td>
+                            <td className="p-3 italic text-slate-500 max-w-[200px] truncate" title={remarks}>{remarks}</td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {/* Modal Footer */}
+            <div className="px-8 py-4 bg-slate-100 border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowHistoryModal(false);
+                  setSelectedVariant(null);
+                }}
+                className="bg-slate-800 hover:bg-slate-900 text-white font-bold px-6 py-2.5 rounded-xl transition cursor-pointer text-xs"
+              >
+                Close Ledger
+              </button>
             </div>
           </div>
         </div>

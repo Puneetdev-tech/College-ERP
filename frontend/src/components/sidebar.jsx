@@ -10,7 +10,9 @@ import {
   FaTruck,
   FaFilePdf,
   FaUsers,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaVolumeUp,
+  FaVolumeMute
 } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import { menuConfig } from "../data/menuConfig";
@@ -25,6 +27,16 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem("rjit_sidebarCollapsed") === "true";
   });
+
+  const [voiceEnabled, setVoiceEnabled] = useState(() => {
+    return localStorage.getItem("rjit_voice_enabled") !== "false";
+  });
+
+  const toggleVoice = () => {
+    const newVal = !voiceEnabled;
+    setVoiceEnabled(newVal);
+    localStorage.setItem("rjit_voice_enabled", String(newVal));
+  };
 
   useEffect(() => {
     localStorage.setItem("rjit_sidebarCollapsed", isCollapsed);
@@ -52,50 +64,46 @@ export default function Sidebar() {
   };
 
   return (
-    <div className={`sidebar-container ${isCollapsed ? "w-20" : "w-64"} h-screen fixed flex flex-col justify-between overflow-hidden z-40 transition-all duration-300`}>
-      <div>
-        <div className={`border-b border-slate-200/50 dark:border-white/10 flex items-center transition-all duration-300 ${
-          isCollapsed ? "p-4 flex-col justify-center gap-2" : "p-6 justify-between"
+    <div className={`sidebar-container ${isCollapsed ? "w-20" : "w-64"} h-screen fixed flex flex-col overflow-hidden z-40 transition-all duration-300`}>
+      <div className={`border-b border-slate-200/50 dark:border-white/10 flex items-center transition-all duration-300 flex-shrink-0 ${
+        isCollapsed ? "p-4 flex-col justify-center gap-2" : "p-6 justify-between"
+      }`}>
+        <h1 className={`font-bold tracking-wide sidebar-title transition-all duration-300 ${
+          isCollapsed ? "text-lg text-blue-600 dark:text-cyan-400" : "text-2xl"
         }`}>
-          <h1 className={`font-bold tracking-wide sidebar-title transition-all duration-300 ${
-            isCollapsed ? "text-lg text-blue-600 dark:text-cyan-400" : "text-2xl"
-          }`}>
-            {isCollapsed ? "RJIT" : "RJIT STORE"}
-          </h1>
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-cyan-400 transition-colors cursor-pointer text-xl p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center"
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            ☰
-          </button>
-        </div>
- 
-        <div className={`overflow-y-auto overflow-x-hidden pr-1 sidebar-scrollbar ${
-          isCollapsed ? "p-2 max-h-[calc(100vh-190px)]" : "p-4 max-h-[calc(100vh-220px)]"
-        }`}>
-          {menus.map((menu, index) => (
-            <div
-              key={index}
-              onClick={() => { playUISound("nav"); navigate(menu.path); }}
-              className={`sidebar-item flex items-center gap-3 rounded-xl cursor-pointer mb-1.5 ${
-                isActive(menu) ? "active" : ""
-              } ${isCollapsed ? "justify-center p-2.5" : "py-2 px-3.5"}`}
-              title={isCollapsed ? menu.name : undefined}
-            >
-              <span className="text-lg flex-shrink-0">{menu.icon}</span>
-              <span className={`transition-all duration-350 ease-in-out whitespace-nowrap overflow-hidden ${
-                isCollapsed ? "opacity-0 w-0 pointer-events-none" : "opacity-100 w-auto"
-              }`}>
-                {menu.name}
-              </span>
-            </div>
-          ))}
-        </div>
+          {isCollapsed ? "RJIT" : "RJIT STORE"}
+        </h1>
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-cyan-400 transition-colors cursor-pointer text-xl p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center"
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          ☰
+        </button>
       </div>
  
-      <div className={`border-t border-slate-200/50 dark:border-white/10 mb-4 space-y-3 transition-all duration-300 ${
-        isCollapsed ? "p-2" : "p-4"
+      <div className="overflow-y-auto overflow-x-hidden pr-1 sidebar-scrollbar flex-1 min-h-0 p-2">
+        {menus.map((menu, index) => (
+          <div
+            key={index}
+            onClick={() => { playUISound("nav"); navigate(menu.path); }}
+            className={`sidebar-item flex items-center gap-3 rounded-xl cursor-pointer mb-1.5 ${
+              isActive(menu) ? "active" : ""
+            } ${isCollapsed ? "justify-center p-2.5" : "py-2 px-3.5"}`}
+            title={isCollapsed ? menu.name : undefined}
+          >
+            <span className="text-lg flex-shrink-0">{menu.icon}</span>
+            <span className={`transition-all duration-350 ease-in-out whitespace-nowrap overflow-hidden ${
+              isCollapsed ? "opacity-0 w-0 pointer-events-none" : "opacity-100 w-auto"
+            }`}>
+              {menu.name}
+            </span>
+          </div>
+        ))}
+      </div>
+ 
+      <div className={`border-t border-slate-200/50 dark:border-white/10 space-y-2 transition-all duration-300 flex-shrink-0 ${
+        isCollapsed ? "p-2 mb-2" : "p-4 mb-2"
       }`}>
         <div 
           className={`bg-slate-100/60 dark:bg-white/5 rounded-xl border border-slate-200/60 dark:border-white/10 transition-all duration-300 ${
@@ -130,6 +138,21 @@ export default function Sidebar() {
           )}
         </div>
  
+        <div
+          onClick={toggleVoice}
+          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 text-slate-650 dark:text-slate-350 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-blue-600 dark:hover:text-cyan-400 font-semibold ${
+            isCollapsed ? "justify-center" : ""
+          }`}
+          title={isCollapsed ? (voiceEnabled ? "Mute Voice" : "Unmute Voice") : undefined}
+        >
+          {voiceEnabled ? <FaVolumeUp className="text-lg flex-shrink-0" /> : <FaVolumeMute className="text-lg flex-shrink-0" />}
+          <span className={`transition-all duration-350 ease-in-out whitespace-nowrap overflow-hidden ${
+            isCollapsed ? "opacity-0 w-0 pointer-events-none" : "opacity-100 w-auto"
+          }`}>
+            Voice: {voiceEnabled ? "On" : "Off"}
+          </span>
+        </div>
+
         <div
           onClick={handleLogout}
           className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 text-rose-600 dark:text-rose-350 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-700 dark:hover:text-rose-200 font-semibold ${

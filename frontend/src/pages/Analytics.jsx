@@ -18,23 +18,11 @@ import Navbar from "../components/Navbar";
 import { useStore } from "../context/StoreContext";
 
 // Baseline mappings to carry over initial mock data offsets
-const baseDepartmentData = {
-  Stationary: 280, Sanitory: 120, Electrical: 150, Electronics: 320,
-  Sports: 210, Furniture: 190, "IT,CSE": 580, laboratory: 450
-};
+const baseDepartmentData = {};
 
-const baseCategoryData = {
-  Furniture: { availableOffset: 0, usedOffset: 45 },
-  Electronics: { availableOffset: 0, usedOffset: 35 },
-  Stationery: { availableOffset: 0, usedOffset: 120 },
-  Sports: { availableOffset: 0, usedOffset: 25 },
-  Cleaning: { availableOffset: 0, usedOffset: 60 },
-  Equipment: { availableOffset: 0, usedOffset: 15 }
-};
+const baseCategoryData = {};
 
-const baseFrequentItems = {
-  "A4 Sheets": 180, "Markers": 120, "Mouse": 90, "Printer Ink": 70
-};
+const baseFrequentItems = {};
 
 const DEPARTMENT_COLORS = [
   "url(#gradientStationary)", "url(#gradientHostel)", "url(#gradientSports)",
@@ -46,33 +34,12 @@ const DOT_COLORS = ["#00ffff", "#3b82f6", "#10b981", "#ff6b6b", "#a78bfa", "#f59
 
 // Custom Active Shape for light glassmorphism pie chart
 const renderActiveShape = (props) => {
-  const RADIAN = Math.PI / 180;
-  const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
-  const sin = Math.sin(-RADIAN * midAngle);
-  const cos = Math.cos(-RADIAN * midAngle);
-  const sx = cx + (outerRadius + 10) * cos;
-  const sy = cy + (outerRadius + 10) * sin;
-  const mx = cx + (outerRadius + 28) * cos;
-  const my = cy + (outerRadius + 28) * sin;
-  const ex = mx + (cos >= 0 ? 1 : -1) * 22;
-  const ey = my;
-  const textAnchor = cos >= 0 ? "start" : "end";
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
 
   return (
     <g>
-      <text x={cx} y={cy} dy={8} textAnchor="middle" fill="#2563eb" style={{ fontWeight: 800, fontSize: 13 }}>
-        {payload.name}
-      </text>
-      <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 8} startAngle={startAngle} endAngle={endAngle} fill={fill} />
-      <Sector cx={cx} cy={cy} startAngle={startAngle} endAngle={endAngle} innerRadius={outerRadius + 12} outerRadius={outerRadius + 17} fill={fill} opacity={0.4} />
-      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} strokeWidth={2} fill="none" />
-      <circle cx={ex} cy={ey} r={4} fill={fill} stroke="none" />
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#1e293b" style={{ fontWeight: 700, fontSize: 12 }}>
-        {`Issued: ${value}`}
-      </text>
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={16} textAnchor={textAnchor} fill="#64748b" style={{ fontSize: 11 }}>
-        {`(${(percent * 100).toFixed(1)}%)`}
-      </text>
+      <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 6} startAngle={startAngle} endAngle={endAngle} fill={fill} />
+      <Sector cx={cx} cy={cy} startAngle={startAngle} endAngle={endAngle} innerRadius={outerRadius + 10} outerRadius={outerRadius + 14} fill={fill} opacity={0.3} />
     </g>
   );
 };
@@ -185,7 +152,7 @@ function NeonKPICard({ icon: Icon, iconColor, label, value, subtext, subtextColo
 }
 
 export default function Analytics() {
-  const { inventory, issuedStock, inventoryCategories, getRegisterForCategory } = useStore();
+  const { inventory, issuedStock, orders, inventoryCategories, getRegisterForCategory } = useStore();
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const [filterType, setFilterType] = useState("all"); // "all", "week", "month", "prev-month", "year", "custom"
@@ -254,7 +221,71 @@ export default function Analytics() {
   const filteredIssued = getFilteredIssuedStock();
   const isFiltered = filterType !== "all";
 
-  // ─── Dynamic data (all unchanged logic) ────────────────────────────────
+  const getFilterEndDateStr = () => {
+    const refDate = new Date();
+    refDate.setHours(0, 0, 0, 0);
+
+    if (filterType === "all") return null;
+    if (filterType === "week") {
+      const day = refDate.getDay();
+      const diff = refDate.getDate() - day + (day === 0 ? -6 : 1);
+      const startOfWeek = new Date(refDate);
+      startOfWeek.setDate(diff);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(endOfWeek.getDate() + 6);
+      return endOfWeek.toISOString().split("T")[0];
+    }
+    if (filterType === "month") {
+      const endOfMonth = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0);
+      return endOfMonth.toISOString().split("T")[0];
+    }
+    if (filterType === "prev-month") {
+      const endOfPrevMonth = new Date(refDate.getFullYear(), refDate.getMonth(), 0);
+      return endOfPrevMonth.toISOString().split("T")[0];
+    }
+    if (filterType === "year") {
+      const endOfYear = new Date(refDate.getFullYear() - 1, 11, 31);
+      return endOfYear.toISOString().split("T")[0];
+    }
+    if (filterType === "custom") {
+      return customEnd || new Date().toISOString().split("T")[0];
+    }
+    return null;
+  };
+
+  const filterEndDateStr = getFilterEndDateStr();
+  const getStockAtEndDate = (item) => {
+    if (!filterEndDateStr) return item.stock;
+    
+    // Filter issues that occurred after the filterEndDateStr
+    const issuesAfter = (issuedStock || []).filter(log => {
+      const cleanDate = (log.date || "").split(" ")[0];
+      return cleanDate > filterEndDateStr && 
+             (log.category || "").toLowerCase() === (item.category || "").toLowerCase() &&
+             (log.subcategory || "").toLowerCase() === (item.subcategory || "").toLowerCase() &&
+             (log.type || "").toLowerCase() === (item.type || "").toLowerCase();
+    });
+    const totalIssuedAfter = issuesAfter.reduce((sum, log) => sum + log.quantity, 0);
+
+    // Filter received orders that occurred after the filterEndDateStr
+    const receivedAfter = (orders || []).filter(o => {
+      const cleanDate = (o.receiveDate || "").split(" ")[0];
+      return (o.status === "Received" || o.status === "Partially Received") && 
+             cleanDate > filterEndDateStr && 
+             (o.category || "").toLowerCase() === (item.category || "").toLowerCase() &&
+             (o.subcategory || "").toLowerCase() === (item.subcategory || "").toLowerCase() &&
+             (o.type || "").toLowerCase() === (item.type || "").toLowerCase();
+    });
+    const totalReceivedAfter = receivedAfter.reduce((sum, o) => sum + (o.receivedQuantity || o.quantity), 0);
+
+    // Filter items created after the filterEndDateStr
+    const cleanCreated = (item.createdAt || "").split(" ")[0];
+    if (cleanCreated > filterEndDateStr) return 0;
+
+    const computedStock = item.stock + totalIssuedAfter - totalReceivedAfter;
+    return computedStock >= 0 ? computedStock : 0;
+  };
+
   const departmentData = (inventoryCategories || []).map((cat) => {
     const dept = cat.name;
     const baseOffset = isFiltered ? 0 : (baseDepartmentData[dept] || 0);
@@ -272,7 +303,7 @@ export default function Analytics() {
     const baseOffset = isFiltered ? { availableOffset: 0, usedOffset: 0 } : (baseCategoryData[cat] || { availableOffset: 0, usedOffset: 0 });
     const available = inventory
       .filter((item) => getRegisterForCategory(item.category).toLowerCase() === cat.toLowerCase())
-      .reduce((sum, item) => sum + item.stock, 0);
+      .reduce((sum, item) => sum + getStockAtEndDate(item), 0);
     const used = filteredIssued
       .filter((log) => getRegisterForCategory(log.category || log.department).toLowerCase() === cat.toLowerCase())
       .reduce((sum, log) => sum + log.quantity, 0);
@@ -290,11 +321,11 @@ export default function Analytics() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 4);
 
-  const totalAvailableStock = inventory.reduce((sum, item) => sum + item.stock, 0);
-  const totalIssuedStock = filteredIssued.reduce((sum, log) => sum + log.quantity, 0) + (isFiltered ? 0 : 300);
+  const totalAvailableStock = inventory.reduce((sum, item) => sum + getStockAtEndDate(item), 0);
+  const totalIssuedStock = filteredIssued.reduce((sum, log) => sum + log.quantity, 0);
   const sortedDepartments = [...departmentData].sort((a, b) => b.value - a.value);
-  const mostActiveDept = sortedDepartments[0]?.name || "IT Department";
-  const mostActiveDeptQty = sortedDepartments[0]?.value || 580;
+  const mostActiveDept = sortedDepartments[0]?.value > 0 ? sortedDepartments[0]?.name : "—";
+  const mostActiveDeptQty = sortedDepartments[0]?.value > 0 ? sortedDepartments[0]?.value : 0;
 
   const CARD_STYLE = {
     background: "rgba(255, 255, 255, 0.75)",
@@ -492,11 +523,23 @@ export default function Analytics() {
                         <Cell key={`cell-${index}`} fill={DEPARTMENT_COLORS[index % DEPARTMENT_COLORS.length]} style={{ filter: "drop-shadow(0px 4px 8px rgba(99,102,241,0.08))" }} />
                       ))}
                     </Pie>
-                    {activeIndex === -1 && (
+                    {activeIndex === -1 ? (
                       <>
                         <text x="50%" y="47%" textAnchor="middle" dominantBaseline="middle" fill="#64748b" style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em" }}>TOTAL ISSUED</text>
                         <text x="50%" y="56%" textAnchor="middle" dominantBaseline="middle" fill="#2563eb" style={{ fontSize: 20, fontWeight: 900 }}>
                           {departmentData.reduce((sum, item) => sum + item.value, 0)}
+                        </text>
+                      </>
+                    ) : (
+                      <>
+                        <text x="50%" y="43%" textAnchor="middle" dominantBaseline="middle" fill="#475569" style={{ fontSize: 11, fontWeight: 700 }}>
+                          {departmentData[activeIndex]?.name}
+                        </text>
+                        <text x="50%" y="52%" textAnchor="middle" dominantBaseline="middle" fill="#1e293b" style={{ fontSize: 16, fontWeight: 800 }}>
+                          {departmentData[activeIndex]?.value} units
+                        </text>
+                        <text x="50%" y="60%" textAnchor="middle" dominantBaseline="middle" fill="#2563eb" style={{ fontSize: 11, fontWeight: 700 }}>
+                          {((departmentData[activeIndex]?.value / departmentData.reduce((sum, d) => sum + d.value, 1)) * 100).toFixed(1)}%
                         </text>
                       </>
                     )}
