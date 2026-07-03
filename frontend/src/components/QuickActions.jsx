@@ -46,20 +46,20 @@ export default function QuickActions() {
   if (actions.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 h-full flex flex-col">
 
       <h2 className="text-xl font-bold mb-4">
         Quick Actions
       </h2>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 flex-1">
 
         {actions.map((action, index) => (
 
           <button
             key={index}
             onClick={() => navigate(action.path)}
-            className="group bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-xl hover:scale-105 active:scale-95 transition shadow-md cursor-pointer"
+            className="group bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-4 rounded-xl hover:scale-105 active:scale-95 transition shadow-md cursor-pointer flex items-center justify-center"
           >
             <div className="flex flex-col items-center gap-2">
               <span className="text-xl transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12">{action.icon}</span>

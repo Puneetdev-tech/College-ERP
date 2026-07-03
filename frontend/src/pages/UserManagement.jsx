@@ -52,7 +52,7 @@ export default function UserManagement() {
   const [newApprName, setNewApprName] = useState("");
   const [newApprEmail, setNewApprEmail] = useState("");
   const [newApprPassword, setNewApprPassword] = useState("");
-  const [newApprRole, setNewApprRole] = useState("Account Office");
+  const [newApprRole, setNewApprRole] = useState("Dean Student Welfare");
   const [isNewApprCustomRole, setIsNewApprCustomRole] = useState(false);
   const [newApprCustomRole, setNewApprCustomRole] = useState("");
   const [newApprError, setNewApprError] = useState("");
@@ -88,7 +88,7 @@ export default function UserManagement() {
     setName(user.name);
     setEmail(user.email);
     setPassword(user.password || ""); // Prefill password so admin can view/change it
-    const isStandard = ["Admin", "Store Manager", "Purchase Officer", "Principal", "Account Office"].includes(user.role);
+    const isStandard = ["Admin", "Dean Student Welfare", "Purchase Officer", "Principal"].includes(user.role);
     if (isStandard) {
       setRole(user.role);
       setIsCustomRole(false);
@@ -515,9 +515,8 @@ export default function UserManagement() {
                           }}
                           className="w-full border border-slate-200 p-2.5 rounded-xl bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-slate-800"
                         >
-                          <option value="Account Office">Account Office</option>
+                          <option value="Dean Student Welfare">Dean Student Welfare</option>
                           <option value="Principal">Principal</option>
-                          <option value="Store Manager">Store Manager</option>
                           <option value="Purchase Officer">Purchase Officer</option>
                           <option value="Other">Other (Type manually)</option>
                         </select>
@@ -670,10 +669,9 @@ export default function UserManagement() {
                       className="border p-3 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 border-slate-200 cursor-pointer font-medium"
                     >
                       <option value="Admin">Admin</option>
-                      <option value="Store Manager">Store Manager</option>
+                      <option value="Dean Student Welfare">Dean Student Welfare</option>
                       <option value="Purchase Officer">Purchase Officer</option>
                       <option value="Principal">Principal</option>
-                      <option value="Account Office">Account Office</option>
                       <option value="Other">Other (Type manually)</option>
                     </select>
                   </div>

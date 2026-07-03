@@ -51,6 +51,75 @@ export const getInventory = async (req, res, next) => {
   }
 };
 
+export const getLegacyInventory = async (req, res, next) => {
+  try {
+    const items = await prisma.inventory_items.findMany({
+      orderBy: {
+        s_no: "asc"
+      }
+    });
+    return res.json({ success: true, items });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getLegacySanitary = async (req, res, next) => {
+  try {
+    const items = await prisma.sanitary_items.findMany({
+      orderBy: {
+        s_no: "asc"
+      }
+    });
+    return res.json({ success: true, items });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getLegacyElectrical = async (req, res, next) => {
+  try {
+    const orders = await prisma.electrical_orders.findMany({
+      include: {
+        subItem: {
+          include: {
+            item: true
+          }
+        }
+      },
+      orderBy: {
+        id: "asc"
+      }
+    });
+
+    const items = orders.map((order, idx) => ({
+      id: order.id,
+      s_no: idx + 1,
+      item_name: order.subItem.item.name,
+      variant: order.subItem.variant,
+      dop: order.dop,
+      bill_number: order.billNumber,
+      quantity: order.quantity,
+      unit_rate: order.unitRate,
+      amount: order.amount,
+      received_quantity: order.receivedQty,
+      opening_stock: order.openingStock,
+      issued: order.issued,
+      balance: order.balance,
+      avl_stock_total: order.avlStockTotal,
+      dealer_name: order.dealerName,
+      slp: order.slp,
+      remarks: order.remarks
+    }));
+
+    return res.json({ success: true, items });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
 export const createInventoryItem = async (req, res, next) => {
   try {
     const { item, category, subcategory, type, stock, price } = req.body;

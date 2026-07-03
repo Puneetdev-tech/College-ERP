@@ -19,6 +19,9 @@ import UserManagement from "./pages/UserManagement";
 import Settings from "./pages/Settings";
 import AccessDenied from "./pages/AccessDenied";
 import Maintenance from "./pages/Maintenance";
+import LegacyInventory from "./pages/LegacyInventory";
+import LegacySanitaryInventory from "./pages/LegacySanitaryInventory";
+import LegacyElectricalInventory from "./pages/LegacyElectricalInventory";
 
 function ProtectedRoute({ children, requiredPermission }) {
   const { currentUser } = useStore();
@@ -50,6 +53,9 @@ function App() {
           <Route path="/inventory" element={<ProtectedRoute requiredPermission="Inventory"><Inventory /></ProtectedRoute>} />
           <Route path="/inventory/:department" element={<ProtectedRoute requiredPermission="Inventory"><DepartmentInventory /></ProtectedRoute>} />
           <Route path="/inventory/items" element={<ProtectedRoute requiredPermission="Inventory"><InventoryTable /></ProtectedRoute>} />
+          <Route path="/inventory/legacy" element={<ProtectedRoute requiredPermission="Inventory"><LegacyInventory /></ProtectedRoute>} />
+          <Route path="/inventory/legacy-sanitary" element={<ProtectedRoute requiredPermission="Inventory"><LegacySanitaryInventory /></ProtectedRoute>} />
+          <Route path="/inventory/legacy-electrical" element={<ProtectedRoute requiredPermission="Inventory"><LegacyElectricalInventory /></ProtectedRoute>} />
           <Route path="/place-order" element={<ProtectedRoute requiredPermission="Place Order"><PlaceOrder /></ProtectedRoute>} />
           <Route path="/receive-order" element={<ProtectedRoute requiredPermission="Receive Order"><ReceiveOrder /></ProtectedRoute>} />
           <Route path="/issue-stock" element={<ProtectedRoute requiredPermission="Issue Stock"><IssueStock /></ProtectedRoute>} />

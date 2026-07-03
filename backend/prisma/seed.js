@@ -5,10 +5,9 @@ const prisma = new PrismaClient();
 
 const ROLE_DEFAULT_PERMISSIONS = {
   "Admin": ["Dashboard", "Inventory", "Place Order", "Receive Order", "Issue Stock", "Analytics", "Reports", "Notifications", "Users", "Settings", "Maintenance"],
-  "Store Manager": ["Dashboard", "Inventory", "Receive Order", "Issue Stock", "Reports", "Notifications", "Maintenance"],
+  "Dean Student Welfare": ["Dashboard", "Inventory", "Receive Order", "Issue Stock", "Reports", "Notifications", "Maintenance"],
   "Purchase Officer": ["Dashboard", "Place Order", "Receive Order", "Reports", "Notifications"],
-  "Principal": ["Dashboard", "Analytics", "Reports", "Maintenance"],
-  "Account Office": ["Dashboard", "Reports", "Notifications"]
+  "Principal": ["Dashboard", "Analytics", "Reports", "Maintenance"]
 };
 
 async function main() {
@@ -39,14 +38,6 @@ async function main() {
       permissions: ROLE_DEFAULT_PERMISSIONS["Admin"]
     },
     {
-      name: "Priya Singh",
-      email: "priya@rjit.edu.in",
-      password: "manager",
-      role: "Store Manager",
-      status: "Active",
-      permissions: ROLE_DEFAULT_PERMISSIONS["Store Manager"]
-    },
-    {
       name: "Amit Verma",
       email: "amit@rjit.edu.in",
       password: "officer",
@@ -63,12 +54,12 @@ async function main() {
       permissions: ROLE_DEFAULT_PERMISSIONS["Principal"]
     },
     {
-      name: "Sanjay Mehta",
-      email: "accounts@rjit.edu.in",
-      password: "accounts",
-      role: "Account Office",
+      name: "Dr. Anil Kapoor",
+      email: "dean@rjit.edu.in",
+      password: "dean",
+      role: "Dean Student Welfare",
       status: "Active",
-      permissions: ROLE_DEFAULT_PERMISSIONS["Account Office"]
+      permissions: ROLE_DEFAULT_PERMISSIONS["Dean Student Welfare"]
     }
   ];
 
@@ -107,24 +98,25 @@ async function main() {
   console.log("Seeded system settings.");
 
   // 3. Seed Approval Sequence
-  // Map users Sanjay Mehta (Accounts, role in sequence position 1) and Dr. Roy (Principal, position 2)
-  const sanjay = seededUsers.find(u => u.email === "accounts@rjit.edu.in");
+  // Map users Dr. Anil Kapoor (Dean Student Welfare, role in sequence position 1) and Dr. Roy (Principal, position 2)
+  const deanUser = seededUsers.find(u => u.email === "dean@rjit.edu.in");
   const roy = seededUsers.find(u => u.email === "principal@rjit.edu.in");
 
-  if (sanjay && roy) {
+  if (deanUser && roy) {
     await prisma.approvalSequence.createMany({
       data: [
-        { userId: sanjay.id, position: 1 },
+        { userId: deanUser.id, position: 1 },
         { userId: roy.id, position: 2 }
       ]
     });
-    console.log("Seeded approval sequence (Sanjay Mehta -> Dr. Roy).");
+    console.log("Seeded approval sequence (Dr. Anil Kapoor -> Dr. Roy).");
   }
 
   // 4. Seed Inventory Items
   const stationeryItems = [
     { item: "A4 size paper Rim", category: "Stationery", subcategory: "A4 size paper Rim", type: "Rim", stock: 80, price: 221.99, status: "Good" },
-    { item: "Add Gel pen", category: "Stationery", subcategory: "Add Gel pen", type: "Blue/Black", stock: 29, price: 45.50, status: "Good" },
+    { item: "Add Gel pen (Blue)", category: "Stationery", subcategory: "Add Gel pen", type: "Blue", stock: 18, price: 45.50, status: "Good" },
+    { item: "Add Gel pen (Black)", category: "Stationery", subcategory: "Add Gel pen", type: "Black", stock: 11, price: 45.50, status: "Good" },
     { item: "Add gel refill", category: "Stationery", subcategory: "Add gel refill", type: "0.5mm", stock: 20, price: 23.00, status: "Good" },
     { item: "Cell AAA", category: "Stationery", subcategory: "Cell AAA", type: "Alkaline", stock: 50, price: 16.80, status: "Good" },
     { item: "Cell AA", category: "Stationery", subcategory: "Cell AA", type: "Alkaline", stock: 50, price: 16.80, status: "Good" },
@@ -137,16 +129,22 @@ async function main() {
     { item: "Register 200 pages", category: "Stationery", subcategory: "Register 200 pages", type: "Standard", stock: 10, price: 139.9952, status: "Good" },
     { item: "Staff attendance register", category: "Stationery", subcategory: "Staff attendance register", type: "Ledger", stock: 7, price: 78.7178, status: "Low" },
     { item: "Student attendance register", category: "Stationery", subcategory: "Student attendance register", type: "Ledger", stock: 0, price: 150.00, status: "Low" },
-    { item: "Use and throw pen", category: "Stationery", subcategory: "Use and throw pen", type: "Blue", stock: 177, price: 3.10, status: "Good" },
-    { item: "White board marker", category: "Stationery", subcategory: "White board marker", type: "Black/Blue", stock: 20, price: 18.00, status: "Good" },
+    { item: "Use and throw pen (Blue)", category: "Stationery", subcategory: "Use and throw pen", type: "Blue", stock: 100, price: 3.10, status: "Good" },
+    { item: "Use and throw pen (Black)", category: "Stationery", subcategory: "Use and throw pen", type: "Black", stock: 50, price: 3.10, status: "Good" },
+    { item: "Use and throw pen (Red)", category: "Stationery", subcategory: "Use and throw pen", type: "Red", stock: 27, price: 3.10, status: "Good" },
+    { item: "White board marker (Blue)", category: "Stationery", subcategory: "White board marker", type: "Blue", stock: 10, price: 18.00, status: "Good" },
+    { item: "White board marker (Black)", category: "Stationery", subcategory: "White board marker", type: "Black", stock: 10, price: 18.00, status: "Good" },
     { item: "Whitener pen", category: "Stationery", subcategory: "Whitener pen", type: "Correction Pen", stock: 20, price: 18.00, status: "Good" },
     { item: "File cover J-280", category: "Stationery", subcategory: "File cover J-280", type: "Plastic J-280", stock: 200, price: 9.20, status: "Good" }
   ];
 
   const otherItems = [
-    { item: "Desktop Computer", category: "Electronics", subcategory: "Computer", type: "i5 16GB", stock: 25, price: 45000, status: "Good" },
-    { item: "Laser Printer", category: "Electronics", subcategory: "Printer", type: "LaserJet", stock: 4, price: 12000, status: "Low" },
-    { item: "Office Chair", category: "Furniture", subcategory: "Chair", type: "Ergonomic Mesh", stock: 18, price: 3500, status: "Good" },
+    { item: "Desktop Computer (i5)", category: "Electronics", subcategory: "Computer", type: "i5 16GB", stock: 15, price: 45000, status: "Good" },
+    { item: "Desktop Computer (i7)", category: "Electronics", subcategory: "Computer", type: "i7 32GB", stock: 10, price: 65000, status: "Good" },
+    { item: "Laser Printer (Mono)", category: "Electronics", subcategory: "Printer", type: "Monochrome LaserJet", stock: 3, price: 12000, status: "Low" },
+    { item: "Laser Printer (Color)", category: "Electronics", subcategory: "Printer", type: "Color LaserJet", stock: 1, price: 24000, status: "Low" },
+    { item: "Office Chair (High Back)", category: "Furniture", subcategory: "Chair", type: "High Back", stock: 8, price: 4500, status: "Good" },
+    { item: "Office Chair (Mid Back)", category: "Furniture", subcategory: "Chair", type: "Mid Back", stock: 10, price: 3500, status: "Good" },
     { item: "Football", category: "Sports", subcategory: "Balls", type: "Leather size 5", stock: 10, price: 800, status: "Good" },
     { item: "Microscope", category: "Equipment", subcategory: "Lab Equipment", type: "Compound 1000x", stock: 15, price: 10000, status: "Good" },
     { item: "Study Desk", category: "Furniture", subcategory: "Desk", type: "Study Desk", stock: 30, price: 5000, status: "Good" },

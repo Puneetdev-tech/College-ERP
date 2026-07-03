@@ -11,6 +11,7 @@ import FlashMessage from "../components/FlashMessage";
 import useFlash from "../components/useFlash";
 import { speak, playBeep } from "../components/useSpeech";
 import InventoryChatbot from "../components/InventoryChatbot";
+import ValuationBreakdown from "../components/ValuationBreakdown";
 import {
   FaCheckCircle,
   FaTimesCircle,
@@ -55,7 +56,18 @@ export default function Dashboard() {
 
   const totalAssets = inventory.reduce((acc, item) => acc + item.stock, 0);
   const inventoryValueVal = inventory.reduce((acc, item) => acc + (item.stock * item.price), 0);
-  const inventoryValue = `₹${(inventoryValueVal / 100000).toFixed(1)}L`;
+  
+  const formatValue = (val) => {
+    if (val >= 10000000) {
+      return `₹${parseFloat((val / 10000000).toFixed(2))}Cr`;
+    }
+    if (val >= 100000) {
+      return `₹${parseFloat((val / 100000).toFixed(2))}L`;
+    }
+    return `₹${parseFloat(val.toFixed(2)).toLocaleString("en-IN")}`;
+  };
+
+  const inventoryValue = formatValue(inventoryValueVal);
 
   const pendingOrders = orders.filter((o) => {
     if (o.status !== "Pending") return false;
@@ -260,9 +272,18 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* ── CHART + QUICK ACTIONS ────────────────────────────────── */}
+        {/* ── ROW 1: VALUATION BREAKDOWN & QUICK ACTIONS ────────────────── */}
         <div className={`grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5 transition-all duration-700 delay-200 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+          <div className="col-span-1 lg:col-span-2">
+            <ValuationBreakdown />
+          </div>
+          <div>
+            <QuickActions />
+          </div>
+        </div>
 
+        {/* ── ROW 2: MONTHLY CHART & LOW STOCK ALERTS ──────────────────── */}
+        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5 mb-8 transition-all duration-700 delay-300 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
           <div className="col-span-1 lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm p-6"
             style={{ boxShadow: "0 4px 20px rgba(79,70,229,0.06)" }}>
             <h2 className="text-lg font-bold mb-1 text-slate-800 flex items-center gap-2">
@@ -272,14 +293,9 @@ export default function Dashboard() {
             <p className="text-xs text-slate-400 mb-4">Orders placed vs stock issued by month</p>
             <MonthlyChart />
           </div>
-
-          <QuickActions />
-        </div>
-
-        {/* ── BOTTOM WIDGETS ───────────────────────────────────────── */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 gap-5 mt-5 mb-8 transition-all duration-700 delay-300 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
-          <RecentActivities />
-          <LowStock />
+          <div>
+            <LowStock />
+          </div>
         </div>
 
       </div>

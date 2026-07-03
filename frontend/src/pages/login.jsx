@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaLock, FaTimes } from "react-icons/fa";
-import { speak, playBeep } from "../components/useSpeech";
+import { playBeep } from "../components/useSpeech";
 
 import campus1 from "../../images/campus1.jpg"; 
 import campus2 from "../../images/campus2.jpg";
@@ -22,13 +22,7 @@ export default function Login() {
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
   const [passwordChangeMessage, setPasswordChangeMessage] = useState("");
 
-  // Welcome voice on page load
-  useEffect(() => {
-    const speakTimeout = setTimeout(() => {
-      speak("Welcome to R J I T Inventory. Please fill the required details for authentication.", { rate: 0.92, pitch: 1.08 });
-    }, 600);
-    return () => clearTimeout(speakTimeout);
-  }, []);
+
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -38,7 +32,7 @@ export default function Login() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     if (e) e.preventDefault();
     setError("");
 
@@ -47,7 +41,7 @@ export default function Login() {
       return;
     }
 
-    const res = login(email.trim(), password);
+    const res = await login(email.trim(), password);
     if (res.success) {
       playBeep("success");
       navigate("/dashboard");
@@ -61,9 +55,9 @@ export default function Login() {
     }
   };
 
-  const handleQuickLogin = (quickEmail, quickPassword) => {
+  const handleQuickLogin = async (quickEmail, quickPassword) => {
     setError("");
-    const res = login(quickEmail, quickPassword);
+    const res = await login(quickEmail, quickPassword);
     if (res.success) {
       playBeep("success");
       navigate("/dashboard");
@@ -154,8 +148,18 @@ export default function Login() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full mb-6 p-3 rounded-xl bg-white/20 text-white placeholder-gray-300 outline-none border border-transparent focus:border-white/40 transition-colors"
+            className="w-full mb-3 p-3 rounded-xl bg-white/20 text-white placeholder-gray-300 outline-none border border-transparent focus:border-white/40 transition-colors"
           />
+
+          <div className="flex justify-end mb-5 pr-1">
+            <button
+              type="button"
+              onClick={() => navigate("/forgot-password")}
+              className="text-xs text-gray-300 hover:text-white transition font-semibold cursor-pointer"
+            >
+              Forgot Password?
+            </button>
+          </div>
 
           <button
             type="submit"
@@ -179,10 +183,10 @@ export default function Login() {
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickLogin("priya@rjit.edu.in", "manager")}
+                onClick={() => handleQuickLogin("dean@rjit.edu.in", "dean")}
                 className="bg-white/5 border border-white/10 hover:bg-white/15 hover:border-white/30 text-white text-xs py-2 rounded-xl transition cursor-pointer font-medium text-center"
               >
-                Store Manager
+                Dean Student Welfare
               </button>
               <button
                 type="button"

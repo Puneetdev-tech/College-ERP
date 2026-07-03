@@ -164,3 +164,79 @@ model MaintenanceHistory {
   technician   String          @default("General Technician")
   notes        String          @default("")
 }
+
+model inventory_items {
+  id Int @id @default(autoincrement())
+  s_no Int?
+  item_name String?
+  dop DateTime? @db.Date
+  bill_number String?
+  quantity Decimal? @db.Decimal(15, 4)
+  unit_rate Decimal? @db.Decimal(15, 4)
+  amount Decimal? @db.Decimal(15, 4)
+  received_quantity Decimal? @db.Decimal(15, 4)
+  opening_stock Decimal? @db.Decimal(15, 4)
+  issued Decimal? @db.Decimal(15, 4)
+  balance Decimal? @db.Decimal(15, 4)
+  dealer_name String?
+  slp Int?
+  remarks String?
+  created_at DateTime @default(now())
+}
+
+model sanitary_items {
+  id Int @id @default(autoincrement())
+  s_no Int?
+  item_name String?
+  dop DateTime? @db.Date
+  bill_number String?
+  quantity Decimal? @db.Decimal(15, 4)
+  quantity_text String?
+  quantity_unit String?
+  unit_rate Decimal? @db.Decimal(15, 4)
+  amount Decimal? @db.Decimal(15, 4)
+  received_quantity Decimal? @db.Decimal(15, 4)
+  opening_stock Decimal? @db.Decimal(15, 4)
+  issued Decimal? @db.Decimal(15, 4)
+  balance Decimal? @db.Decimal(15, 4)
+  avl_stock_total Decimal? @db.Decimal(15, 4)
+  dealer_name String?
+  remarks String?
+  created_at DateTime @default(now())
+}
+
+model electrical_items {
+  id       Int                    @id @default(autoincrement())
+  name     String                 @unique
+  itemCode String?
+  subItems electrical_sub_items[]
+}
+
+model electrical_sub_items {
+  id      Int                  @id @default(autoincrement())
+  itemId  Int
+  item    electrical_items     @relation(fields: [itemId], references: [id])
+  variant String
+  orders  electrical_orders[]
+
+  @@unique([itemId, variant])
+}
+
+model electrical_orders {
+  id            Int                  @id @default(autoincrement())
+  subItemId     Int
+  subItem       electrical_sub_items @relation(fields: [subItemId], references: [id])
+  dop           DateTime?            @db.Date
+  billNumber    String?
+  quantity      String?
+  unitRate      Decimal?             @db.Decimal(15, 4)
+  amount        Decimal?             @db.Decimal(15, 4)
+  receivedQty   String?
+  openingStock  String?
+  issued        String?
+  balance       String?
+  avlStockTotal String?
+  dealerName    String?
+  slp           Int?
+  remarks       String?
+}

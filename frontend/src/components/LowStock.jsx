@@ -7,8 +7,8 @@ export default function LowStock() {
   const lowStockItems = inventory.filter((item) => item.stock <= threshold);
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-      <h2 className="text-xl font-bold mb-4 text-red-650 flex items-center gap-2">
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 h-full flex flex-col">
+      <h2 className="text-xl font-bold mb-4 text-red-650 flex items-center gap-2 flex-shrink-0">
         <span>Low Stock Alerts</span>
         {lowStockItems.length > 0 && (
           <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full font-bold">
@@ -17,7 +17,7 @@ export default function LowStock() {
         )}
       </h2>
 
-      <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+      <div className="space-y-3 overflow-y-auto pr-1 flex-1 max-h-[250px]">
         {lowStockItems.length > 0 ? (
           lowStockItems.map((item) => (
             <div

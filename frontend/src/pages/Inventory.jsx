@@ -126,6 +126,27 @@ export default function Inventory() {
               <FaIcons.FaList />
               <span>Master Inventory Ledger</span>
             </button>
+            <button
+              onClick={() => navigate("/inventory/legacy")}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-5 py-3 rounded-xl cursor-pointer transition shadow hover:shadow-lg active:scale-95 flex items-center gap-2 text-sm"
+            >
+              <FaIcons.FaDatabase />
+              <span>Legacy CSV Store</span>
+            </button>
+            <button
+              onClick={() => navigate("/inventory/legacy-sanitary")}
+              className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-5 py-3 rounded-xl cursor-pointer transition shadow hover:shadow-lg active:scale-95 flex items-center gap-2 text-sm"
+            >
+              <FaIcons.FaSoap />
+              <span>Legacy Sanitary CSV</span>
+            </button>
+            <button
+              onClick={() => navigate("/inventory/legacy-electrical")}
+              className="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-5 py-3 rounded-xl cursor-pointer transition shadow hover:shadow-lg active:scale-95 flex items-center gap-2 text-sm"
+            >
+              <FaIcons.FaBolt />
+              <span>Electrical Register</span>
+            </button>
           </div>
         </div>
 
