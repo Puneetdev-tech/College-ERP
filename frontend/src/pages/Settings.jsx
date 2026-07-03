@@ -130,12 +130,17 @@ export default function Settings() {
     }
   };
 
-  const handleChangePassword = async (e) => {
+  const handleChangePassword = (e) => {
     e.preventDefault();
     setPasswordError("");
 
     if (!currentPassword || !newPassword || !confirmPassword) {
       setPasswordError("All password fields are required!");
+      return;
+    }
+
+    if (currentPassword !== currentUser.password) {
+      setPasswordError("Current password incorrect!");
       return;
     }
 
@@ -149,12 +154,7 @@ export default function Settings() {
       return;
     }
 
-    const res = await updateUser(currentUser.id, { password: newPassword, currentPassword });
-    if (res && !res.success) {
-      setPasswordError(res.message || "Failed to change password!");
-      return;
-    }
-
+    updateUser(currentUser.id, { password: newPassword });
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");

@@ -155,16 +155,6 @@ export default function DepartmentInventory() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {subcategories.map((cat, index) => {
             const style = CATEGORY_STYLES[cat] || { icon: <FaIcons.FaBoxOpen />, color: "bg-blue-50 text-blue-600 border-blue-100" };
-            // Count items in this subcategory belonging to this department
-            const itemCount = (inventory || []).filter(item => {
-              const itemCatMatch = (item.category || "").toLowerCase().trim() === (department || "").toLowerCase().trim() ||
-                ((item.category || "").toLowerCase() === "sanitary" && (department || "").toLowerCase() === "sanitory") ||
-                ((item.category || "").toLowerCase() === "stationery" && (department || "").toLowerCase() === "stationary") ||
-                ((item.category || "").toLowerCase() === "equipment" && (department || "").toLowerCase() === "laboratory");
-              const subcatMatch = (item.subcategory || "").toLowerCase().trim() === (cat || "").toLowerCase().trim();
-              return itemCatMatch && subcatMatch;
-            }).length;
-
             return (
               <div
                 key={index}
@@ -187,13 +177,7 @@ export default function DepartmentInventory() {
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-800 leading-tight">{cat}</h2>
-                  <p className="text-slate-400 text-xs mt-1 font-medium">
-                    {itemCount > 0 ? (
-                      <span className="text-blue-600 font-semibold">{itemCount} item{itemCount !== 1 ? 's' : ''} in stock</span>
-                    ) : (
-                      <span>Explore assets</span>
-                    )}
-                  </p>
+                  <p className="text-slate-400 text-xs mt-1 font-medium">Explore assets</p>
                 </div>
               </div>
             );
