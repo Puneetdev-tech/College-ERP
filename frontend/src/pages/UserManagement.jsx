@@ -106,7 +106,7 @@ export default function UserManagement() {
     setShowModal(true);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -141,9 +141,9 @@ export default function UserManagement() {
 
     if (!isEditMode) {
       userData.password = password.trim();
-      const res = addUser(userData);
+      const res = await addUser(userData);
       if (!res.success) {
-        setErrorMsg(res.message);
+        setErrorMsg(res.message || "Failed to create user!");
         return;
       }
       showFlash(
@@ -155,7 +155,11 @@ export default function UserManagement() {
       if (password.trim()) {
         userData.password = password.trim();
       }
-      updateUser(editingUserId, userData);
+      const res = await updateUser(editingUserId, userData);
+      if (!res.success) {
+        setErrorMsg(res.message || "Failed to update user!");
+        return;
+      }
       showFlash(
         "success",
         "User Access Saved ✓",

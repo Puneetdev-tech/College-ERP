@@ -87,8 +87,8 @@ export const updateUser = async (req, res, next) => {
       updateData.email = emailKey;
     }
     if (password !== undefined && password !== "") {
-      // If a password update is requested, verify current password if updating own profile
-      if (req.user.id === id) {
+      // Only require current password when a NON-ADMIN user edits their own profile
+      if (req.user.id === id && req.user.role !== "Admin") {
         const { currentPassword } = req.body;
         if (!currentPassword) {
           return res.status(400).json({ success: false, message: "Current password is required to change password!" });
