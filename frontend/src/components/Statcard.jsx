@@ -36,7 +36,7 @@ export default function StatCard({ title, value }) {
           icon: <FaExclamationTriangle size={20} />,
           bgColor: "bg-rose-50 dark:bg-rose-950/20",
           iconColor: "text-rose-600 dark:text-rose-400",
-          accentLine: "bg-rose-650 dark:bg-rose-500"
+          accentLine: "bg-rose-600 dark:bg-rose-500"
         };
       default:
         return {

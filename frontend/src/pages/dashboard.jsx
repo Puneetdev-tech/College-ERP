@@ -246,17 +246,17 @@ export default function Dashboard() {
               const d = new Date(l.date);
               const today = new Date();
               return d.toDateString() === today.toDateString();
-            }).reduce((s, l) => s + l.quantity, 0), color: "from-violet-500 to-purple-600", icon: <FaArrowRight /> },
+            }).reduce((s, l) => s + l.quantity, 0), gradFrom: "#7c3aed", gradTo: "#9333ea", icon: <FaArrowRight /> },
             { label: "Orders This Month", value: orders.filter(o => {
               const d = new Date(o.orderDate);
               const now = new Date();
               return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-            }).length, color: "from-blue-500 to-indigo-600", icon: <FaShoppingCart /> },
-            { label: "Stock Categories", value: [...new Set(inventory.map(i => i.category))].length, color: "from-emerald-500 to-teal-600", icon: <FaBoxes /> },
+            }).length, gradFrom: "#3b82f6", gradTo: "#4f46e5", icon: <FaShoppingCart /> },
+            { label: "Stock Categories", value: [...new Set(inventory.map(i => i.category))].length, gradFrom: "#10b981", gradTo: "#0d9488", icon: <FaBoxes /> },
           ].map((kpi, i) => (
             <div key={i}
-              className={`relative overflow-hidden rounded-2xl p-5 text-white shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-default`}
-              style={{ background: `linear-gradient(135deg, var(--tw-gradient-from), var(--tw-gradient-to))`, backgroundImage: `linear-gradient(135deg, ${kpi.color.includes("violet") ? "#7c3aed, #9333ea" : kpi.color.includes("blue") ? "#3b82f6, #4f46e5" : "#10b981, #0d9488"})` }}>
+              className="relative overflow-hidden rounded-2xl p-5 text-white shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-default"
+              style={{ backgroundImage: `linear-gradient(135deg, ${kpi.gradFrom}, ${kpi.gradTo})` }}>
               <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-20"
                 style={{ background: "radial-gradient(circle, white 0%, transparent 70%)", transform: "translate(30%, -30%)" }} />
               <div className="flex items-center justify-between">
