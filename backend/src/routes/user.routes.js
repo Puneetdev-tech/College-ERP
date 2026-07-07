@@ -16,8 +16,6 @@ const router = Router();
 
 router.get("/", verifyToken, getAllUsers);
 router.post("/", verifyToken, checkPermission("Users"), validate(createUserSchema), createUser);
-router.put("/:id", verifyToken, validate(updateUserSchema), updateUser);
-router.delete("/:id", verifyToken, checkPermission("Users"), deleteUser);
 
 router.get("/approval-sequence", verifyToken, getApprovalSequence);
 
@@ -41,5 +39,8 @@ router.put(
   validate(approvalSequenceSchema),
   updateApprovalSequence
 );
+
+router.put("/:id", verifyToken, validate(updateUserSchema), updateUser);
+router.delete("/:id", verifyToken, checkPermission("Users"), deleteUser);
 
 export default router;

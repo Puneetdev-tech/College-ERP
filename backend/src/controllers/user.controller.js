@@ -174,15 +174,16 @@ export const updateApprovalSequence = async (req, res, next) => {
     // Delete existing approval sequence
     await prisma.approvalSequence.deleteMany();
 
-    // Create new sequence
-    const data = userIds.map((userId, index) => ({
-      userId,
-      position: index + 1
-    }));
+    // Filter out invalid IDs and coerce to integers
+    const validIds = userIds.map(Number).filter(id => !isNaN(id) && id > 0);
 
-    await prisma.approvalSequence.createMany({
-      data
-    });
+    if (validIds.length > 0) {
+      const data = validIds.map((userId, index) => ({
+        userId,
+        position: index + 1
+      }));
+      await prisma.approvalSequence.createMany({ data });
+    }
 
     return res.json({ success: true });
   } catch (error) {

@@ -24,6 +24,8 @@ import {
   FaArrowRight
 } from "react-icons/fa";
 
+import { useNavigate } from "react-router-dom";
+
 const formatDateTime = (dateTimeStr) => {
   if (!dateTimeStr) return "";
   try {
@@ -44,7 +46,8 @@ function getGreeting() {
 }
 
 export default function Dashboard() {
-  const { currentUser, orders, inventory, issuedStock, systemSettings, approveOrder, rejectOrder } = useStore();
+  const navigate = useNavigate();
+  const { currentUser, orders, inventory, inventoryCategories, issuedStock, systemSettings, approveOrder, rejectOrder } = useStore();
   const { flashes, showFlash, dismissFlash } = useFlash();
   const [animateIn, setAnimateIn] = useState(false);
   const [highlightedOrder, setHighlightedOrder] = useState(null);
@@ -246,20 +249,21 @@ export default function Dashboard() {
               const d = new Date(l.date);
               const today = new Date();
               return d.toDateString() === today.toDateString();
-            }).reduce((s, l) => s + l.quantity, 0), gradFrom: "#7c3aed", gradTo: "#9333ea", icon: <FaArrowRight /> },
+            }).reduce((s, l) => s + l.quantity, 0), gradFrom: "#7c3aed", gradTo: "#9333ea", icon: <FaArrowRight />, path: "/issue-stock" },
             { label: "Orders This Month", value: orders.filter(o => {
               const d = new Date(o.orderDate);
               const now = new Date();
               return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-            }).length, gradFrom: "#3b82f6", gradTo: "#4f46e5", icon: <FaShoppingCart /> },
-            { label: "Stock Categories", value: [...new Set(inventory.map(i => i.category))].length, gradFrom: "#10b981", gradTo: "#0d9488", icon: <FaBoxes /> },
+            }).length, gradFrom: "#3b82f6", gradTo: "#4f46e5", icon: <FaShoppingCart />, path: "/receive-order" },
+            { label: "Inventory Departments", value: inventoryCategories?.length || 0, gradFrom: "#10b981", gradTo: "#0d9488", icon: <FaBoxes />, path: "/inventory" },
           ].map((kpi, i) => (
             <div key={i}
-              className="relative overflow-hidden rounded-2xl p-5 text-white shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-default"
+              onClick={() => navigate(kpi.path)}
+              className="relative overflow-hidden rounded-2xl p-5 text-white shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-pointer"
               style={{ backgroundImage: `linear-gradient(135deg, ${kpi.gradFrom}, ${kpi.gradTo})` }}>
               <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-20"
                 style={{ background: "radial-gradient(circle, white 0%, transparent 70%)", transform: "translate(30%, -30%)" }} />
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between relative z-10">
                 <div>
                   <p className="text-xs font-bold text-white/70 uppercase tracking-wider">{kpi.label}</p>
                   <h3 className="text-3xl font-black text-white mt-1">{kpi.value}</h3>
