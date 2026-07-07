@@ -55,21 +55,7 @@ export default function Login() {
     }
   };
 
-  const handleQuickLogin = async (quickEmail, quickPassword) => {
-    setError("");
-    const res = await login(quickEmail, quickPassword);
-    if (res.success) {
-      playBeep("success");
-      navigate("/dashboard");
-    } else {
-      if (res.message && res.message.includes("Your password was changed by")) {
-        setPasswordChangeMessage(res.message);
-        setShowPasswordChangeModal(true);
-      } else {
-        setError(res.message);
-      }
-    }
-  };
+
 
   return (
     <div className="relative h-screen w-screen">
@@ -168,42 +154,6 @@ export default function Login() {
             Login
           </button>
 
-          {/* Quick Login Section */}
-          <div className="mt-6 border-t border-white/15 pt-5">
-            <p className="text-center text-xs font-semibold text-gray-300 mb-3 uppercase tracking-wider">
-              Quick Login Demo
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("rahul@rjit.edu.in", "admin")}
-                className="bg-white/5 border border-white/10 hover:bg-white/15 hover:border-white/30 text-white text-xs py-2 rounded-xl transition cursor-pointer font-medium text-center"
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("dean@rjit.edu.in", "dean")}
-                className="bg-white/5 border border-white/10 hover:bg-white/15 hover:border-white/30 text-white text-xs py-2 rounded-xl transition cursor-pointer font-medium text-center"
-              >
-                Dean Student Welfare
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("amit@rjit.edu.in", "officer")}
-                className="bg-white/5 border border-white/10 hover:bg-white/15 hover:border-white/30 text-white text-xs py-2 rounded-xl transition cursor-pointer font-medium text-center"
-              >
-                Purchase Officer
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("principal@rjit.edu.in", "principal")}
-                className="bg-white/5 border border-white/10 hover:bg-white/15 hover:border-white/30 text-white text-xs py-2 rounded-xl transition cursor-pointer font-medium text-center"
-              >
-                Principal
-              </button>
-            </div>
-          </div>
         </form>
       </div>
 
