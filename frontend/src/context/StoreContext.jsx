@@ -9,7 +9,7 @@ export const ROLE_DEFAULT_PERMISSIONS = {
   "Principal": ["Dashboard", "Analytics", "Reports", "Maintenance"]
 };
 
-const API_URL = "172.16.6.53:5000";
+const API_URL = "/api";
 
 export function StoreProvider({ children }) {
   // Backup State (handled locally in localStorage)
@@ -118,7 +118,7 @@ export function StoreProvider({ children }) {
         headers
       });
 
-      if (response.status === 401) {
+      if (response.status === 401 && path !== "/auth/login") {
         // Auto-logout
         logout();
         return { success: false, message: "Session expired. Please login again!" };
