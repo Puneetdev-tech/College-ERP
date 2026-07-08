@@ -12,29 +12,42 @@ import {
   Legend,
   Sector
 } from "recharts";
-import { FaBoxes, FaTruck, FaChartLine, FaArrowUp, FaStar, FaFire, FaBolt } from "react-icons/fa";
+import { FaBoxes, FaTruck, FaChartLine, FaArrowUp, FaStar, FaFire, FaBolt, FaTimes, FaPlay, FaStop } from "react-icons/fa";
 import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
 import { useStore } from "../context/StoreContext";
 
 // Baseline mappings to carry over initial mock data offsets
 const baseDepartmentData = {
-  Stationary: 280, Sanitory: 120, Electrical: 150, Electronics: 320,
-  Sports: 210, Furniture: 190, "IT,CSE": 580, laboratory: 450
+  CSE: 0, IT: 0, ME: 0, EC: 0,
+  EE: 0, AU: 0, "AI/ML": 0, DS: 0
 };
 
-const baseCategoryData = {
-  Furniture: { availableOffset: 0, usedOffset: 45 },
-  Electronics: { availableOffset: 0, usedOffset: 35 },
-  Stationery: { availableOffset: 0, usedOffset: 120 },
-  Sports: { availableOffset: 0, usedOffset: 25 },
-  Cleaning: { availableOffset: 0, usedOffset: 60 },
-  Equipment: { availableOffset: 0, usedOffset: 15 }
-};
+const baseCategoryData = {};
 
-const baseFrequentItems = {
-  "A4 Sheets": 180, "Markers": 120, "Mouse": 90, "Printer Ink": 70
-};
+const baseFrequentItems = {};
+
+const DEMO_ISSUED_STOCK = [
+  { id: 1, date: new Date().toISOString(), item: "A4 Sheets", subcategory: "A4 Sheets", category: "Stationary", department: "CSE", faculty: "Dr. Smith", quantity: 50 },
+  { id: 2, date: new Date().toISOString(), item: "Markers", subcategory: "Markers", category: "Stationary", department: "IT", faculty: "Prof. John", quantity: 20 },
+  { id: 3, date: new Date().toISOString(), item: "Mouse", subcategory: "Mouse", category: "Electronics", department: "AI/ML", faculty: "Dr. Alan", quantity: 15 },
+  { id: 4, date: new Date().toISOString(), item: "Office Chair", subcategory: "Chair", category: "Furniture", department: "ME", faculty: "Mr. Dave", quantity: 5 },
+  { id: 5, date: new Date().toISOString(), item: "Printer Ink", subcategory: "Ink", category: "Stationary", department: "CSE", faculty: "Dr. Smith", quantity: 10 },
+  { id: 6, date: new Date().toISOString(), item: "Whiteboard", subcategory: "Board", category: "Stationary", department: "EC", faculty: "Dr. Jane", quantity: 2 },
+  { id: 7, date: new Date().toISOString(), item: "Keyboard", subcategory: "Keyboard", category: "Electronics", department: "IT", faculty: "Prof. John", quantity: 10 },
+  { id: 8, date: new Date().toISOString(), item: "Projector", subcategory: "Projector", category: "Electronics", department: "DS", faculty: "Dr. Lee", quantity: 1 },
+];
+
+const DEMO_INVENTORY = [
+  { id: 1, item: "A4 Sheets", category: "Stationary", stock: 200 },
+  { id: 2, item: "Markers", category: "Stationary", stock: 150 },
+  { id: 3, item: "Mouse", category: "Electronics", stock: 40 },
+  { id: 4, item: "Office Chair", category: "Furniture", stock: 10 },
+  { id: 5, item: "Printer Ink", category: "Stationary", stock: 30 },
+  { id: 6, item: "Whiteboard", category: "Stationary", stock: 5 },
+  { id: 7, item: "Keyboard", category: "Electronics", stock: 25 },
+  { id: 8, item: "Projector", category: "Electronics", stock: 3 },
+];
 
 const DEPARTMENT_COLORS = [
   "url(#gradientStationary)", "url(#gradientHostel)", "url(#gradientSports)",
@@ -187,6 +200,8 @@ function NeonKPICard({ icon: Icon, iconColor, label, value, subtext, subtextColo
 export default function Analytics() {
   const { inventory, issuedStock, inventoryCategories, getRegisterForCategory } = useStore();
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [selectedDept, setSelectedDept] = useState(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const [filterType, setFilterType] = useState("all"); // "all", "week", "month", "prev-month", "year", "custom"
   const [customStart, setCustomStart] = useState("");
@@ -196,7 +211,8 @@ export default function Analytics() {
   const onPieLeave = () => setActiveIndex(-1);
 
   const getFilteredIssuedStock = () => {
-    return issuedStock.filter(log => {
+    const dataSource = isDemoMode ? DEMO_ISSUED_STOCK : issuedStock;
+    return dataSource.filter(log => {
       if (!log.date) return false;
       const logDateStr = log.date.split(" ")[0]; // YYYY-MM-DD
       const logDate = new Date(logDateStr);
@@ -255,22 +271,20 @@ export default function Analytics() {
   const isFiltered = filterType !== "all";
 
   // ─── Dynamic data (all unchanged logic) ────────────────────────────────
-  const departmentData = (inventoryCategories || []).map((cat) => {
-    const dept = cat.name;
+  const departmentData = Object.keys(baseDepartmentData).map((dept) => {
     const baseOffset = isFiltered ? 0 : (baseDepartmentData[dept] || 0);
     const issuedQty = filteredIssued
-      .filter((log) => {
-        const logReg = getRegisterForCategory(log.category || log.department);
-        return logReg.toLowerCase() === dept.toLowerCase();
-      })
+      .filter((log) => (log.department || "").toLowerCase() === dept.toLowerCase())
       .reduce((sum, log) => sum + log.quantity, 0);
     return { name: dept, value: baseOffset + issuedQty };
   });
 
+  const activeInventory = isDemoMode ? DEMO_INVENTORY : inventory;
+
   const categoryData = (inventoryCategories || []).map((catObj) => {
     const cat = catObj.name;
     const baseOffset = isFiltered ? { availableOffset: 0, usedOffset: 0 } : (baseCategoryData[cat] || { availableOffset: 0, usedOffset: 0 });
-    const available = inventory
+    const available = activeInventory
       .filter((item) => getRegisterForCategory(item.category).toLowerCase() === cat.toLowerCase())
       .reduce((sum, item) => sum + item.stock, 0);
     const used = filteredIssued
@@ -290,11 +304,11 @@ export default function Analytics() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 4);
 
-  const totalAvailableStock = inventory.reduce((sum, item) => sum + item.stock, 0);
-  const totalIssuedStock = filteredIssued.reduce((sum, log) => sum + log.quantity, 0) + (isFiltered ? 0 : 300);
+  const totalAvailableStock = activeInventory.reduce((sum, item) => sum + item.stock, 0);
+  const totalIssuedStock = filteredIssued.reduce((sum, log) => sum + log.quantity, 0);
   const sortedDepartments = [...departmentData].sort((a, b) => b.value - a.value);
-  const mostActiveDept = sortedDepartments[0]?.name || "IT Department";
-  const mostActiveDeptQty = sortedDepartments[0]?.value || 580;
+  const mostActiveDept = sortedDepartments[0]?.name || "N/A";
+  const mostActiveDeptQty = sortedDepartments[0]?.value || 0;
 
   const CARD_STYLE = {
     background: "rgba(255, 255, 255, 0.75)",
@@ -358,8 +372,17 @@ export default function Analytics() {
               <h3 className="text-sm font-extrabold text-slate-700">Customise Analytics View</h3>
             </div>
             
-            <div className="flex flex-wrap items-center gap-2">
-              {[
+            <div className="flex flex-wrap items-center gap-4">
+              {/* DEMO MODE TOGGLE */}
+              <button
+                onClick={() => setIsDemoMode(!isDemoMode)}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 cursor-pointer ${isDemoMode ? "bg-red-500 text-white shadow-lg shadow-red-500/30" : "bg-slate-200 text-slate-600 hover:bg-slate-300"}`}
+              >
+                {isDemoMode ? <><FaStop /> Stop Demo Mode</> : <><FaPlay /> Start Demo Mode</>}
+              </button>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {[
                 { id: "all", label: "All Time" },
                 { id: "week", label: "Current Week" },
                 { id: "month", label: "Current Month" },
@@ -381,8 +404,9 @@ export default function Analytics() {
               ))}
             </div>
           </div>
+        </div>
           
-          {filterType === "custom" && (
+        {filterType === "custom" && (
             <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-slate-200/50 animate-fadeIn">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-500">From:</span>
@@ -486,6 +510,7 @@ export default function Analytics() {
                       innerRadius={65} outerRadius={85}
                       onMouseEnter={onPieEnter}
                       onMouseLeave={onPieLeave}
+                      onClick={(data) => setSelectedDept(data.name)}
                       paddingAngle={3}
                     >
                       {departmentData.map((entry, index) => (
@@ -519,6 +544,7 @@ export default function Analytics() {
                       }}
                       onMouseEnter={() => setActiveIndex(index)}
                       onMouseLeave={onPieLeave}
+                      onClick={() => setSelectedDept(item.name)}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="w-2 h-2 rounded-full flex-shrink-0"
@@ -608,6 +634,54 @@ export default function Analytics() {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* Selected Department Modal */}
+        {selectedDept && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden border border-slate-100 flex flex-col max-h-[80vh]">
+              <div className="bg-blue-600 text-white p-5 flex justify-between items-center shrink-0">
+                <h3 className="font-extrabold text-lg flex items-center gap-2">
+                  <FaBoxes /> Items Issued to {selectedDept}
+                </h3>
+                <button onClick={() => setSelectedDept(null)} className="text-white/80 hover:text-white transition text-lg cursor-pointer">
+                  <FaTimes />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto">
+                {filteredIssued.filter(log => (log.department || "").toLowerCase() === selectedDept.toLowerCase()).length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+                          <th className="p-3 border-b">Date</th>
+                          <th className="p-3 border-b">Item</th>
+                          <th className="p-3 border-b">Category</th>
+                          <th className="p-3 border-b">Qty</th>
+                          <th className="p-3 border-b">Issued By</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm">
+                        {filteredIssued.filter(log => (log.department || "").toLowerCase() === selectedDept.toLowerCase()).map((log, i) => (
+                          <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="p-3 whitespace-nowrap">{new Date(log.date).toLocaleDateString()}</td>
+                            <td className="p-3 font-semibold text-slate-700">{log.item || log.subcategory}</td>
+                            <td className="p-3 text-slate-500">{log.category}</td>
+                            <td className="p-3 text-blue-600 font-bold">{log.quantity}</td>
+                            <td className="p-3">{log.issuedBy || log.faculty || "System"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-10 text-slate-500 font-medium">
+                    No items issued to {selectedDept} yet.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
