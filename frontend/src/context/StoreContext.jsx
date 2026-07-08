@@ -9,7 +9,7 @@ export const ROLE_DEFAULT_PERMISSIONS = {
   "Principal": ["Dashboard", "Analytics", "Reports", "Maintenance"]
 };
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "172.16.6.53:5000";
 
 export function StoreProvider({ children }) {
   // Backup State (handled locally in localStorage)
