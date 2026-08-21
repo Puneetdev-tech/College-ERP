@@ -3,11 +3,13 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 const StoreContext = createContext();
 
 export const ROLE_DEFAULT_PERMISSIONS = {
-  "Admin": ["Dashboard", "Inventory", "Place Order", "Receive Order", "Issue Stock", "Analytics", "Reports", "Notifications", "Users", "Settings", "Maintenance", "Backup"],
+  "Admin": ["Dashboard", "Inventory", "Place Order", "Receive Order", "Issue Stock", "Stock Adjustment", "Analytics", "Reports", "Notifications", "Users", "Settings", "Maintenance", "Backup"],
   "Dean Student Welfare": ["Dashboard", "Inventory", "Receive Order", "Issue Stock", "Reports", "Notifications", "Maintenance"],
   "Purchase Officer": ["Dashboard", "Place Order", "Receive Order", "Reports", "Notifications"],
-  "Principal": ["Dashboard", "Analytics", "Reports", "Maintenance"]
+  "Principal": ["Dashboard", "Analytics", "Reports", "Maintenance"],
+  "Store Manager": ["Dashboard", "Inventory", "Receive Order", "Issue Stock", "Stock Adjustment", "Reports", "Notifications", "Maintenance"]
 };
+
 
 const API_URL = "/api";
 
@@ -491,6 +493,19 @@ export function StoreProvider({ children }) {
     return { success: false, message: res ? res.message : "Failed to issue stock" };
   };
 
+  // Manual Stock Adjustment via API (Admin / Store Manager only)
+  const adjustStock = async (payload) => {
+    const res = await apiFetch("/inventory/adjust", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    if (res && res.success) {
+      await Promise.all([fetchInventory(), fetchNotifications()]);
+      return { success: true, item: res.item, adjustment: res.adjustment, message: res.message };
+    }
+    return { success: false, message: res ? res.message : "Failed to adjust stock" };
+  };
+
   // Add inventory item via API
   const addInventoryItem = async (itemDetails) => {
     const res = await apiFetch("/inventory", {
@@ -916,7 +931,8 @@ export function StoreProvider({ children }) {
         electricalInventory,
         fetchLegacyInventory,
         fetchSanitaryInventory,
-        fetchElectricalInventory
+        fetchElectricalInventory,
+        adjustStock
       }}
     >
       {children}

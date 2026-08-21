@@ -9,7 +9,6 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
-import { playBeep } from "./useSpeech";
 
 // Bell ring CSS animation injected inline via style tag
 const BELL_RING_STYLE = `
@@ -226,7 +225,6 @@ export default function Navbar() {
   const handleBellClick = () => {
     if (!isBellRinging) {
       setIsBellRinging(true);
-      playBeep("bell");
       setTimeout(() => {
         setIsBellRinging(false);
         navigate("/notifications");

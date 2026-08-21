@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { useStore } from "../context/StoreContext";
-import { speak, playBeep } from "./useSpeech";
+import { playBeep } from "../components/useSpeech";
 import ExcelJS from "exceljs";
 
 /* ─── Excel Exporter ───────────────────────────────────────────────────────── */
@@ -2067,7 +2067,6 @@ export default function InventoryChatbot() {
         text: `⏳ Compiling report from **${startDate}** to **${endDate}** and generating Excel download...`,
         time: getTime()
       }]);
-      playBeep("chat-receive");
       try {
         await downloadExcelReport(startDate, endDate, { orders, issuedStock, inventory, systemSettings, maintenanceLogs }, conditions);
         setMessages(prev => [...prev, {
@@ -2076,7 +2075,6 @@ export default function InventoryChatbot() {
           text: `✅ Excel report downloaded successfully!`,
           time: getTime()
         }]);
-        playBeep("chat-receive");
       } catch (err) {
         setMessages(prev => [...prev, {
           id: Date.now() + 1,
@@ -2084,7 +2082,6 @@ export default function InventoryChatbot() {
           text: `❌ Failed to download Excel report.`,
           time: getTime()
         }]);
-        playBeep("chat-receive");
       }
     } else if (format === "pdf") {
       setMessages(prev => [...prev, {
@@ -2093,7 +2090,6 @@ export default function InventoryChatbot() {
         text: `🖨️ Opening print/PDF window for reports...`,
         time: getTime()
       }]);
-      playBeep("chat-receive");
       setPrintReportData({ startDate, endDate, conditions });
     }
   }, [orders, issuedStock, inventory, systemSettings, maintenanceLogs]);
@@ -2105,7 +2101,6 @@ export default function InventoryChatbot() {
       text: `Taking you there now...`,
       time: getTime()
     }]);
-    playBeep("chat-receive");
     setTimeout(() => {
       navigate(path);
       setIsOpen(false);
@@ -2120,7 +2115,6 @@ export default function InventoryChatbot() {
     // Add user message
     const userMsg = { id: Date.now(), role: "user", text: query, time: getTime() };
     setMessages(prev => [...prev, userMsg]);
-    playBeep("chat-send");
 
     // Explicitly turn off recognition if active to avoid recording synthetic response
     if (recognitionRef.current && isListening) {
@@ -2165,11 +2159,9 @@ export default function InventoryChatbot() {
       };
 
       setMessages(prev => [...prev, aiMsg]);
-      playBeep("chat-receive");
 
       // Speak response
       if (response.speak) {
-        speak(response.speak);
       }
 
       // Navigate if needed
@@ -2194,7 +2186,6 @@ export default function InventoryChatbot() {
         text: `📅 **Custom Summary:**\nPlease type your custom range in the chat. For example:\n• "summary from 2026-06-01 to 2026-06-15"\n• "from June 1st to June 10th"`,
         time: getTime()
       }]);
-      playBeep("chat-receive");
     }
   }, [sendMessage, getTime]);
 
@@ -2265,7 +2256,6 @@ export default function InventoryChatbot() {
     <>
       {/* Floating Trigger Button */}
       <button
-        onClick={() => { setIsOpen(!isOpen); playBeep("modal-open"); }}
         className="fixed bottom-6 right-6 z-[9999] group"
         title="AI Inventory Assistant"
       >

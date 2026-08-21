@@ -19,7 +19,7 @@ import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
 import FlashMessage from "../components/FlashMessage";
 import useFlash from "../components/useFlash";
-import { speak, playBeep } from "../components/useSpeech";
+import { playBeep } from "../components/useSpeech";
 
 const getCurrentDateTimeString = () => {
   const now = new Date();
@@ -100,13 +100,12 @@ export default function ReceiveOrder() {
       }
     }
 
-    const res = receiveOrderItem(selectedOrder.id, receiveQty, receiveDate.replace("T", " "), invoiceDataUrl);
+    const res = await receiveOrderItem(selectedOrder.id, receiveQty, receiveDate.replace("T", " "), invoiceDataUrl);
     if (res.success) {
       const msg = `Order #${selectedOrder.id} received — ${receiveQty} × ${selectedOrder.item} stocked successfully.`;
       setSuccessMsg(`Order #${selectedOrder.id} received successfully! Stock levels updated.`);
       showFlash("success", "Order Received & Stocked", msg);
       playBeep("order-received");
-      speak(`Item received successfully. ${receiveQty} units of ${selectedOrder.item} have been added to inventory.`);
       setRemarks("");
       setInvoiceFile(null);
       setTimeout(() => {

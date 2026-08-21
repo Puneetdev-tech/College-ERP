@@ -109,7 +109,7 @@ export default function Inventory() {
             <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">
               Inventory Departments
             </h1>
-            <p className="text-slate-500 text-sm mt-1">Select a department workspace to view subcategories and stock logs.</p>
+            <p className="text-slate-500 text-sm mt-1">Select a department workspace to view subcategories, registers and stock logs.</p>
           </div>
           <div className="flex gap-3">
             <button
@@ -119,44 +119,24 @@ export default function Inventory() {
               <FaIcons.FaPlus />
               <span>Add Department</span>
             </button>
-            <button
-              onClick={() => navigate("/inventory/items")}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-3 rounded-xl cursor-pointer transition shadow hover:shadow-lg active:scale-95 flex items-center gap-2 text-sm"
-            >
-              <FaIcons.FaList />
-              <span>Master Inventory Ledger</span>
-            </button>
-            <button
-              onClick={() => navigate("/inventory/legacy")}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-5 py-3 rounded-xl cursor-pointer transition shadow hover:shadow-lg active:scale-95 flex items-center gap-2 text-sm"
-            >
-              <FaIcons.FaDatabase />
-              <span>Legacy CSV Store</span>
-            </button>
-            <button
-              onClick={() => navigate("/inventory/legacy-sanitary")}
-              className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-5 py-3 rounded-xl cursor-pointer transition shadow hover:shadow-lg active:scale-95 flex items-center gap-2 text-sm"
-            >
-              <FaIcons.FaSoap />
-              <span>Legacy Sanitary CSV</span>
-            </button>
-            <button
-              onClick={() => navigate("/inventory/legacy-electrical")}
-              className="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-5 py-3 rounded-xl cursor-pointer transition shadow hover:shadow-lg active:scale-95 flex items-center gap-2 text-sm"
-            >
-              <FaIcons.FaBolt />
-              <span>Electrical Register</span>
-            </button>
           </div>
         </div>
 
         {/* Departments Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {inventoryCategories.map((dept) => (
+          {inventoryCategories
+            .filter((dept) => dept.name !== "IT,CSE" && dept.name !== "IT, CSE")
+            .map((dept) => (
             <motion.div
               key={dept.id}
               whileHover={{ scale: 1.03, y: -4 }}
-              onClick={() => navigate(`/inventory/${dept.name}`)}
+              onClick={() => {
+                if (dept.name.toLowerCase().includes("legacy") || dept.id === "legacy_registers") {
+                  navigate("/inventory/legacy");
+                } else {
+                  navigate(`/inventory/${dept.name}`);
+                }
+              }}
               className={`cursor-pointer bg-gradient-to-br ${
                 dept.color || "from-blue-600 to-indigo-700"
               } text-white rounded-2xl p-6 shadow-lg relative overflow-hidden transition-all flex flex-col justify-between min-h-[180px] border border-white/5 hover:border-white/10 group`}
@@ -198,24 +178,6 @@ export default function Inventory() {
           </div>
         </div>
 
-        {/* Master Registry Promo - Fills Bottom Space */}
-        <div className="mt-10 bg-white rounded-3xl p-8 border border-slate-200 shadow-md flex flex-col md:flex-row justify-between items-center gap-6 no-print">
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <FaIcons.FaList className="text-blue-600" />
-              Master Asset & Stock Database
-            </h3>
-            <p className="text-slate-500 text-xs">
-              Open the complete ledger sheet showing all categorized asset types, values, prices, and quantities across RJIT Campus.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate("/inventory/items")}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3.5 rounded-xl cursor-pointer transition shadow hover:shadow-lg active:scale-95 text-sm whitespace-nowrap"
-          >
-            View Master Ledger Table
-          </button>
-        </div>
 
       </div>
 

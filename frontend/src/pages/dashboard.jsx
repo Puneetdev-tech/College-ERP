@@ -9,7 +9,7 @@ import QuickActions from "../components/QuickActions";
 import { useStore } from "../context/StoreContext";
 import FlashMessage from "../components/FlashMessage";
 import useFlash from "../components/useFlash";
-import { speak, playBeep } from "../components/useSpeech";
+import { playBeep } from "../components/useSpeech";
 import InventoryChatbot from "../components/InventoryChatbot";
 import ValuationBreakdown from "../components/ValuationBreakdown";
 import {
@@ -205,7 +205,6 @@ export default function Dashboard() {
                               onClick={() => {
                                 approveOrder(order.id);
                                 playBeep("order-approved");
-                                speak(`Order ${order.id} for ${order.item} has been approved successfully.`);
                                 showFlash("success", "Order Approved ✓", `Order ${order.id} — ${order.quantity} × ${order.item} approved.`);
                               }}
                               className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs px-4 py-1.5 rounded-xl cursor-pointer transition shadow-sm shadow-emerald-200 active:scale-95 flex items-center gap-1.5"
@@ -216,7 +215,6 @@ export default function Dashboard() {
                               onClick={() => {
                                 rejectOrder(order.id);
                                 playBeep("order-rejected");
-                                speak(`Order ${order.id} for ${order.item} has been rejected.`);
                                 showFlash("error", "Order Rejected", `Order ${order.id} — ${order.item} has been rejected.`);
                               }}
                               className="bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-4 py-1.5 rounded-xl cursor-pointer transition active:scale-95 flex items-center gap-1.5"

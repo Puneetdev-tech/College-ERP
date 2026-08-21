@@ -5,7 +5,6 @@ import { useStore } from "../context/StoreContext";
 import ConfirmDialog from "../components/ConfirmDialog";
 import FlashMessage from "../components/FlashMessage";
 import useFlash from "../components/useFlash";
-import { speak, playBeep } from "../components/useSpeech";
 
 export default function Settings() {
   const { 
@@ -205,8 +204,6 @@ export default function Settings() {
       setShowPasswordModal(true);
       setBackupPassword("");
       setBackupPasswordError("");
-      speak("Backup button activated. Authentication required.");
-      playBeep("security");
     }
   };
 
@@ -216,11 +213,9 @@ export default function Settings() {
       setShowPasswordModal(false);
       setShowBackupManager(true);
       setSelectedBackupIds([]);
-      playBeep("success");
       showFlash("success", "Access Granted ✓", "Backup logs unlocked successfully.");
     } else {
       setBackupPasswordError("Incorrect backup credentials. Please try again.");
-      playBeep("error");
     }
   };
 
@@ -273,7 +268,6 @@ export default function Settings() {
     localStorage.setItem("rjit_scheduleBackup", JSON.stringify(config));
     const intervalLabel = scheduleInterval === "custom" ? `every ${scheduleCustomDays} day(s)` : scheduleInterval;
     showFlash("success", "Schedule Saved ✓", scheduleEnabled ? `Auto-backup scheduled ${intervalLabel} at ${scheduleTime}.` : "Auto-backup schedule has been disabled.");
-    playBeep("confirm");
     setShowSchedulePanel(false);
   };
 
@@ -282,7 +276,6 @@ export default function Settings() {
     setScheduleLastRun(now);
     const config = { enabled: scheduleEnabled, interval: scheduleInterval, time: scheduleTime, lastRun: now, customDays: scheduleCustomDays };
     localStorage.setItem("rjit_scheduleBackup", JSON.stringify(config));
-    playBeep("confirm");
     showFlash("success", "Backup Triggered ✓", "Manual backup snapshot captured successfully.");
   };
 

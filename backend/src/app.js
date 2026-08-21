@@ -26,11 +26,20 @@ app.get("*", (req, res) => {
 });
 
 // Global Error Handler
+// Controllers use errRes() for expected errors; this catches any unhandled exceptions.
 app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({
+  console.error("[Global Error Handler]", err);
+
+  // Map Prisma known error codes to appropriate HTTP statuses
+  let status = err.status || 500;
+  if (err.code === "P2025") status = 404; // Record not found
+  if (err.code === "P2002") status = 409; // Unique constraint violation
+  if (err.code === "P2003") status = 400; // Foreign key constraint failed
+
+  res.status(status).json({
     success: false,
-    message: err.message || "Internal Server Error",
+    message: err.message || "An unexpected error occurred. Please try again.",
+    error:   process.env.NODE_ENV !== "production" ? err.message : undefined
   });
 });
 

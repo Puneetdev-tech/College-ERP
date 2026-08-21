@@ -30,12 +30,28 @@ async function main() {
   // 1. Seed Users
   const usersToSeed = [
     {
+      name: "Admin",
+      email: "admin@rjit.edu.in",
+      password: "admin",
+      role: "Admin",
+      status: "Active",
+      permissions: ROLE_DEFAULT_PERMISSIONS["Admin"]
+    },
+    {
       name: "Rahul Sharma",
       email: "rahul@rjit.edu.in",
       password: "admin",
       role: "Admin",
       status: "Active",
       permissions: ROLE_DEFAULT_PERMISSIONS["Admin"]
+    },
+    {
+      name: "Store Officer",
+      email: "store@rjit.edu.in",
+      password: "officer",
+      role: "Purchase Officer",
+      status: "Active",
+      permissions: ROLE_DEFAULT_PERMISSIONS["Purchase Officer"]
     },
     {
       name: "Amit Verma",
@@ -113,90 +129,11 @@ async function main() {
   }
 
   // 4. Seed Inventory Items
-  const stationeryItems = [
-    { item: "A4 size paper Rim", category: "Stationery", subcategory: "A4 size paper Rim", type: "Rim", stock: 80, price: 221.99, status: "Good" },
-    { item: "Add Gel pen (Blue)", category: "Stationery", subcategory: "Add Gel pen", type: "Blue", stock: 18, price: 45.50, status: "Good" },
-    { item: "Add Gel pen (Black)", category: "Stationery", subcategory: "Add Gel pen", type: "Black", stock: 11, price: 45.50, status: "Good" },
-    { item: "Add gel refill", category: "Stationery", subcategory: "Add gel refill", type: "0.5mm", stock: 20, price: 23.00, status: "Good" },
-    { item: "Cell AAA", category: "Stationery", subcategory: "Cell AAA", type: "Alkaline", stock: 50, price: 16.80, status: "Good" },
-    { item: "Cell AA", category: "Stationery", subcategory: "Cell AA", type: "Alkaline", stock: 50, price: 16.80, status: "Good" },
-    { item: "Envelope small brown", category: "Stationery", subcategory: "Envelope small brown", type: "Brown paper", stock: 800, price: 1.003, status: "Good" },
-    { item: "File flag", category: "Stationery", subcategory: "File flag", type: "Sticky", stock: 50, price: 11.0684, status: "Good" },
-    { item: "Highlighter", category: "Stationery", subcategory: "Highlighter", type: "Neon Pack", stock: 19, price: 15.5996, status: "Good" },
-    { item: "Liquid gum", category: "Stationery", subcategory: "Liquid gum", type: "50ml", stock: 20, price: 29.9956, status: "Good" },
-    { item: "Notice board pin", category: "Stationery", subcategory: "Notice board pin", type: "Push pin", stock: 19, price: 16.8032, status: "Good" },
-    { item: "Register 100 pages", category: "Stationery", subcategory: "Register 100 pages", type: "Standard", stock: 29, price: 84.9954, status: "Good" },
-    { item: "Register 200 pages", category: "Stationery", subcategory: "Register 200 pages", type: "Standard", stock: 10, price: 139.9952, status: "Good" },
-    { item: "Staff attendance register", category: "Stationery", subcategory: "Staff attendance register", type: "Ledger", stock: 7, price: 78.7178, status: "Low" },
-    { item: "Student attendance register", category: "Stationery", subcategory: "Student attendance register", type: "Ledger", stock: 0, price: 150.00, status: "Low" },
-    { item: "Use and throw pen (Blue)", category: "Stationery", subcategory: "Use and throw pen", type: "Blue", stock: 100, price: 3.10, status: "Good" },
-    { item: "Use and throw pen (Black)", category: "Stationery", subcategory: "Use and throw pen", type: "Black", stock: 50, price: 3.10, status: "Good" },
-    { item: "Use and throw pen (Red)", category: "Stationery", subcategory: "Use and throw pen", type: "Red", stock: 27, price: 3.10, status: "Good" },
-    { item: "White board marker (Blue)", category: "Stationery", subcategory: "White board marker", type: "Blue", stock: 10, price: 18.00, status: "Good" },
-    { item: "White board marker (Black)", category: "Stationery", subcategory: "White board marker", type: "Black", stock: 10, price: 18.00, status: "Good" },
-    { item: "Whitener pen", category: "Stationery", subcategory: "Whitener pen", type: "Correction Pen", stock: 20, price: 18.00, status: "Good" },
-    { item: "File cover J-280", category: "Stationery", subcategory: "File cover J-280", type: "Plastic J-280", stock: 200, price: 9.20, status: "Good" }
-  ];
+  // NOTE: No demo/fake items are seeded here.
+  // Real inventory items are added by the admin through the UI (Place Order → Receive Order flow)
+  // or by uploading CSV data via the Legacy Registers section.
+  console.log("Skipping demo inventory items — real data only.");
 
-  const otherItems = [
-    { item: "Desktop Computer (i5)", category: "Electronics", subcategory: "Computer", type: "i5 16GB", stock: 15, price: 45000, status: "Good" },
-    { item: "Desktop Computer (i7)", category: "Electronics", subcategory: "Computer", type: "i7 32GB", stock: 10, price: 65000, status: "Good" },
-    { item: "Laser Printer (Mono)", category: "Electronics", subcategory: "Printer", type: "Monochrome LaserJet", stock: 3, price: 12000, status: "Low" },
-    { item: "Laser Printer (Color)", category: "Electronics", subcategory: "Printer", type: "Color LaserJet", stock: 1, price: 24000, status: "Low" },
-    { item: "Office Chair (High Back)", category: "Furniture", subcategory: "Chair", type: "High Back", stock: 8, price: 4500, status: "Good" },
-    { item: "Office Chair (Mid Back)", category: "Furniture", subcategory: "Chair", type: "Mid Back", stock: 10, price: 3500, status: "Good" },
-    { item: "Football", category: "Sports", subcategory: "Balls", type: "Leather size 5", stock: 10, price: 800, status: "Good" },
-    { item: "Microscope", category: "Equipment", subcategory: "Lab Equipment", type: "Compound 1000x", stock: 15, price: 10000, status: "Good" },
-    { item: "Study Desk", category: "Furniture", subcategory: "Desk", type: "Study Desk", stock: 30, price: 5000, status: "Good" },
-    { item: "Bed (Iron Frame)", category: "Furniture", subcategory: "Bed", type: "Iron Frame Bed", stock: 50, price: 5000, status: "Good" },
-    { item: "Reading Chair", category: "Furniture", subcategory: "Chair", type: "Reading Chair", stock: 80, price: 1500, status: "Good" },
-    { item: "Executive Desk", category: "Furniture", subcategory: "Desk", type: "Executive Desk", stock: 15, price: 7000, status: "Good" },
-    { item: "Wi-Fi Router", category: "Electronics", subcategory: "Router", type: "Dual Band Wi-Fi", stock: 5, price: 3000, status: "Good" },
-    { item: "Barcode Scanner", category: "Electronics", subcategory: "Barcode Scanner", type: "Laser Scanner", stock: 3, price: 3000, status: "Good" }
-  ];
-
-  const allItems = [...stationeryItems, ...otherItems];
-  for (const item of allItems) {
-    await prisma.inventoryItem.create({
-      data: item
-    });
-  }
-  console.log(`Seeded ${allItems.length} inventory items.`);
-
-  // 5. Seed some initial notifications matching defaults
-  await prisma.notification.createMany({
-    data: [
-      {
-        type: "Low Stock",
-        message: "A4 Sheets stock below minimum level",
-        read: false,
-        color: "bg-red-100 text-red-800",
-        iconType: "low-stock"
-      },
-      {
-        type: "Stock Received",
-        message: "20 Desktop Computers received",
-        read: false,
-        color: "bg-green-100 text-green-800",
-        iconType: "received"
-      },
-      {
-        type: "Stock Issued",
-        message: "5 Projectors issued to Laboratory",
-        read: false,
-        color: "bg-blue-100 text-blue-800",
-        iconType: "issued"
-      },
-      {
-        type: "Purchase Order",
-        message: "New Purchase Order PO001 created",
-        read: false,
-        color: "bg-yellow-100 text-yellow-800",
-        iconType: "order"
-      }
-    ]
-  });
-  console.log("Seeded default notifications.");
 
   // 6. Seed Inventory Categories
   const categoriesToSeed = [
@@ -206,7 +143,7 @@ async function main() {
     { id: "electronics", name: "Electronics", icon: "FaDesktop", desc: "Desktop computers, monitors, printers, scanners, and UPS units.", color: "from-sky-500 to-blue-600" },
     { id: "sports", name: "Sports", icon: "FaRunning", desc: "Sports kits, athletics gear, fitness assets, and court equipment.", color: "from-rose-500 to-pink-600" },
     { id: "furniture", name: "Furniture", icon: "FaChair", desc: "Beds, wardrobes, tables, office chairs, desks, and cupboards.", color: "from-yellow-600 to-amber-700" },
-    { id: "it_cse", name: "IT,CSE", icon: "FaDesktop", desc: "Servers, routers, access points, coding lab components and systems.", color: "from-indigo-500 to-purple-650" },
+    { id: "legacy_registers", name: "Legacy Registers", icon: "FaDatabase", desc: "Historical read-only registers including General CSV, Sanitary, and Electrical store archives.", color: "from-purple-600 to-indigo-800" },
     { id: "laboratory", name: "laboratory", icon: "FaFlask", desc: "Glassware, scientific machinery, chemicals and compound microscopes.", color: "from-violet-500 to-fuchsia-600" }
   ];
 
@@ -221,10 +158,11 @@ async function main() {
     { categoryId: "electronics", name: "Electronics" },
     { categoryId: "sports", name: "Sports" },
     { categoryId: "furniture", name: "Furniture" },
-    { categoryId: "it_cse", name: "Electronics" },
+    { categoryId: "legacy_registers", name: "Legacy Records" },
     { categoryId: "laboratory", name: "Equipment" },
     { categoryId: "laboratory", name: "Stationery" }
   ];
+
 
   await prisma.inventorySubcategory.createMany({ data: subcategoriesToSeed });
   console.log("Seeded inventory subcategories.");

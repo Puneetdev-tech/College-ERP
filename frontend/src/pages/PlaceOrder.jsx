@@ -19,7 +19,7 @@ import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
 import FlashMessage from "../components/FlashMessage";
 import useFlash from "../components/useFlash";
-import { speak, playBeep } from "../components/useSpeech";
+import { playBeep } from "../components/useSpeech";
 
 
 const getCurrentDateTimeString = () => {
@@ -173,9 +173,8 @@ export default function PlaceOrder() {
       faculty: faculty.trim()
     });
 
-    // Sound & speech feedback
+    // Beep feedback
     playBeep("order-placed");
-    speak(`Purchase order placed successfully for ${qty} ${finalItem}. Sent for approval.`);
 
     // Flash message
     showFlash(
@@ -383,7 +382,9 @@ export default function PlaceOrder() {
                       <td className="p-4 text-sm text-slate-700 dark:text-slate-300 font-medium">{order.type || "Standard"}</td>
                       <td className="p-4 text-sm font-bold text-slate-800 dark:text-slate-100">{order.quantity}</td>
                       <td className="p-4 text-sm font-semibold text-slate-800 dark:text-slate-100">₹{order.pricePerUnit?.toLocaleString()}</td>
-                      <td className="p-4 text-sm font-bold text-slate-850 dark:text-slate-100">₹{(order.pricePerUnit * order.quantity)?.toLocaleString()}</td>
+                      <td className="p-4 text-sm font-bold text-slate-850 dark:text-slate-100">
+                        ₹{(order.totalAmount ?? (order.pricePerUnit * order.quantity))?.toLocaleString()}
+                      </td>
                       <td className="p-4 text-xs text-slate-500 dark:text-slate-400 font-medium">{formatDateTime(order.orderDate)}</td>
                       <td className="p-4 text-sm">
                         <span
@@ -647,7 +648,7 @@ export default function PlaceOrder() {
                   <div className="mt-3 text-xs bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-1">
                     <p className="text-slate-700 dark:text-slate-350"><strong>Item:</strong> {selectedTrackingOrder.item} ({selectedTrackingOrder.category} &gt; {selectedTrackingOrder.subcategory} | {selectedTrackingOrder.type || "Standard"})</p>
                     <p className="text-slate-750 dark:text-slate-300"><strong>Quantity:</strong> {selectedTrackingOrder.quantity} units | <strong>Per Unit Cost:</strong> ₹{selectedTrackingOrder.pricePerUnit?.toLocaleString()}</p>
-                    <p className="text-slate-800 dark:text-slate-150 text-sm font-bold mt-1"><strong>Total Cost:</strong> ₹{(selectedTrackingOrder.pricePerUnit * selectedTrackingOrder.quantity)?.toLocaleString()}</p>
+                    <p className="text-slate-800 dark:text-slate-150 text-sm font-bold mt-1"><strong>Total Cost:</strong> ₹{(selectedTrackingOrder.totalAmount ?? (selectedTrackingOrder.pricePerUnit * selectedTrackingOrder.quantity))?.toLocaleString()}</p>
                   </div>
                 </div>
                 <button
@@ -784,7 +785,7 @@ export default function PlaceOrder() {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Value</p>
-                <p className="text-sm font-black text-slate-850">₹{(selectedTrackingOrder.pricePerUnit * selectedTrackingOrder.quantity)?.toLocaleString()}</p>
+                <p className="text-sm font-black text-slate-850">₹{(selectedTrackingOrder.totalAmount ?? (selectedTrackingOrder.pricePerUnit * selectedTrackingOrder.quantity))?.toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vendor / Supplier</p>

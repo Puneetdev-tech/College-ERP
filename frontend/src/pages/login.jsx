@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaLock, FaTimes } from "react-icons/fa";
-import { playBeep } from "../components/useSpeech";
 
 import campus1 from "../../images/campus1.jpg"; 
 import campus2 from "../../images/campus2.jpg";
@@ -43,7 +42,6 @@ export default function Login() {
 
     const res = await login(email.trim(), password);
     if (res.success) {
-      playBeep("success");
       navigate("/dashboard");
     } else {
       if (res.message && res.message.includes("Your password was changed by")) {

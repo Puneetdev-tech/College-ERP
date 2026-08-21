@@ -22,6 +22,7 @@ import Maintenance from "./pages/Maintenance";
 import LegacyInventory from "./pages/LegacyInventory";
 import LegacySanitaryInventory from "./pages/LegacySanitaryInventory";
 import LegacyElectricalInventory from "./pages/LegacyElectricalInventory";
+import StockAdjustment from "./pages/StockAdjustment";
 
 function ProtectedRoute({ children, requiredPermission }) {
   const { currentUser } = useStore();
@@ -56,6 +57,7 @@ function App() {
           <Route path="/inventory/legacy" element={<ProtectedRoute requiredPermission="Inventory"><LegacyInventory /></ProtectedRoute>} />
           <Route path="/inventory/legacy-sanitary" element={<ProtectedRoute requiredPermission="Inventory"><LegacySanitaryInventory /></ProtectedRoute>} />
           <Route path="/inventory/legacy-electrical" element={<ProtectedRoute requiredPermission="Inventory"><LegacyElectricalInventory /></ProtectedRoute>} />
+          <Route path="/stock-adjust" element={<ProtectedRoute requiredPermission="Stock Adjustment"><StockAdjustment /></ProtectedRoute>} />
           <Route path="/place-order" element={<ProtectedRoute requiredPermission="Place Order"><PlaceOrder /></ProtectedRoute>} />
           <Route path="/receive-order" element={<ProtectedRoute requiredPermission="Receive Order"><ReceiveOrder /></ProtectedRoute>} />
           <Route path="/issue-stock" element={<ProtectedRoute requiredPermission="Issue Stock"><IssueStock /></ProtectedRoute>} />

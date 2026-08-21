@@ -22,7 +22,9 @@ import { useSearchParams } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
 import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
-import { speak, playBeep } from "../components/useSpeech";
+import FlashMessage from "../components/FlashMessage";
+import useFlash from "../components/useFlash";
+import { playBeep } from "../components/useSpeech";
 
 const getCurrentDateTimeString = () => {
   const now = new Date();
@@ -86,6 +88,8 @@ export default function IssueStock() {
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamVal = searchParams.get("search") || "";
 
+  const { flashes, showFlash, dismissFlash } = useFlash();
+
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState(searchParamVal);
   const [animateIn, setAnimateIn] = useState(false);
@@ -110,7 +114,6 @@ export default function IssueStock() {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
 
   const [sortField, setSortField] = useState("id");
   const [sortDirection, setSortDirection] = useState("desc");
@@ -135,7 +138,7 @@ export default function IssueStock() {
   );
   const availableStock = matchingItem ? matchingItem.stock : 0;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
     if (!subcategory) { setErrorMsg("Please select a subcategory."); return; }
@@ -146,26 +149,27 @@ export default function IssueStock() {
     if (!matchingItem) { setErrorMsg("This specific item type does not exist in inventory."); return; }
     if (quantity > availableStock) { setErrorMsg(`Insufficient stock! Only ${availableStock} units available.`); return; }
 
-    const formattedDate = formatDateTime(issueDate);
-    const res = issueStockItem({
+    const formattedDate = new Date(issueDate).toISOString();
+    const res = await issueStockItem({
       category: matchingItem.category,
       subcategory,
       type: matchingItem.type,
       quantity: parseInt(quantity, 10),
+      unitCost: matchingItem.price,
       department: department.trim(),
       faculty: faculty.trim(),
       date: formattedDate
     });
 
     if (res.success) {
-      setSuccessMsg("Stock issued successfully!");
-      playBeep("stock-issued");
-      speak(`Stock issued successfully. ${parseInt(quantity, 10)} units of ${subcategory} have been disbursed to ${department.trim()}.`);
+      playBeep("issue-success");
+      showFlash("success", "Stock Issued", `${parseInt(quantity, 10)} unit(s) of ${subcategory} disbursed to ${department.trim()} successfully.`);
       setQuantity(1); setType(""); setDepartment(""); setFaculty(""); setIssueDate(getCurrentDateTimeString());
-      setTimeout(() => { setSuccessMsg(""); setShowModal(false); }, 1500);
+      setTimeout(() => { setShowModal(false); }, 800);
     } else {
-      setErrorMsg(res.message);
+      setErrorMsg(res.message || "Failed to issue stock.");
       playBeep("error");
+      showFlash("error", "Issue Failed", res.message || "Failed to issue stock.");
     }
   };
 
@@ -241,6 +245,7 @@ export default function IssueStock() {
   return (
     <div style={PAGE_STYLE} className="text-slate-800 transition-colors duration-300">
       <Sidebar />
+      <FlashMessage flashes={flashes} onDismiss={dismissFlash} />
       <div className="ml-64 p-8 max-w-7xl mx-auto">
         <Navbar />
 
@@ -301,14 +306,6 @@ export default function IssueStock() {
             </button>
           </div>
         </div>
-
-        {/* ── SUCCESS ALERT ────────────────────────────────────────── */}
-        {successMsg && (
-          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl flex items-center gap-3 animate-fadeIn font-semibold shadow-sm">
-            <FaCheckCircle className="text-xl text-emerald-500 flex-shrink-0" />
-            <span>{successMsg}</span>
-          </div>
-        )}
 
         {/* ── METRIC CARDS ─────────────────────────────────────────── */}
         <div className={`grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 transition-all duration-700 delay-100 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>

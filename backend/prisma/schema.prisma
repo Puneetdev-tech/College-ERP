@@ -66,6 +66,7 @@ model Order {
   type         String   @default("Standard")
   quantity     Int
   pricePerUnit Float    @default(0)
+  totalAmount  Float?   // derived: quantity * pricePerUnit
   status       String   @default("Pending") // "Pending" | "Approved" | "Rejected" | "Received"
   orderDate    DateTime @default(now())
   receiveDate  DateTime?
@@ -101,6 +102,7 @@ model IssueLog {
   department  String
   faculty     String
   quantity    Int
+  unitCost    Float?   // price per unit at the time of issue
   issuedById  Int?
   issuedBy    User?    @relation(fields: [issuedById], references: [id])
   date        DateTime @default(now())
@@ -239,4 +241,16 @@ model electrical_orders {
   dealerName    String?
   slp           Int?
   remarks       String?
+}
+
+// Tracks manual quantity corrections — used for legacy register imports and physical audits
+model StockAdjustment {
+  id          Int      @id @default(autoincrement())
+  itemId      Int
+  itemName    String
+  oldQuantity Int
+  newQuantity Int
+  reason      String   // e.g., 'Legacy Register Import', 'Physical Audit'
+  adjustedBy  String
+  date        DateTime @default(now())
 }
