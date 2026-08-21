@@ -302,7 +302,7 @@ export const rejectOrder = async (req, res, next) => {
 export const receiveOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { receiveDate } = req.body;
+    const { receiveDate, deliverySlip } = req.body;
 
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order) return errRes(res, 404, `Order ${id} not found.`);
@@ -329,12 +329,13 @@ export const receiveOrder = async (req, res, next) => {
     const totalAmount = order.totalAmount ?? order.quantity * order.pricePerUnit;
 
     await prisma.$transaction(async (tx) => {
-      // Update order status + persist totalAmount for audit
+      // Update order status + persist totalAmount & deliverySlip for audit
       await tx.order.update({
         where: { id },
         data: {
           status:      "Received",
           receiveDate: new Date(receiveDate),
+          deliverySlip: deliverySlip || undefined,
           totalAmount               // ensure field is always populated after receive
         }
       });

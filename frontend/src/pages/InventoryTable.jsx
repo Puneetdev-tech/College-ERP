@@ -268,7 +268,7 @@ export default function InventoryTable() {
         <div className="hidden print:block mb-8 border-b-2 border-slate-300 pb-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold">{systemSettings?.collegeInfo?.name || "RJ Institute of Technology"}</h1>
+              <h1 className="text-2xl font-bold">{systemSettings?.collegeInfo?.name || "Rustamji Institute of Technology"}</h1>
               <p className="text-xs text-slate-500">{systemSettings?.collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
             </div>
             <div className="text-right">

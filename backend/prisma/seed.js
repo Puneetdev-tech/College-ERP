@@ -103,7 +103,7 @@ async function main() {
     data: {
       id: 1,
       lowStockThreshold: 10,
-      collegeName: "RJ Institute of Technology",
+      collegeName: "Rustamji Institute of Technology",
       collegeLogo: "/rjit_logo.png",
       collegeAddress: "123 Campus Lane, Okhla, New Delhi",
       collegePhone: "+91 11 2690 7400",

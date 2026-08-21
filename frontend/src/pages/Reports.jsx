@@ -124,7 +124,7 @@ export default function Reports() {
         targetOrders = orders.filter(order => isWithinRange(order.orderDate));
       }
 
-      const collegeName = collegeInfo?.name || "RJ Institute of Technology";
+      const collegeName = collegeInfo?.name || "Rustamji Institute of Technology";
       const collegeAddress = collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi";
       const collegeDetails = `Phone: ${collegeInfo?.phone || "+91 11 2690 7400"} | Email: ${collegeInfo?.email || "info@rjit.edu.in"} | Web: ${collegeInfo?.website || "www.rjit.edu.in"}`;
 
@@ -1077,7 +1077,7 @@ export default function Reports() {
                     </div>
                   )}
                   <div className="text-center md:text-left">
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">{collegeInfo?.name || "RJ Institute of Technology"}</h3>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">{collegeInfo?.name || "Rustamji Institute of Technology"}</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-450 mt-0.5">{collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
                     <div className="flex flex-wrap gap-4 justify-center md:justify-start mt-2 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
                       <span>Phone: {collegeInfo?.phone || "+91 11 2690 7400"}</span>
@@ -1268,7 +1268,7 @@ export default function Reports() {
               </div>
             )}
             <div className="text-right">
-              <h1 className="text-2xl font-bold">{collegeInfo?.name || "RJ Institute of Technology"}</h1>
+              <h1 className="text-2xl font-bold">{collegeInfo?.name || "Rustamji Institute of Technology"}</h1>
               <p className="text-xs text-slate-500">{collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
               <p className="text-xs text-slate-500">Phone: {collegeInfo?.phone || "+91 11 2690 7400"} | Email: {collegeInfo?.email || "info@rjit.edu.in"}</p>
               <p className="text-xs text-slate-500">Website: {collegeInfo?.website || "www.rjit.edu.in"}</p>

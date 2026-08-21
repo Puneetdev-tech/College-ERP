@@ -38,7 +38,7 @@ export const getSettings = async (req, res, next) => {
         data: {
           id: 1,
           lowStockThreshold: 10,
-          collegeName: "RJ Institute of Technology",
+          collegeName: "Rustamji Institute of Technology",
           collegeLogo: "/rjit_logo.png",
           collegeAddress: "123 Campus Lane, Okhla, New Delhi",
           collegePhone: "+91 11 2690 7400",
@@ -78,7 +78,7 @@ export const updateSettings = async (req, res, next) => {
       create: {
         id: 1,
         lowStockThreshold: lowStockThreshold !== undefined ? Number(lowStockThreshold) : 10,
-        collegeName: (collegeInfo && collegeInfo.name) || "RJ Institute of Technology",
+        collegeName: (collegeInfo && collegeInfo.name) || "Rustamji Institute of Technology",
         collegeLogo: (collegeInfo && collegeInfo.logo) || "/rjit_logo.png",
         collegeAddress: (collegeInfo && collegeInfo.address) || "",
         collegePhone: (collegeInfo && collegeInfo.phone) || "",

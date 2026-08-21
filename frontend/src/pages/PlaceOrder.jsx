@@ -757,7 +757,7 @@ export default function PlaceOrder() {
                 </div>
               )}
               <div className="text-right">
-                <h1 className="text-2xl font-bold">{systemSettings?.collegeInfo?.name || "RJ Institute of Technology"}</h1>
+                <h1 className="text-2xl font-bold">{systemSettings?.collegeInfo?.name || "Rustamji Institute of Technology"}</h1>
                 <p className="text-xs text-slate-555">{systemSettings?.collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
                 <p className="text-xs text-slate-500">Phone: {systemSettings?.collegeInfo?.phone || "+91 11 2690 7400"} | Email: {systemSettings?.collegeInfo?.email || "info@rjit.edu.in"}</p>
                 <p className="text-xs text-slate-500">Website: {systemSettings?.collegeInfo?.website || "www.rjit.edu.in"}</p>

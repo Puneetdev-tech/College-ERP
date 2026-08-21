@@ -272,7 +272,7 @@ export default function Maintenance() {
                 </div>
               `}
               <div>
-                <h2 style="font-size: 20px; font-weight: 800; color: #1e3a8a; margin: 0;">${collegeInfo?.name || "RJ Institute of Technology"}</h2>
+                <h2 style="font-size: 20px; font-weight: 800; color: #1e3a8a; margin: 0;">${collegeInfo?.name || "Rustamji Institute of Technology"}</h2>
                 <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0;">${collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
                 <p style="font-size: 10px; color: #64748b; margin: 2px 0 0 0;">Email: ${collegeInfo?.email || "info@rjit.edu.in"} | Web: ${collegeInfo?.website || "www.rjit.edu.in"}</p>
               </div>
@@ -369,7 +369,7 @@ export default function Maintenance() {
       ];
     });
 
-    const collegeName = collegeInfo?.name || "RJ Institute of Technology";
+    const collegeName = collegeInfo?.name || "Rustamji Institute of Technology";
     const collegeAddress = collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi";
     const collegeDetails = `Phone: ${collegeInfo?.phone || "+91 11 2690 7400"} | Email: ${collegeInfo?.email || "info@rjit.edu.in"} | Web: ${collegeInfo?.website || "www.rjit.edu.in"}`;
 
@@ -666,7 +666,7 @@ export default function Maintenance() {
       return;
     }
 
-    const collegeName = collegeInfo?.name || "RJ Institute of Technology";
+    const collegeName = collegeInfo?.name || "Rustamji Institute of Technology";
     const collegeAddress = collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi";
     const collegeDetails = `Phone: ${collegeInfo?.phone || "+91 11 2690 7400"} | Email: ${collegeInfo?.email || "info@rjit.edu.in"} | Web: ${collegeInfo?.website || "www.rjit.edu.in"}`;
 

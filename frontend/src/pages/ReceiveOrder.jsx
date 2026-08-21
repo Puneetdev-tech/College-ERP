@@ -391,15 +391,33 @@ export default function ReceiveOrder() {
                       <td className="p-4 text-xs text-slate-500 space-y-1">
                         <div><strong className="text-slate-400">Ordered:</strong> {formatDateTime(order.orderDate)}</div>
                         {(order.status === "Received" || order.status === "Partially Received") && order.receiveDate && (
-                          <div><strong className="text-purple-600 font-bold">Received:</strong> {formatDateTime(order.receiveDate)}</div>
+<div><strong className="text-purple-600 font-bold">Received:</strong> {formatDateTime(order.receiveDate)}</div>
                         )}
                       </td>
 
                       <td className="p-4 text-center">
                         {order.status === "Received" ? (
-                          <span className="text-purple-600 font-bold text-xs inline-flex items-center gap-1.5 bg-purple-50 px-3.5 py-2 rounded-full border border-purple-150 shadow-sm shadow-purple-500/5">
-                            <FaCheckCircle /> Completed
-                          </span>
+                          <div className="flex flex-col items-center gap-1.5">
+                            <span className="text-purple-600 font-bold text-xs inline-flex items-center gap-1.5 bg-purple-50 px-3 py-1.5 rounded-full border border-purple-150 shadow-sm shadow-purple-500/5">
+                              <FaCheckCircle /> Completed
+                            </span>
+                            {order.deliverySlip && (
+                              <button
+                                onClick={() => {
+                                  const win = window.open();
+                                  if (order.deliverySlip.startsWith("data:image")) {
+                                    win.document.write(`<img src="${order.deliverySlip}" style="max-width:100%; margin: 20px auto; display:block;" />`);
+                                  } else {
+                                    win.document.write(`<iframe src="${order.deliverySlip}" style="border:0; width:100%; height:100vh;"></iframe>`);
+                                  }
+                                }}
+                                className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 px-2.5 py-1 rounded-xl flex items-center gap-1 transition cursor-pointer shadow-sm"
+                                title="View uploaded invoice / delivery slip"
+                              >
+                                <FaFileInvoice className="text-xs" /> View Slip
+                              </button>
+                            )}
+                          </div>
                         ) : order.status === "Pending" ? (
                           <span className="text-amber-600 font-bold text-xs inline-flex items-center gap-1.5 bg-amber-55/40 px-3.5 py-2 rounded-full border border-amber-200">
                             <FaHourglassHalf className="animate-spin" /> Awaiting Appr.

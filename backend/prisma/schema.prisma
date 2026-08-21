@@ -30,7 +30,7 @@ model User {
 model SystemSettings {
   id               Int    @id @default(1)
   lowStockThreshold Int   @default(10)
-  collegeName      String @default("RJ Institute of Technology")
+  collegeName      String @default("Rustamji Institute of Technology")
   collegeLogo      String @default("/rjit_logo.png")
   collegeAddress   String @default("")
   collegePhone     String @default("")
@@ -70,6 +70,7 @@ model Order {
   status       String   @default("Pending") // "Pending" | "Approved" | "Rejected" | "Received"
   orderDate    DateTime @default(now())
   receiveDate  DateTime?
+  deliverySlip String?  // Base64 or URL of uploaded invoice/delivery slip
   department   String
   faculty      String
   placedById   Int?

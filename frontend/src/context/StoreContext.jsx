@@ -69,7 +69,7 @@ export function StoreProvider({ children }) {
     lowStockThreshold: 10,
     theme: "light",
     collegeInfo: {
-      name: "RJ Institute of Technology",
+      name: "Rustamji Institute of Technology",
       logo: "/rjit_logo.png",
       address: "123 Campus Lane, Okhla, New Delhi",
       phone: "+91 11 2690 7400",
@@ -359,15 +359,19 @@ export function StoreProvider({ children }) {
     return { success: false, message: res ? res.message : "Failed to place purchase order" };
   };
 
-  const receiveOrderItem = async (orderId, firstArg, secondArg) => {
+  const receiveOrderItem = async (orderId, firstArg, secondArg, thirdArg) => {
     let receiveDate = firstArg;
+    let deliverySlip = thirdArg;
     if (typeof firstArg === "number" || !isNaN(Number(firstArg))) {
       receiveDate = secondArg;
+      deliverySlip = thirdArg;
+    } else if (typeof secondArg === "string" && (secondArg.startsWith("data:") || secondArg.startsWith("http"))) {
+      deliverySlip = secondArg;
     }
 
     const res = await apiFetch(`/orders/${orderId}/receive`, {
       method: "POST",
-      body: JSON.stringify({ receiveDate })
+      body: JSON.stringify({ receiveDate, deliverySlip })
     });
 
     if (res && res.success) {
