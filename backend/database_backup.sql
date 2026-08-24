@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict wnIs4u7DFTzhaPMsuI2ev40cOzMIR2mKDbcCppnlBhcsZBSABfUa2fD175WAhiL
+\restrict QZr9YEExTYYmQrtg4lCjJUoSXqlwPM8sklADHifaKs4bPwrbSIv0IhZe5hweoJt
 
 -- Dumped from database version 18.4 (Homebrew)
 -- Dumped by pg_dump version 18.4 (Homebrew)
@@ -20,16 +20,14 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: puneetsharma
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
 -- *not* creating schema, since initdb creates it
 
 
-ALTER SCHEMA public OWNER TO puneetsharma;
-
 --
--- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: puneetsharma
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
 --
 
 COMMENT ON SCHEMA public IS '';
@@ -40,7 +38,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: ApprovalSequence; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: ApprovalSequence; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."ApprovalSequence" (
@@ -50,10 +48,8 @@ CREATE TABLE public."ApprovalSequence" (
 );
 
 
-ALTER TABLE public."ApprovalSequence" OWNER TO puneetsharma;
-
 --
--- Name: ApprovalSequence_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: ApprovalSequence_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."ApprovalSequence_id_seq"
@@ -65,17 +61,15 @@ CREATE SEQUENCE public."ApprovalSequence_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."ApprovalSequence_id_seq" OWNER TO puneetsharma;
-
 --
--- Name: ApprovalSequence_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: ApprovalSequence_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."ApprovalSequence_id_seq" OWNED BY public."ApprovalSequence".id;
 
 
 --
--- Name: ApprovalStep; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: ApprovalStep; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."ApprovalStep" (
@@ -90,10 +84,8 @@ CREATE TABLE public."ApprovalStep" (
 );
 
 
-ALTER TABLE public."ApprovalStep" OWNER TO puneetsharma;
-
 --
--- Name: ApprovalStep_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: ApprovalStep_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."ApprovalStep_id_seq"
@@ -105,17 +97,15 @@ CREATE SEQUENCE public."ApprovalStep_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."ApprovalStep_id_seq" OWNER TO puneetsharma;
-
 --
--- Name: ApprovalStep_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: ApprovalStep_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."ApprovalStep_id_seq" OWNED BY public."ApprovalStep".id;
 
 
 --
--- Name: InventoryCategory; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: InventoryCategory; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."InventoryCategory" (
@@ -127,10 +117,8 @@ CREATE TABLE public."InventoryCategory" (
 );
 
 
-ALTER TABLE public."InventoryCategory" OWNER TO puneetsharma;
-
 --
--- Name: InventoryItem; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: InventoryItem; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."InventoryItem" (
@@ -147,10 +135,8 @@ CREATE TABLE public."InventoryItem" (
 );
 
 
-ALTER TABLE public."InventoryItem" OWNER TO puneetsharma;
-
 --
--- Name: InventoryItem_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: InventoryItem_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."InventoryItem_id_seq"
@@ -162,17 +148,15 @@ CREATE SEQUENCE public."InventoryItem_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."InventoryItem_id_seq" OWNER TO puneetsharma;
-
 --
--- Name: InventoryItem_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: InventoryItem_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."InventoryItem_id_seq" OWNED BY public."InventoryItem".id;
 
 
 --
--- Name: InventorySubcategory; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: InventorySubcategory; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."InventorySubcategory" (
@@ -182,10 +166,8 @@ CREATE TABLE public."InventorySubcategory" (
 );
 
 
-ALTER TABLE public."InventorySubcategory" OWNER TO puneetsharma;
-
 --
--- Name: InventorySubcategory_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: InventorySubcategory_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."InventorySubcategory_id_seq"
@@ -197,17 +179,15 @@ CREATE SEQUENCE public."InventorySubcategory_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."InventorySubcategory_id_seq" OWNER TO puneetsharma;
-
 --
--- Name: InventorySubcategory_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: InventorySubcategory_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."InventorySubcategory_id_seq" OWNED BY public."InventorySubcategory".id;
 
 
 --
--- Name: IssueLog; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: IssueLog; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."IssueLog" (
@@ -225,10 +205,8 @@ CREATE TABLE public."IssueLog" (
 );
 
 
-ALTER TABLE public."IssueLog" OWNER TO puneetsharma;
-
 --
--- Name: IssueLog_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: IssueLog_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."IssueLog_id_seq"
@@ -240,17 +218,15 @@ CREATE SEQUENCE public."IssueLog_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."IssueLog_id_seq" OWNER TO puneetsharma;
-
 --
--- Name: IssueLog_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: IssueLog_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."IssueLog_id_seq" OWNED BY public."IssueLog".id;
 
 
 --
--- Name: MaintenanceCategory; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: MaintenanceCategory; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."MaintenanceCategory" (
@@ -260,10 +236,8 @@ CREATE TABLE public."MaintenanceCategory" (
 );
 
 
-ALTER TABLE public."MaintenanceCategory" OWNER TO puneetsharma;
-
 --
--- Name: MaintenanceHistory; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: MaintenanceHistory; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."MaintenanceHistory" (
@@ -279,10 +253,8 @@ CREATE TABLE public."MaintenanceHistory" (
 );
 
 
-ALTER TABLE public."MaintenanceHistory" OWNER TO puneetsharma;
-
 --
--- Name: MaintenanceUnit; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: MaintenanceUnit; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."MaintenanceUnit" (
@@ -296,10 +268,8 @@ CREATE TABLE public."MaintenanceUnit" (
 );
 
 
-ALTER TABLE public."MaintenanceUnit" OWNER TO puneetsharma;
-
 --
--- Name: Notification; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: Notification; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."Notification" (
@@ -313,10 +283,8 @@ CREATE TABLE public."Notification" (
 );
 
 
-ALTER TABLE public."Notification" OWNER TO puneetsharma;
-
 --
--- Name: Notification_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: Notification_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."Notification_id_seq"
@@ -328,17 +296,15 @@ CREATE SEQUENCE public."Notification_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."Notification_id_seq" OWNER TO puneetsharma;
-
 --
--- Name: Notification_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: Notification_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."Notification_id_seq" OWNED BY public."Notification".id;
 
 
 --
--- Name: Order; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: Order; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."Order" (
@@ -364,10 +330,8 @@ CREATE TABLE public."Order" (
 );
 
 
-ALTER TABLE public."Order" OWNER TO puneetsharma;
-
 --
--- Name: StockAdjustment; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: StockAdjustment; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."StockAdjustment" (
@@ -382,10 +346,8 @@ CREATE TABLE public."StockAdjustment" (
 );
 
 
-ALTER TABLE public."StockAdjustment" OWNER TO puneetsharma;
-
 --
--- Name: StockAdjustment_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: StockAdjustment_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."StockAdjustment_id_seq"
@@ -397,17 +359,15 @@ CREATE SEQUENCE public."StockAdjustment_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."StockAdjustment_id_seq" OWNER TO puneetsharma;
-
 --
--- Name: StockAdjustment_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: StockAdjustment_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."StockAdjustment_id_seq" OWNED BY public."StockAdjustment".id;
 
 
 --
--- Name: SystemSettings; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: SystemSettings; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."SystemSettings" (
@@ -422,10 +382,8 @@ CREATE TABLE public."SystemSettings" (
 );
 
 
-ALTER TABLE public."SystemSettings" OWNER TO puneetsharma;
-
 --
--- Name: User; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: User; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public."User" (
@@ -443,10 +401,8 @@ CREATE TABLE public."User" (
 );
 
 
-ALTER TABLE public."User" OWNER TO puneetsharma;
-
 --
--- Name: User_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: User_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public."User_id_seq"
@@ -458,17 +414,15 @@ CREATE SEQUENCE public."User_id_seq"
     CACHE 1;
 
 
-ALTER SEQUENCE public."User_id_seq" OWNER TO puneetsharma;
-
 --
--- Name: User_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: User_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public."User_id_seq" OWNED BY public."User".id;
 
 
 --
--- Name: electrical_items; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: electrical_items; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.electrical_items (
@@ -478,10 +432,8 @@ CREATE TABLE public.electrical_items (
 );
 
 
-ALTER TABLE public.electrical_items OWNER TO puneetsharma;
-
 --
--- Name: electrical_items_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: electrical_items_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.electrical_items_id_seq
@@ -493,17 +445,15 @@ CREATE SEQUENCE public.electrical_items_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.electrical_items_id_seq OWNER TO puneetsharma;
-
 --
--- Name: electrical_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: electrical_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.electrical_items_id_seq OWNED BY public.electrical_items.id;
 
 
 --
--- Name: electrical_orders; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: electrical_orders; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.electrical_orders (
@@ -525,10 +475,8 @@ CREATE TABLE public.electrical_orders (
 );
 
 
-ALTER TABLE public.electrical_orders OWNER TO puneetsharma;
-
 --
--- Name: electrical_orders_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: electrical_orders_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.electrical_orders_id_seq
@@ -540,17 +488,15 @@ CREATE SEQUENCE public.electrical_orders_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.electrical_orders_id_seq OWNER TO puneetsharma;
-
 --
--- Name: electrical_orders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: electrical_orders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.electrical_orders_id_seq OWNED BY public.electrical_orders.id;
 
 
 --
--- Name: electrical_sub_items; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: electrical_sub_items; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.electrical_sub_items (
@@ -560,10 +506,8 @@ CREATE TABLE public.electrical_sub_items (
 );
 
 
-ALTER TABLE public.electrical_sub_items OWNER TO puneetsharma;
-
 --
--- Name: electrical_sub_items_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: electrical_sub_items_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.electrical_sub_items_id_seq
@@ -575,17 +519,15 @@ CREATE SEQUENCE public.electrical_sub_items_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.electrical_sub_items_id_seq OWNER TO puneetsharma;
-
 --
--- Name: electrical_sub_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: electrical_sub_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.electrical_sub_items_id_seq OWNED BY public.electrical_sub_items.id;
 
 
 --
--- Name: inventory_items; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: inventory_items; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.inventory_items (
@@ -608,10 +550,8 @@ CREATE TABLE public.inventory_items (
 );
 
 
-ALTER TABLE public.inventory_items OWNER TO puneetsharma;
-
 --
--- Name: inventory_items_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: inventory_items_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.inventory_items_id_seq
@@ -623,17 +563,15 @@ CREATE SEQUENCE public.inventory_items_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.inventory_items_id_seq OWNER TO puneetsharma;
-
 --
--- Name: inventory_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: inventory_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.inventory_items_id_seq OWNED BY public.inventory_items.id;
 
 
 --
--- Name: sanitary_items; Type: TABLE; Schema: public; Owner: puneetsharma
+-- Name: sanitary_items; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.sanitary_items (
@@ -658,10 +596,8 @@ CREATE TABLE public.sanitary_items (
 );
 
 
-ALTER TABLE public.sanitary_items OWNER TO puneetsharma;
-
 --
--- Name: sanitary_items_id_seq; Type: SEQUENCE; Schema: public; Owner: puneetsharma
+-- Name: sanitary_items_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
 CREATE SEQUENCE public.sanitary_items_id_seq
@@ -673,108 +609,106 @@ CREATE SEQUENCE public.sanitary_items_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.sanitary_items_id_seq OWNER TO puneetsharma;
-
 --
--- Name: sanitary_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: puneetsharma
+-- Name: sanitary_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
 ALTER SEQUENCE public.sanitary_items_id_seq OWNED BY public.sanitary_items.id;
 
 
 --
--- Name: ApprovalSequence id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: ApprovalSequence id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ApprovalSequence" ALTER COLUMN id SET DEFAULT nextval('public."ApprovalSequence_id_seq"'::regclass);
 
 
 --
--- Name: ApprovalStep id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: ApprovalStep id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ApprovalStep" ALTER COLUMN id SET DEFAULT nextval('public."ApprovalStep_id_seq"'::regclass);
 
 
 --
--- Name: InventoryItem id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: InventoryItem id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."InventoryItem" ALTER COLUMN id SET DEFAULT nextval('public."InventoryItem_id_seq"'::regclass);
 
 
 --
--- Name: InventorySubcategory id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: InventorySubcategory id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."InventorySubcategory" ALTER COLUMN id SET DEFAULT nextval('public."InventorySubcategory_id_seq"'::regclass);
 
 
 --
--- Name: IssueLog id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: IssueLog id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."IssueLog" ALTER COLUMN id SET DEFAULT nextval('public."IssueLog_id_seq"'::regclass);
 
 
 --
--- Name: Notification id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: Notification id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Notification" ALTER COLUMN id SET DEFAULT nextval('public."Notification_id_seq"'::regclass);
 
 
 --
--- Name: StockAdjustment id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: StockAdjustment id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."StockAdjustment" ALTER COLUMN id SET DEFAULT nextval('public."StockAdjustment_id_seq"'::regclass);
 
 
 --
--- Name: User id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: User id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."User" ALTER COLUMN id SET DEFAULT nextval('public."User_id_seq"'::regclass);
 
 
 --
--- Name: electrical_items id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: electrical_items id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.electrical_items ALTER COLUMN id SET DEFAULT nextval('public.electrical_items_id_seq'::regclass);
 
 
 --
--- Name: electrical_orders id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: electrical_orders id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.electrical_orders ALTER COLUMN id SET DEFAULT nextval('public.electrical_orders_id_seq'::regclass);
 
 
 --
--- Name: electrical_sub_items id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: electrical_sub_items id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.electrical_sub_items ALTER COLUMN id SET DEFAULT nextval('public.electrical_sub_items_id_seq'::regclass);
 
 
 --
--- Name: inventory_items id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: inventory_items id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.inventory_items ALTER COLUMN id SET DEFAULT nextval('public.inventory_items_id_seq'::regclass);
 
 
 --
--- Name: sanitary_items id; Type: DEFAULT; Schema: public; Owner: puneetsharma
+-- Name: sanitary_items id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sanitary_items ALTER COLUMN id SET DEFAULT nextval('public.sanitary_items_id_seq'::regclass);
 
 
 --
--- Data for Name: ApprovalSequence; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: ApprovalSequence; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."ApprovalSequence" (id, "userId", "position") FROM stdin;
@@ -784,7 +718,7 @@ COPY public."ApprovalSequence" (id, "userId", "position") FROM stdin;
 
 
 --
--- Data for Name: ApprovalStep; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: ApprovalStep; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."ApprovalStep" (id, "orderId", "userId", name, role, status, "approvedAt", "position") FROM stdin;
@@ -794,7 +728,7 @@ COPY public."ApprovalStep" (id, "orderId", "userId", name, role, status, "approv
 
 
 --
--- Data for Name: InventoryCategory; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: InventoryCategory; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."InventoryCategory" (id, name, icon, "desc", color) FROM stdin;
@@ -810,7 +744,7 @@ laboratory	laboratory	FaFlask	Glassware, scientific machinery, chemicals and com
 
 
 --
--- Data for Name: InventoryItem; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: InventoryItem; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."InventoryItem" (id, item, category, subcategory, type, stock, price, status, "createdAt", "updatedAt") FROM stdin;
@@ -819,7 +753,7 @@ COPY public."InventoryItem" (id, item, category, subcategory, type, stock, price
 
 
 --
--- Data for Name: InventorySubcategory; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: InventorySubcategory; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."InventorySubcategory" (id, "categoryId", name) FROM stdin;
@@ -836,7 +770,7 @@ COPY public."InventorySubcategory" (id, "categoryId", name) FROM stdin;
 
 
 --
--- Data for Name: IssueLog; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: IssueLog; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."IssueLog" (id, item, category, subcategory, type, department, faculty, quantity, "issuedById", date, "unitCost") FROM stdin;
@@ -845,7 +779,7 @@ COPY public."IssueLog" (id, item, category, subcategory, type, department, facul
 
 
 --
--- Data for Name: MaintenanceCategory; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: MaintenanceCategory; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."MaintenanceCategory" (id, name, icon) FROM stdin;
@@ -856,7 +790,7 @@ DG	Diesel Generators	FaTools
 
 
 --
--- Data for Name: MaintenanceHistory; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: MaintenanceHistory; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."MaintenanceHistory" (id, "unitId", "partRepaired", quantity, "pricePerQty", "totalAmount", date, technician, notes) FROM stdin;
@@ -876,7 +810,7 @@ h-8-1	ro-8	TDS Controller Valve	1	350	350	2025-07-08	Suresh Pal	Adjusted TDS lev
 
 
 --
--- Data for Name: MaintenanceUnit; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: MaintenanceUnit; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."MaintenanceUnit" (id, name, category, location, "initialPrice", "installDate", status) FROM stdin;
@@ -892,7 +826,7 @@ ro-8	LIBRARY RO	RO	Central Library Ground Floor	15500	2024-12-10	Active
 
 
 --
--- Data for Name: Notification; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: Notification; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."Notification" (id, type, message, "iconType", color, read, "createdAt") FROM stdin;
@@ -907,16 +841,16 @@ COPY public."Notification" (id, type, message, "iconType", color, read, "created
 
 
 --
--- Data for Name: Order; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: Order; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."Order" (id, supplier, item, category, subcategory, type, quantity, "pricePerUnit", status, "orderDate", "receiveDate", department, faculty, "placedById", "placedByName", "createdAt", "updatedAt", "totalAmount", "deliverySlip") FROM stdin;
-PO001	test	laptop	Electronics	i7	Standard	10	50000	Received	2026-08-21 08:17:22.062	2026-08-21 08:24:00	Electronics	mr.test	73	Admin	2026-08-21 08:17:22.062	2026-08-21 08:24:19.997	500000	\N
+PO001	test	laptop	Electronics	i7	Standard	10	50000	Received	2026-08-21 08:17:22.062	2026-08-21 08:24:00	Electronics	mr.test	73	Admin	2026-08-21 08:17:22.062	2026-08-24 08:09:51.772	500000	data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAAQABAAD/4QBWRXhpZgAATU0AKgAAAAgABAEaAAUAAAABAAAAPgEbAAUAAAABAAAARgEoAAMAAAABAAIAAAITAAMAAAABAAEAAAAAAAAAAAABAAAAAQAAAAEAAAAB/+ELDWh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8APD94cGFja2V0IGJlZ2luPSfvu78nIGlkPSdXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQnPz4KPHg6eG1wbWV0YSB4bWxuczp4PSdhZG9iZTpuczptZXRhLycgeDp4bXB0az0nSW1hZ2U6OkV4aWZUb29sIDEyLjY1Jz4KPHJkZjpSREYgeG1sbnM6cmRmPSdodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjJz4KCiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0nJwogIHhtbG5zOnBkZj0naHR0cDovL25zLmFkb2JlLmNvbS9wZGYvMS4zLyc+CiAgPHBkZjpQcm9kdWNlcj5PbmxpbmUtQ29udmVydDwvcGRmOlByb2R1Y2VyPgogPC9yZGY6RGVzY3JpcHRpb24+CjwvcmRmOlJERj4KPC94OnhtcG1ldGE+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg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
 \.
 
 
 --
--- Data for Name: StockAdjustment; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: StockAdjustment; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."StockAdjustment" (id, "itemId", "itemName", "oldQuantity", "newQuantity", reason, "adjustedBy", date) FROM stdin;
@@ -924,7 +858,7 @@ COPY public."StockAdjustment" (id, "itemId", "itemName", "oldQuantity", "newQuan
 
 
 --
--- Data for Name: SystemSettings; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: SystemSettings; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."SystemSettings" (id, "lowStockThreshold", "collegeName", "collegeLogo", "collegeAddress", "collegePhone", "collegeEmail", "collegeWebsite") FROM stdin;
@@ -933,7 +867,7 @@ COPY public."SystemSettings" (id, "lowStockThreshold", "collegeName", "collegeLo
 
 
 --
--- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public."User" (id, name, email, password, role, status, permissions, phone, photo, "createdAt", "updatedAt") FROM stdin;
@@ -945,7 +879,7 @@ COPY public."User" (id, name, email, password, role, status, permissions, phone,
 
 
 --
--- Data for Name: electrical_items; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: electrical_items; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.electrical_items (id, name, "itemCode") FROM stdin;
@@ -1023,7 +957,7 @@ COPY public.electrical_items (id, name, "itemCode") FROM stdin;
 
 
 --
--- Data for Name: electrical_orders; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: electrical_orders; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.electrical_orders (id, "subItemId", dop, "billNumber", quantity, "unitRate", amount, "receivedQty", "openingStock", issued, balance, "avlStockTotal", "dealerName", slp, remarks) FROM stdin;
@@ -1113,7 +1047,7 @@ COPY public.electrical_orders (id, "subItemId", dop, "billNumber", quantity, "un
 
 
 --
--- Data for Name: electrical_sub_items; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: electrical_sub_items; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.electrical_sub_items (id, "itemId", variant) FROM stdin;
@@ -1203,7 +1137,7 @@ COPY public.electrical_sub_items (id, "itemId", variant) FROM stdin;
 
 
 --
--- Data for Name: inventory_items; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: inventory_items; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.inventory_items (id, s_no, item_name, dop, bill_number, quantity, unit_rate, amount, received_quantity, opening_stock, issued, balance, dealer_name, slp, remarks, created_at) FROM stdin;
@@ -1324,7 +1258,7 @@ COPY public.inventory_items (id, s_no, item_name, dop, bill_number, quantity, un
 
 
 --
--- Data for Name: sanitary_items; Type: TABLE DATA; Schema: public; Owner: puneetsharma
+-- Data for Name: sanitary_items; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.sanitary_items (id, s_no, item_name, dop, bill_number, quantity, quantity_text, quantity_unit, unit_rate, amount, received_quantity, opening_stock, issued, balance, avl_stock_total, dealer_name, remarks, created_at) FROM stdin;
@@ -1461,98 +1395,98 @@ COPY public.sanitary_items (id, s_no, item_name, dop, bill_number, quantity, qua
 
 
 --
--- Name: ApprovalSequence_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: ApprovalSequence_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."ApprovalSequence_id_seq"', 35, true);
 
 
 --
--- Name: ApprovalStep_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: ApprovalStep_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."ApprovalStep_id_seq"', 29, true);
 
 
 --
--- Name: InventoryItem_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: InventoryItem_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."InventoryItem_id_seq"', 1705, true);
 
 
 --
--- Name: InventorySubcategory_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: InventorySubcategory_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."InventorySubcategory_id_seq"', 129, true);
 
 
 --
--- Name: IssueLog_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: IssueLog_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."IssueLog_id_seq"', 9, true);
 
 
 --
--- Name: Notification_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: Notification_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."Notification_id_seq"', 117, true);
 
 
 --
--- Name: StockAdjustment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: StockAdjustment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."StockAdjustment_id_seq"', 2, true);
 
 
 --
--- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: User_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public."User_id_seq"', 78, true);
 
 
 --
--- Name: electrical_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: electrical_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.electrical_items_id_seq', 350, true);
 
 
 --
--- Name: electrical_orders_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: electrical_orders_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.electrical_orders_id_seq', 164, true);
 
 
 --
--- Name: electrical_sub_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: electrical_sub_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.electrical_sub_items_id_seq', 164, true);
 
 
 --
--- Name: inventory_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: inventory_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.inventory_items_id_seq', 234, true);
 
 
 --
--- Name: sanitary_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: puneetsharma
+-- Name: sanitary_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
 SELECT pg_catalog.setval('public.sanitary_items_id_seq', 726, true);
 
 
 --
--- Name: ApprovalSequence ApprovalSequence_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: ApprovalSequence ApprovalSequence_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ApprovalSequence"
@@ -1560,7 +1494,7 @@ ALTER TABLE ONLY public."ApprovalSequence"
 
 
 --
--- Name: ApprovalStep ApprovalStep_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: ApprovalStep ApprovalStep_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ApprovalStep"
@@ -1568,7 +1502,7 @@ ALTER TABLE ONLY public."ApprovalStep"
 
 
 --
--- Name: InventoryCategory InventoryCategory_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: InventoryCategory InventoryCategory_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."InventoryCategory"
@@ -1576,7 +1510,7 @@ ALTER TABLE ONLY public."InventoryCategory"
 
 
 --
--- Name: InventoryItem InventoryItem_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: InventoryItem InventoryItem_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."InventoryItem"
@@ -1584,7 +1518,7 @@ ALTER TABLE ONLY public."InventoryItem"
 
 
 --
--- Name: InventorySubcategory InventorySubcategory_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: InventorySubcategory InventorySubcategory_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."InventorySubcategory"
@@ -1592,7 +1526,7 @@ ALTER TABLE ONLY public."InventorySubcategory"
 
 
 --
--- Name: IssueLog IssueLog_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: IssueLog IssueLog_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."IssueLog"
@@ -1600,7 +1534,7 @@ ALTER TABLE ONLY public."IssueLog"
 
 
 --
--- Name: MaintenanceCategory MaintenanceCategory_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: MaintenanceCategory MaintenanceCategory_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."MaintenanceCategory"
@@ -1608,7 +1542,7 @@ ALTER TABLE ONLY public."MaintenanceCategory"
 
 
 --
--- Name: MaintenanceHistory MaintenanceHistory_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: MaintenanceHistory MaintenanceHistory_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."MaintenanceHistory"
@@ -1616,7 +1550,7 @@ ALTER TABLE ONLY public."MaintenanceHistory"
 
 
 --
--- Name: MaintenanceUnit MaintenanceUnit_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: MaintenanceUnit MaintenanceUnit_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."MaintenanceUnit"
@@ -1624,7 +1558,7 @@ ALTER TABLE ONLY public."MaintenanceUnit"
 
 
 --
--- Name: Notification Notification_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: Notification Notification_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Notification"
@@ -1632,7 +1566,7 @@ ALTER TABLE ONLY public."Notification"
 
 
 --
--- Name: Order Order_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: Order Order_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Order"
@@ -1640,7 +1574,7 @@ ALTER TABLE ONLY public."Order"
 
 
 --
--- Name: StockAdjustment StockAdjustment_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: StockAdjustment StockAdjustment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."StockAdjustment"
@@ -1648,7 +1582,7 @@ ALTER TABLE ONLY public."StockAdjustment"
 
 
 --
--- Name: SystemSettings SystemSettings_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: SystemSettings SystemSettings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."SystemSettings"
@@ -1656,7 +1590,7 @@ ALTER TABLE ONLY public."SystemSettings"
 
 
 --
--- Name: User User_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: User User_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."User"
@@ -1664,7 +1598,7 @@ ALTER TABLE ONLY public."User"
 
 
 --
--- Name: electrical_items electrical_items_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: electrical_items electrical_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.electrical_items
@@ -1672,7 +1606,7 @@ ALTER TABLE ONLY public.electrical_items
 
 
 --
--- Name: electrical_orders electrical_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: electrical_orders electrical_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.electrical_orders
@@ -1680,7 +1614,7 @@ ALTER TABLE ONLY public.electrical_orders
 
 
 --
--- Name: electrical_sub_items electrical_sub_items_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: electrical_sub_items electrical_sub_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.electrical_sub_items
@@ -1688,7 +1622,7 @@ ALTER TABLE ONLY public.electrical_sub_items
 
 
 --
--- Name: inventory_items inventory_items_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: inventory_items inventory_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.inventory_items
@@ -1696,7 +1630,7 @@ ALTER TABLE ONLY public.inventory_items
 
 
 --
--- Name: sanitary_items sanitary_items_pkey; Type: CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: sanitary_items sanitary_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.sanitary_items
@@ -1704,49 +1638,49 @@ ALTER TABLE ONLY public.sanitary_items
 
 
 --
--- Name: InventoryCategory_name_key; Type: INDEX; Schema: public; Owner: puneetsharma
+-- Name: InventoryCategory_name_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "InventoryCategory_name_key" ON public."InventoryCategory" USING btree (name);
 
 
 --
--- Name: InventorySubcategory_categoryId_name_key; Type: INDEX; Schema: public; Owner: puneetsharma
+-- Name: InventorySubcategory_categoryId_name_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "InventorySubcategory_categoryId_name_key" ON public."InventorySubcategory" USING btree ("categoryId", name);
 
 
 --
--- Name: MaintenanceCategory_name_key; Type: INDEX; Schema: public; Owner: puneetsharma
+-- Name: MaintenanceCategory_name_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "MaintenanceCategory_name_key" ON public."MaintenanceCategory" USING btree (name);
 
 
 --
--- Name: User_email_key; Type: INDEX; Schema: public; Owner: puneetsharma
+-- Name: User_email_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "User_email_key" ON public."User" USING btree (email);
 
 
 --
--- Name: electrical_items_name_key; Type: INDEX; Schema: public; Owner: puneetsharma
+-- Name: electrical_items_name_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX electrical_items_name_key ON public.electrical_items USING btree (name);
 
 
 --
--- Name: electrical_sub_items_itemId_variant_key; Type: INDEX; Schema: public; Owner: puneetsharma
+-- Name: electrical_sub_items_itemId_variant_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "electrical_sub_items_itemId_variant_key" ON public.electrical_sub_items USING btree ("itemId", variant);
 
 
 --
--- Name: ApprovalStep ApprovalStep_orderId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: ApprovalStep ApprovalStep_orderId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ApprovalStep"
@@ -1754,7 +1688,7 @@ ALTER TABLE ONLY public."ApprovalStep"
 
 
 --
--- Name: ApprovalStep ApprovalStep_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: ApprovalStep ApprovalStep_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."ApprovalStep"
@@ -1762,7 +1696,7 @@ ALTER TABLE ONLY public."ApprovalStep"
 
 
 --
--- Name: InventorySubcategory InventorySubcategory_categoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: InventorySubcategory InventorySubcategory_categoryId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."InventorySubcategory"
@@ -1770,7 +1704,7 @@ ALTER TABLE ONLY public."InventorySubcategory"
 
 
 --
--- Name: IssueLog IssueLog_issuedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: IssueLog IssueLog_issuedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."IssueLog"
@@ -1778,7 +1712,7 @@ ALTER TABLE ONLY public."IssueLog"
 
 
 --
--- Name: MaintenanceHistory MaintenanceHistory_unitId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: MaintenanceHistory MaintenanceHistory_unitId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."MaintenanceHistory"
@@ -1786,7 +1720,7 @@ ALTER TABLE ONLY public."MaintenanceHistory"
 
 
 --
--- Name: Order Order_placedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: Order Order_placedById_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public."Order"
@@ -1794,7 +1728,7 @@ ALTER TABLE ONLY public."Order"
 
 
 --
--- Name: electrical_orders electrical_orders_subItemId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: electrical_orders electrical_orders_subItemId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.electrical_orders
@@ -1802,7 +1736,7 @@ ALTER TABLE ONLY public.electrical_orders
 
 
 --
--- Name: electrical_sub_items electrical_sub_items_itemId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: puneetsharma
+-- Name: electrical_sub_items electrical_sub_items_itemId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.electrical_sub_items
@@ -1810,15 +1744,8 @@ ALTER TABLE ONLY public.electrical_sub_items
 
 
 --
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: puneetsharma
---
-
-REVOKE USAGE ON SCHEMA public FROM PUBLIC;
-
-
---
 -- PostgreSQL database dump complete
 --
 
-\unrestrict wnIs4u7DFTzhaPMsuI2ev40cOzMIR2mKDbcCppnlBhcsZBSABfUa2fD175WAhiL
+\unrestrict QZr9YEExTYYmQrtg4lCjJUoSXqlwPM8sklADHifaKs4bPwrbSIv0IhZe5hweoJt
 
