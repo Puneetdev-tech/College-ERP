@@ -381,6 +381,19 @@ export function StoreProvider({ children }) {
     return { success: false, message: res ? res.message : "Failed to receive order" };
   };
 
+  const updateOrderDeliverySlip = async (orderId, deliverySlip) => {
+    const res = await apiFetch(`/orders/${orderId}/delivery-slip`, {
+      method: "PATCH",
+      body: JSON.stringify({ deliverySlip })
+    });
+
+    if (res && res.success) {
+      await fetchOrders();
+      return { success: true };
+    }
+    return { success: false, message: res ? res.message : "Failed to update delivery slip" };
+  };
+
   const approveOrder = async (orderId) => {
     const res = await apiFetch(`/orders/${orderId}/approve`, {
       method: "POST"
@@ -886,6 +899,7 @@ export function StoreProvider({ children }) {
         issueStockItem,
         placeOrderItem,
         receiveOrderItem,
+        updateOrderDeliverySlip,
         addInventoryItem,
         usersList,
         currentUser,

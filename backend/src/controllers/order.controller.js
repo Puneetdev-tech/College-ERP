@@ -385,3 +385,26 @@ export const receiveOrder = async (req, res, next) => {
     return errRes(res, 500, "Failed to receive order.", error);
   }
 };
+
+/**
+ * PATCH /orders/:id/delivery-slip
+ * Attaches or updates a delivery slip / invoice file for an order.
+ */
+export const updateDeliverySlip = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { deliverySlip } = req.body;
+
+    const order = await prisma.order.findUnique({ where: { id } });
+    if (!order) return errRes(res, 404, `Order ${id} not found.`);
+
+    const updated = await prisma.order.update({
+      where: { id },
+      data: { deliverySlip }
+    });
+
+    return res.json({ success: true, order: formatOrder(updated) });
+  } catch (error) {
+    return errRes(res, 500, "Failed to update delivery slip.", error);
+  }
+};

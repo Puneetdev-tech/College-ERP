@@ -11,7 +11,8 @@ import {
   FaUpload,
   FaArrowRight,
   FaTimesCircle,
-  FaEye
+  FaEye,
+  FaPaperclip
 } from "react-icons/fa";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
@@ -39,7 +40,7 @@ const formatDateTime = (dateTimeStr) => {
 };
 
 export default function ReceiveOrder() {
-  const { orders, receiveOrderItem, getRegisterForCategory } = useStore();
+  const { orders, receiveOrderItem, updateOrderDeliverySlip, getRegisterForCategory } = useStore();
   const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamVal = searchParams.get("search") || "";
@@ -54,6 +55,14 @@ export default function ReceiveOrder() {
   const [invoiceFile, setInvoiceFile] = useState(null);
   const [receiveDate, setReceiveDate] = useState(getCurrentDateTimeString());
   const [receiveQty, setReceiveQty] = useState(1);
+
+  // Retroactive attach slip modal states
+  const [showAttachModal, setShowAttachModal] = useState(false);
+  const [attachFile, setAttachFile] = useState(null);
+  const [attachOrder, setAttachOrder] = useState(null);
+
+  // View slip viewer modal states
+  const [viewSlipUrl, setViewSlipUrl] = useState(null);
 
   // Alert feedback states
   const [errorMsg, setErrorMsg] = useState("");
@@ -119,6 +128,33 @@ export default function ReceiveOrder() {
     }
   };
 
+  const handleConfirmAttachSlip = async (e) => {
+    e.preventDefault();
+    if (!attachOrder || !attachFile) return;
+
+    try {
+      const invoiceDataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(attachFile);
+      });
+
+      const res = await updateOrderDeliverySlip(attachOrder.id, invoiceDataUrl);
+      if (res.success) {
+        showFlash("success", "Delivery Slip Attached", `Invoice slip attached to Order #${attachOrder.id} successfully.`);
+        playBeep("confirm");
+        setShowAttachModal(false);
+        setAttachFile(null);
+        setAttachOrder(null);
+      } else {
+        alert(res.message || "Failed to attach delivery slip.");
+      }
+    } catch (err) {
+      alert("Could not process file. Please try a valid image or PDF.");
+    }
+  };
+
   // Metrics
   const readyToReceiveCount = orders.filter((o) => o.status === "Approved" || o.status === "Partially Received").length;
   const totalReceivedCount = orders.filter((o) => o.status === "Received").length;
@@ -135,7 +171,9 @@ export default function ReceiveOrder() {
       (o.category || "").toLowerCase().includes(s) ||
       (o.status || "").toLowerCase().includes(s)
     );
-  });  return (
+  });
+
+  return (
     <div style={{ background: "linear-gradient(135deg, #f5f3ff 0%, #faf8ff 45%, #f0f2fe 100%)", minHeight: "100vh" }}
       className="text-slate-800 transition-colors duration-300">
       <Sidebar />
@@ -187,7 +225,6 @@ export default function ReceiveOrder() {
 
         {/* ── METRICS ROW ─────────────────────────────── */}
         <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 transition-all duration-700 delay-100 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
-          
           <div className="group relative overflow-hidden rounded-3xl p-6 text-white shadow-md cursor-default transition-all duration-400 hover:scale-[1.03] hover:shadow-xl"
             style={{ background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", boxShadow: "0 8px 25px rgba(245,158,11,0.18)" }}>
             <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-20"
@@ -232,7 +269,6 @@ export default function ReceiveOrder() {
               </div>
             </div>
           </div>
-
         </div>
 
         {/* ── SEARCH BAR ─────────────────────────────── */}
@@ -284,7 +320,7 @@ export default function ReceiveOrder() {
           style={{ boxShadow: "0 4px 30px rgba(124,58,237,0.07)" }}>
           <div className="p-6 border-b border-slate-100" style={{ background: "linear-gradient(135deg, #fafaff 0%, #f5f3ff 100%)" }}>
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><FaClipboardCheck className="text-purple-600" /> Supplier Shipments Registry</h2>
-            <p className="text-slate-400 text-xs mt-0.5">Verify pending shipments, upload invoice delivery details, and automatically update stock registers.</p>
+            <p className="text-slate-400 text-xs mt-0.5">Verify pending shipments, upload delivery invoices, and automatically update stock registers.</p>
           </div>
 
           <div className="overflow-x-auto">
@@ -300,7 +336,7 @@ export default function ReceiveOrder() {
                   <th className="p-4 text-left">Total Cost</th>
                   <th className="p-4 text-left">Status Tracking</th>
                   <th className="p-4 text-left">Dates</th>
-                  <th className="p-4 text-center">Action</th>
+                  <th className="p-4 text-center">Action & Invoice Slip</th>
                 </tr>
               </thead>
 
@@ -332,11 +368,11 @@ export default function ReceiveOrder() {
                       <td className="p-4 text-sm font-semibold text-slate-800">₹{order.pricePerUnit?.toLocaleString()}</td>
                       <td className="p-4 text-sm font-black text-slate-800">₹{(order.pricePerUnit * order.quantity)?.toLocaleString()}</td>
                       
-                      {/* Premium Progress Tracker */}
+                      {/* Status Progress */}
                       <td className="p-4 min-w-[200px]">
                         <div className="flex items-center w-full">
                           <div className="flex flex-col items-center">
-                            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-[9px] text-white font-bold transition-transform duration-300 hover:scale-125 cursor-help" title="Order Placed">1</div>
+                            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-[9px] text-white font-bold cursor-help" title="Order Placed">1</div>
                             <span className="text-[9px] text-slate-400 font-bold mt-1">Placed</span>
                           </div>
                           
@@ -349,7 +385,7 @@ export default function ReceiveOrder() {
                           }`} />
                           
                           <div className="flex flex-col items-center">
-                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] text-white font-bold transition-transform duration-300 hover:scale-125 cursor-help ${
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] text-white font-bold cursor-help ${
                               order.status === "Approved" || order.status === "Received" || order.status === "Partially Received"
                                 ? "bg-amber-500" 
                                 : order.status === "Rejected"
@@ -374,7 +410,7 @@ export default function ReceiveOrder() {
                           }`} />
 
                           <div className="flex flex-col items-center">
-                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] text-white font-bold transition-transform duration-300 hover:scale-125 cursor-help ${
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] text-white font-bold cursor-help ${
                               order.status === "Received" 
                                 ? "bg-purple-500" 
                                 : order.status === "Partially Received"
@@ -391,35 +427,41 @@ export default function ReceiveOrder() {
                       <td className="p-4 text-xs text-slate-500 space-y-1">
                         <div><strong className="text-slate-400">Ordered:</strong> {formatDateTime(order.orderDate)}</div>
                         {(order.status === "Received" || order.status === "Partially Received") && order.receiveDate && (
-<div><strong className="text-purple-600 font-bold">Received:</strong> {formatDateTime(order.receiveDate)}</div>
+                          <div><strong className="text-purple-600 font-bold">Received:</strong> {formatDateTime(order.receiveDate)}</div>
                         )}
                       </td>
 
                       <td className="p-4 text-center">
                         {order.status === "Received" ? (
-                          <div className="flex flex-col items-center gap-1.5">
-                            <span className="text-purple-600 font-bold text-xs inline-flex items-center gap-1.5 bg-purple-50 px-3 py-1.5 rounded-full border border-purple-150 shadow-sm shadow-purple-500/5">
+                          <div className="flex flex-col items-center gap-2">
+                            <span className="text-purple-600 font-bold text-xs inline-flex items-center gap-1.5 bg-purple-50 px-3 py-1.5 rounded-full border border-purple-150 shadow-sm">
                               <FaCheckCircle /> Completed
                             </span>
-                            {order.deliverySlip && (
+                            
+                            {/* Delivery Slip Viewer & Attachment Button */}
+                            {order.deliverySlip ? (
                               <button
-                                onClick={() => {
-                                  const win = window.open();
-                                  if (order.deliverySlip.startsWith("data:image")) {
-                                    win.document.write(`<img src="${order.deliverySlip}" style="max-width:100%; margin: 20px auto; display:block;" />`);
-                                  } else {
-                                    win.document.write(`<iframe src="${order.deliverySlip}" style="border:0; width:100%; height:100vh;"></iframe>`);
-                                  }
-                                }}
-                                className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 px-2.5 py-1 rounded-xl flex items-center gap-1 transition cursor-pointer shadow-sm"
+                                onClick={() => setViewSlipUrl(order.deliverySlip)}
+                                className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm"
                                 title="View uploaded invoice / delivery slip"
                               >
-                                <FaFileInvoice className="text-xs" /> View Slip
+                                <FaFileInvoice className="text-xs text-indigo-600" /> View Delivery Slip
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setAttachOrder(order);
+                                  setShowAttachModal(true);
+                                }}
+                                className="text-[11px] font-bold text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                                title="Attach invoice or delivery slip to this order"
+                              >
+                                <FaPaperclip className="text-xs text-purple-600" /> Attach Slip
                               </button>
                             )}
                           </div>
                         ) : order.status === "Pending" ? (
-                          <span className="text-amber-600 font-bold text-xs inline-flex items-center gap-1.5 bg-amber-55/40 px-3.5 py-2 rounded-full border border-amber-200">
+                          <span className="text-amber-600 font-bold text-xs inline-flex items-center gap-1.5 bg-amber-50 px-3.5 py-2 rounded-full border border-amber-200">
                             <FaHourglassHalf className="animate-spin" /> Awaiting Appr.
                           </span>
                         ) : order.status === "Rejected" ? (
@@ -637,6 +679,102 @@ export default function ReceiveOrder() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── RETROACTIVE ATTACH DELIVERY SLIP MODAL ──── */}
+        {showAttachModal && attachOrder && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex justify-center items-center z-50 animate-fadeIn p-4">
+            <div className="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl animate-scaleUp">
+              <div className="px-6 py-5 text-white bg-gradient-to-r from-purple-600 to-indigo-600 flex justify-between items-center">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <FaPaperclip /> Attach Delivery Slip
+                </h3>
+                <button onClick={() => setShowAttachModal(false)} className="text-white/80 hover:text-white text-lg">
+                  <FaTimes />
+                </button>
+              </div>
+
+              <form onSubmit={handleConfirmAttachSlip} className="p-6 space-y-4">
+                <div className="text-xs text-slate-600 font-semibold bg-purple-50 p-3.5 rounded-2xl border border-purple-100">
+                  Attaching invoice or delivery slip for <strong>Order #{attachOrder.id}</strong> ({attachOrder.item}).
+                </div>
+
+                <div>
+                  <label className="block text-slate-600 font-bold text-xs mb-1.5 uppercase tracking-wider">Select Invoice / Delivery Slip</label>
+                  <label className="flex items-center gap-2 border border-dashed border-purple-300 p-4 rounded-2xl w-full text-xs text-purple-700 bg-purple-50/50 hover:bg-purple-50 cursor-pointer justify-center transition font-semibold">
+                    <FaUpload className="text-purple-600 text-base" /> 
+                    <span>{attachFile ? attachFile.name : "Choose Image or PDF Slip"}</span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => setAttachFile(e.target.files[0])}
+                      className="hidden"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowAttachModal(false)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl cursor-pointer font-semibold text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-xl cursor-pointer font-bold text-xs shadow-md"
+                  >
+                    Upload & Attach Slip
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ── VIEW DELIVERY SLIP VIEWER MODAL ────────── */}
+        {viewSlipUrl && (
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex justify-center items-center z-50 p-4 animate-fadeIn">
+            <div className="relative w-full max-w-4xl bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+              <div className="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+                <div className="font-bold flex items-center gap-2 text-sm">
+                  <FaFileInvoice className="text-purple-400" /> Delivery Invoice Slip Viewer
+                </div>
+                <button
+                  onClick={() => setViewSlipUrl(null)}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+
+              <div className="p-4 bg-slate-100 flex-1 overflow-auto flex items-center justify-center min-h-[400px]">
+                {viewSlipUrl.startsWith("data:image") || viewSlipUrl.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                  <img src={viewSlipUrl} alt="Delivery Slip" className="max-w-full max-h-[75vh] rounded-2xl shadow-md object-contain" />
+                ) : (
+                  <iframe src={viewSlipUrl} title="Delivery Slip PDF" className="w-full h-[75vh] rounded-2xl border-0" />
+                )}
+              </div>
+
+              <div className="p-4 bg-white border-t border-slate-100 flex justify-end gap-3">
+                <a
+                  href={viewSlipUrl}
+                  download="Delivery_Slip"
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-xl text-xs font-bold transition shadow-sm inline-flex items-center gap-1.5"
+                >
+                  Download File
+                </a>
+                <button
+                  onClick={() => setViewSlipUrl(null)}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2 rounded-xl text-xs font-semibold transition"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

@@ -8,7 +8,8 @@ import {
   createOrder,
   approveOrder,
   rejectOrder,
-  receiveOrder
+  receiveOrder,
+  updateDeliverySlip
 } from "../controllers/order.controller.js";
 
 const router = Router();
@@ -18,5 +19,6 @@ router.post("/", verifyToken, checkPermission("Place Order"), validate(createOrd
 router.post("/:id/approve", verifyToken, approveOrder);
 router.post("/:id/reject", verifyToken, rejectOrder);
 router.post("/:id/receive", verifyToken, checkPermission("Receive Order"), validate(receiveOrderSchema), receiveOrder);
+router.patch("/:id/delivery-slip", verifyToken, updateDeliverySlip);
 
 export default router;
