@@ -23,14 +23,15 @@ app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 // API Routes
 app.use("/api", routes);
 
-// Serve React Production Build
-const frontendPath = path.join(__dirname, "../../frontend/dist");
-
-app.use(express.static(frontendPath));
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(frontendPath, "index.html"));
-});
+// Serve React Production Build (only in local/development mode)
+// In production, Vercel serves the frontend separately
+if (process.env.NODE_ENV !== "production") {
+  const frontendPath = path.join(__dirname, "../../frontend/dist");
+  app.use(express.static(frontendPath));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(frontendPath, "index.html"));
+  });
+}
 
 // Global Error Handler
 // Controllers use errRes() for expected errors; this catches any unhandled exceptions.
