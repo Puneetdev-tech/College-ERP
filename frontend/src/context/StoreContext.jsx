@@ -11,7 +11,7 @@ export const ROLE_DEFAULT_PERMISSIONS = {
 };
 
 
-const API_URL = "/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 export function StoreProvider({ children }) {
   // Backup State (handled locally in localStorage)
