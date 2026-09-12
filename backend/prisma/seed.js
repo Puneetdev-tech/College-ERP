@@ -11,6 +11,23 @@ const ROLE_DEFAULT_PERMISSIONS = {
 };
 
 async function main() {
+  // ─── Safety Guard: Prevent accidental wipe of live data ─────────────────
+  const isForced = process.argv.includes("--force");
+  if (!isForced) {
+    const orderCount = await prisma.order.count();
+    const itemCount  = await prisma.inventoryItem.count();
+    const userCount  = await prisma.user.count();
+    if (orderCount > 0 || itemCount > 0 || userCount > 0) {
+      console.error("\n❌ ABORTED: Live data detected in database!");
+      console.error(`   Users: ${userCount} | Orders: ${orderCount} | Inventory Items: ${itemCount}`);
+      console.error("   To wipe and re-seed, run: node prisma/seed.js --force");
+      console.error("   Or use: npm run db:seed:force\n");
+      process.exit(1);
+    }
+  } else {
+    console.warn("⚠️  --force flag detected. All existing data will be wiped!");
+  }
+  // ─────────────────────────────────────────────────────────────────────────
   await prisma.approvalStep.deleteMany();
   await prisma.order.deleteMany();
   await prisma.issueLog.deleteMany();
@@ -278,7 +295,7 @@ async function main() {
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("Seed failed:", e);
     process.exit(1);
   })
   .finally(async () => {

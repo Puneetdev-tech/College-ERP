@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict QZr9YEExTYYmQrtg4lCjJUoSXqlwPM8sklADHifaKs4bPwrbSIv0IhZe5hweoJt
+-- \restrict QZr9YEExTYYmQrtg4lCjJUoSXqlwPM8sklADHifaKs4bPwrbSIv0IhZe5hweoJt
 
 -- Dumped from database version 18.4 (Homebrew)
 -- Dumped by pg_dump version 18.4 (Homebrew)
@@ -1747,5 +1747,5 @@ ALTER TABLE ONLY public.electrical_sub_items
 -- PostgreSQL database dump complete
 --
 
-\unrestrict QZr9YEExTYYmQrtg4lCjJUoSXqlwPM8sklADHifaKs4bPwrbSIv0IhZe5hweoJt
+-- \unrestrict QZr9YEExTYYmQrtg4lCjJUoSXqlwPM8sklADHifaKs4bPwrbSIv0IhZe5hweoJt
 

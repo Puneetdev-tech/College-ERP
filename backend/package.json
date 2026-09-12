@@ -9,6 +9,7 @@
     "dev": "nodemon server.js",
     "db:migrate": "npx prisma migrate dev",
     "db:seed": "node prisma/seed.js",
+    "db:seed:force": "node prisma/seed.js --force",
     "test": "node --test tests/auth.test.js tests/inventory.test.js tests/issue.test.js tests/order.test.js",
     "test:auth": "node --test tests/auth.test.js",
     "test:inventory": "node --test tests/inventory.test.js",

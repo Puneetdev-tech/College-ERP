@@ -147,16 +147,16 @@ export default function InventoryTable() {
     );
   });
 
-  // Grouping logic for items in filteredInventory
-  // Group by item.subcategory (case-insensitive key normalization, e.g., "chair" or "desk")
+  // Grouping logic: group by item NAME (e.g. "Pen"), so clicking a parent shows all specs (Gel, Ball, etc.)
   const groupedInventory = {};
   filteredInventory.forEach((item) => {
-    const rawSubcategory = item.subcategory || "Other";
-    const subcatKey = rawSubcategory.trim().toLowerCase();
-    if (!groupedInventory[subcatKey]) {
-      groupedInventory[subcatKey] = {
-        key: subcatKey,
-        subcategory: rawSubcategory,
+    const rawItemName = item.item || "Unknown";
+    const itemKey = rawItemName.trim().toLowerCase();
+    if (!groupedInventory[itemKey]) {
+      groupedInventory[itemKey] = {
+        key: itemKey,
+        itemName: rawItemName,       // ← the group header: "Pen"
+        subcategory: item.subcategory, // shown as secondary info
         category: item.category,
         items: [],
         totalStock: 0,
@@ -169,7 +169,7 @@ export default function InventoryTable() {
       };
     }
 
-    const group = groupedInventory[subcatKey];
+    const group = groupedInventory[itemKey];
     group.items.push(item);
     group.totalStock += item.stock;
     group.totalValue += item.stock * item.price;
@@ -201,15 +201,17 @@ export default function InventoryTable() {
       }
     });
     group.status = hasLow ? "Low" : hasMedium ? "Medium" : "Good";
+    if (group.minPrice === Infinity) group.minPrice = 0;
+    if (group.maxPrice === -Infinity) group.maxPrice = 0;
   });
 
   const groupsList = Object.values(groupedInventory);
   groupsList.sort((a, b) => {
     if (sortBy === "name-asc") {
-      return a.subcategory.localeCompare(b.subcategory);
+      return a.itemName.localeCompare(b.itemName);
     }
     if (sortBy === "name-desc") {
-      return b.subcategory.localeCompare(a.subcategory);
+      return b.itemName.localeCompare(a.itemName);
     }
     if (sortBy === "stock-desc") {
       return b.totalStock - a.totalStock;
@@ -231,7 +233,7 @@ export default function InventoryTable() {
     }
     if (dateA) return -1;
     if (dateB) return 1;
-    return a.subcategory.localeCompare(b.subcategory);
+    return a.itemName.localeCompare(b.itemName);
   });
 
   // Query order history matching item category, subcategory and specification (type)
@@ -482,8 +484,11 @@ export default function InventoryTable() {
                           ) : (
                             <FaChevronRight className="text-slate-400 flex-shrink-0 text-sm" />
                           )}
-                          <span className="capitalize">{group.subcategory}</span>
-                          <span className="ml-2 text-[10px] font-bold text-slate-500 bg-slate-200/60 border border-slate-300/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          <span className="capitalize">{group.itemName}</span>
+                          <span className="ml-1 text-[10px] text-slate-400 font-normal">
+                            {group.subcategory}
+                          </span>
+                          <span className="ml-1 text-[10px] font-bold text-slate-500 bg-slate-200/60 border border-slate-300/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
                             {group.items.length} spec{group.items.length > 1 ? "s" : ""}
                           </span>
                         </div>
@@ -544,9 +549,9 @@ export default function InventoryTable() {
                                   <div className="w-1.5 h-6 bg-blue-300 rounded-full flex-shrink-0" />
                                   <div>
                                     <div className="font-bold text-slate-850 flex items-center gap-2 flex-wrap">
-                                      <span>{item.item}</span>
-                                      <span className="text-xs text-slate-400 font-normal font-mono bg-slate-100 border px-1.5 py-0.5 rounded">
-                                        Spec: {item.type}
+                                      {/* Child shows the SPEC (Gel, Ball, etc.) — not item name again */}
+                                      <span className="text-blue-700 bg-blue-50 border border-blue-150 px-2 py-0.5 rounded-lg text-xs font-bold">
+                                        {item.type || "Standard"}
                                       </span>
                                       {getOrdersWithInvoice(item).length > 0 && (
                                         <button

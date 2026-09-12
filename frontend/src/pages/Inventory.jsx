@@ -280,12 +280,12 @@ export default function Inventory() {
       )}
 
       <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        onConfirm={confirmDialog.onConfirm}
-        onCancel={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
-        type={confirmDialog.type}
+      isOpen={confirmDialog.isOpen}
+      title={confirmDialog.title}
+      message={confirmDialog.message}
+      onConfirm={confirmDialog.onConfirm}
+      onCancel={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+      type={confirmDialog.type}
       />
 
     </div>

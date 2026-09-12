@@ -132,7 +132,7 @@ export default function PlaceOrder() {
     setErrorMsg("");
 
     const finalSubcat = subcategory.trim();
-    const finalItem = item.trim() || finalSubcat;
+    const finalItem = item.trim() || finalSubcat; // item name is always user-provided now
 
     if (
       !supplier.trim() ||
@@ -457,9 +457,12 @@ export default function PlaceOrder() {
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Item Name</label>
+                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">
+                      Item Name
+                      <span className="ml-1 text-slate-350 font-normal normal-case text-[10px]">(e.g. Pen, Chair)</span>
+                    </label>
                     <input
-                      placeholder="e.g. Desktop Computer"
+                      placeholder="e.g. Pen, Office Chair, A4 Paper"
                       value={item}
                       onChange={(e) => setItem(e.target.value)}
                       className="border border-slate-200 p-3.5 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium"
@@ -482,16 +485,14 @@ export default function PlaceOrder() {
                     </select>
                   </div>
                   <div className="relative">
-                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Subcategory</label>
+                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">
+                      Subcategory
+                      <span className="ml-1 text-slate-350 font-normal normal-case text-[10px]">(grouping, e.g. Stationery)</span>
+                    </label>
                     <input
-                      placeholder="e.g. Chair, Printer"
+                      placeholder="e.g. Stationery, Furniture, Printer"
                       value={subcategory}
-                      onChange={(e) => {
-                        setSubcategory(e.target.value);
-                        if (!item || item === subcategory) {
-                          setItem(e.target.value);
-                        }
-                      }}
+                      onChange={(e) => setSubcategory(e.target.value)}
                       onFocus={() => setShowSubcatSuggestions(true)}
                       onBlur={() => setTimeout(() => setShowSubcatSuggestions(false), 200)}
                       className="border border-slate-200 p-3.5 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-medium"
@@ -505,7 +506,6 @@ export default function PlaceOrder() {
                               key={idx}
                               onMouseDown={() => {
                                 setSubcategory(sub);
-                                setItem(sub);
                                 setShowSubcatSuggestions(false);
                               }}
                               className="p-3 hover:bg-slate-100 cursor-pointer text-sm text-slate-800 font-medium transition"
