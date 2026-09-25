@@ -16,7 +16,10 @@ import {
   FaSortUp,
   FaSortDown,
   FaStar,
-  FaLayerGroup
+  FaLayerGroup,
+  FaFilter,
+  FaChevronDown,
+  FaChevronUp
 } from "react-icons/fa";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "../context/StoreContext";
@@ -115,6 +118,14 @@ export default function IssueStock() {
 
   const [errorMsg, setErrorMsg] = useState("");
 
+  // ── History filter states ──────────────────────────────────────
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [filterRegister, setFilterRegister] = useState("");
+  const [filterSubcategory, setFilterSubcategory] = useState("");
+  const [filterItem, setFilterItem] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+
   const [sortField, setSortField] = useState("id");
   const [sortDirection, setSortDirection] = useState("desc");
 
@@ -173,22 +184,75 @@ export default function IssueStock() {
     }
   };
 
-  const totalDisbursedQty = issuedStock.reduce((acc, log) => acc + log.quantity, 0);
-  const totalTransactions = issuedStock.length;
-  const uniqueDepartments = new Set(issuedStock.map(log => log.department)).size;
+  // ── Derive unique filter options from ALL issued logs ─────────
+  const allRegisters = Array.from(new Set(
+    issuedStock.map(log => getRegisterForCategory(log.category)).filter(Boolean)
+  )).sort();
 
+  const allSubcategoriesForFilter = Array.from(new Set(
+    issuedStock
+      .filter(log => !filterRegister || getRegisterForCategory(log.category).toLowerCase() === filterRegister.toLowerCase())
+      .map(log => log.subcategory)
+      .filter(Boolean)
+  )).sort();
+
+  const allItemsForFilter = Array.from(new Set(
+    issuedStock
+      .filter(log => {
+        if (filterRegister && getRegisterForCategory(log.category).toLowerCase() !== filterRegister.toLowerCase()) return false;
+        if (filterSubcategory && (log.subcategory || "").toLowerCase() !== filterSubcategory.toLowerCase()) return false;
+        return true;
+      })
+      .map(log => log.item)
+      .filter(Boolean)
+  )).sort();
+
+  // ── Active filter count ────────────────────────────────────────
+  const activeFilterCount = [filterRegister, filterSubcategory, filterItem, filterDateFrom, filterDateTo].filter(Boolean).length;
+
+  // ── Master filter function ─────────────────────────────────────
   const filteredIssued = issuedStock.filter(log => {
-    if (!search.trim()) return true;
-    const s = (search || "").toLowerCase();
-    const formattedId = `#is-${String(log.id).padStart(3, "0")}`.toLowerCase();
-    return (
-      formattedId.includes(s) || String(log.id).includes(s) ||
-      (log.item || "").toLowerCase().includes(s) ||
-      (log.category || "").toLowerCase().includes(s) ||
-      (log.department || "").toLowerCase().includes(s) ||
-      (log.faculty || "").toLowerCase().includes(s)
-    );
+    // Text search
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      const formattedId = `#is-${String(log.id).padStart(3, "0")}`.toLowerCase();
+      const textMatch = (
+        formattedId.includes(s) || String(log.id).includes(s) ||
+        (log.item || "").toLowerCase().includes(s) ||
+        (log.category || "").toLowerCase().includes(s) ||
+        (log.department || "").toLowerCase().includes(s) ||
+        (log.faculty || "").toLowerCase().includes(s)
+      );
+      if (!textMatch) return false;
+    }
+    // Register filter
+    if (filterRegister && getRegisterForCategory(log.category).toLowerCase() !== filterRegister.toLowerCase()) return false;
+    // Subcategory filter
+    if (filterSubcategory && (log.subcategory || "").toLowerCase() !== filterSubcategory.toLowerCase()) return false;
+    // Item filter
+    if (filterItem && (log.item || "").toLowerCase() !== filterItem.toLowerCase()) return false;
+    // Date range filter
+    if (filterDateFrom || filterDateTo) {
+      const logDate = parseDate(log.date);
+      if (filterDateFrom && logDate < new Date(filterDateFrom + "T00:00:00")) return false;
+      if (filterDateTo && logDate > new Date(filterDateTo + "T23:59:59")) return false;
+    }
+    return true;
   });
+
+  const totalDisbursedQty = filteredIssued.reduce((acc, log) => acc + log.quantity, 0);
+  const totalTransactions = filteredIssued.length;
+  const uniqueDepartments = new Set(filteredIssued.map(log => log.department)).size;
+
+  const clearAllFilters = () => {
+    setFilterRegister("");
+    setFilterSubcategory("");
+    setFilterItem("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    setSearch("");
+    setSearchParams({});
+  };
 
   const handleSort = (field) => {
     if (sortField === field) setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -338,30 +402,170 @@ export default function IssueStock() {
           ))}
         </div>
 
-        {/* ── SEARCH BAR ───────────────────────────────────────────── */}
-        <div className={`bg-white rounded-3xl p-5 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between border border-slate-100 transition-all duration-700 delay-150 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+        {/* ── SEARCH + FILTER BAR ───────────────────────────────────── */}
+        <div className={`bg-white rounded-3xl shadow-sm mb-6 border border-slate-100 transition-all duration-700 delay-150 ${animateIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
           style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
-          <div className="relative w-full md:w-96">
-            <FaSearch className="absolute left-4 top-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search checkout transactions..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setSearchParams({ search: e.target.value }); }}
-              className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none font-semibold text-sm transition-all"
-            />
-            {search && (
-              <button onClick={() => { setSearch(""); setSearchParams({}); }}
-                className="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
-                <FaTimes />
+
+          {/* Top row: search + filter toggle */}
+          <div className="p-4 flex flex-col md:flex-row gap-3 items-center justify-between">
+            <div className="relative w-full md:w-96">
+              <FaSearch className="absolute left-4 top-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search by item, category, department, faculty..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setSearchParams({ search: e.target.value }); }}
+                className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none font-semibold text-sm transition-all"
+              />
+              {search && (
+                <button onClick={() => { setSearch(""); setSearchParams({}); }}
+                  className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600 cursor-pointer">
+                  <FaTimes />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Filter toggle button */}
+              <button
+                onClick={() => setShowFilterPanel(p => !p)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-sm transition-all cursor-pointer ${
+                  showFilterPanel || activeFilterCount > 0
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
+                    : "bg-slate-50 text-slate-600 border-slate-200 hover:border-indigo-400 hover:text-indigo-600"
+                }`}
+              >
+                <FaFilter className="text-xs" />
+                <span>Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="bg-white text-indigo-600 text-xs font-black w-5 h-5 rounded-full flex items-center justify-center">
+                    {activeFilterCount}
+                  </span>
+                )}
+                {showFilterPanel ? <FaChevronUp className="text-xs" /> : <FaChevronDown className="text-xs" />}
               </button>
-            )}
+
+              {/* Clear all */}
+              {(activeFilterCount > 0 || search) && (
+                <button
+                  onClick={clearAllFilters}
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 text-xs font-bold hover:bg-rose-100 transition cursor-pointer"
+                >
+                  <FaTimes className="text-[10px]" /> Clear All
+                </button>
+              )}
+            </div>
           </div>
-          {search && (
-            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-2 rounded-2xl text-xs font-bold animate-fadeIn">
-              <span>Filter: <strong>"{search}"</strong></span>
-              <button onClick={() => { setSearch(""); setSearchParams({}); }}
-                className="hover:text-red-500 font-extrabold text-sm ml-2.5 transition cursor-pointer">×</button>
+
+          {/* Collapsible filter panel */}
+          {showFilterPanel && (
+            <div className="border-t border-slate-100 px-4 py-4 grid grid-cols-2 md:grid-cols-5 gap-3 animate-fadeIn">
+              {/* Register */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-wider">Register</label>
+                <select
+                  value={filterRegister}
+                  onChange={(e) => { setFilterRegister(e.target.value); setFilterSubcategory(""); setFilterItem(""); }}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 text-slate-700 cursor-pointer"
+                >
+                  <option value="">All Registers</option>
+                  {allRegisters.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+
+              {/* Subcategory */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-wider">Subcategory</label>
+                <select
+                  value={filterSubcategory}
+                  onChange={(e) => { setFilterSubcategory(e.target.value); setFilterItem(""); }}
+                  disabled={!filterRegister}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 text-slate-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">All Subcategories</option>
+                  {allSubcategoriesForFilter.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              {/* Item */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-wider">Item</label>
+                <select
+                  value={filterItem}
+                  onChange={(e) => setFilterItem(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 text-slate-700 cursor-pointer"
+                >
+                  <option value="">All Items</option>
+                  {allItemsForFilter.map(it => <option key={it} value={it}>{it}</option>)}
+                </select>
+              </div>
+
+              {/* Date From */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-wider">Date From</label>
+                <input
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 text-slate-700 cursor-pointer"
+                />
+              </div>
+
+              {/* Date To */}
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-wider">Date To</label>
+                <input
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 text-slate-700 cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Active filter chips */}
+          {(activeFilterCount > 0 || search) && (
+            <div className="border-t border-slate-100 px-4 py-2.5 flex flex-wrap gap-2">
+              {search && (
+                <span className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold">
+                  Search: "{search}"
+                  <button onClick={() => { setSearch(""); setSearchParams({}); }} className="hover:text-rose-500 transition cursor-pointer"><FaTimes className="text-[9px]" /></button>
+                </span>
+              )}
+              {filterRegister && (
+                <span className="flex items-center gap-1.5 bg-violet-50 border border-violet-200 text-violet-700 px-3 py-1 rounded-full text-xs font-bold">
+                  Register: {filterRegister}
+                  <button onClick={() => { setFilterRegister(""); setFilterSubcategory(""); setFilterItem(""); }} className="hover:text-rose-500 transition cursor-pointer"><FaTimes className="text-[9px]" /></button>
+                </span>
+              )}
+              {filterSubcategory && (
+                <span className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">
+                  Subcategory: {filterSubcategory}
+                  <button onClick={() => { setFilterSubcategory(""); setFilterItem(""); }} className="hover:text-rose-500 transition cursor-pointer"><FaTimes className="text-[9px]" /></button>
+                </span>
+              )}
+              {filterItem && (
+                <span className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1 rounded-full text-xs font-bold">
+                  Item: {filterItem}
+                  <button onClick={() => setFilterItem("")} className="hover:text-rose-500 transition cursor-pointer"><FaTimes className="text-[9px]" /></button>
+                </span>
+              )}
+              {filterDateFrom && (
+                <span className="flex items-center gap-1.5 bg-sky-50 border border-sky-200 text-sky-700 px-3 py-1 rounded-full text-xs font-bold">
+                  From: {filterDateFrom}
+                  <button onClick={() => setFilterDateFrom("")} className="hover:text-rose-500 transition cursor-pointer"><FaTimes className="text-[9px]" /></button>
+                </span>
+              )}
+              {filterDateTo && (
+                <span className="flex items-center gap-1.5 bg-sky-50 border border-sky-200 text-sky-700 px-3 py-1 rounded-full text-xs font-bold">
+                  To: {filterDateTo}
+                  <button onClick={() => setFilterDateTo("")} className="hover:text-rose-500 transition cursor-pointer"><FaTimes className="text-[9px]" /></button>
+                </span>
+              )}
+              <span className="text-slate-400 text-xs font-semibold self-center ml-1">
+                {filteredIssued.length} result{filteredIssued.length !== 1 ? "s" : ""}
+              </span>
             </div>
           )}
         </div>
@@ -371,11 +575,24 @@ export default function IssueStock() {
           style={{ boxShadow: "0 4px 30px rgba(79,70,229,0.07)" }}>
           <div className="p-6 border-b border-slate-100"
             style={{ background: "linear-gradient(135deg, #fafaff 0%, #f5f0ff 100%)" }}>
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <FaLayerGroup className="text-indigo-500" />
-              Stock Disbursement Registry
-            </h2>
-            <p className="text-slate-400 text-xs mt-0.5">All stock issues and disbursement transactions.</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <FaLayerGroup className="text-indigo-500" />
+                  Stock Disbursement Registry
+                  {activeFilterCount > 0 && (
+                    <span className="text-xs font-bold bg-indigo-100 text-indigo-600 px-2.5 py-0.5 rounded-full border border-indigo-200">
+                      Filtered
+                    </span>
+                  )}
+                </h2>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  {activeFilterCount > 0
+                    ? `Showing ${filteredIssued.length} of ${issuedStock.length} transactions`
+                    : "All stock issues and disbursement transactions."}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
