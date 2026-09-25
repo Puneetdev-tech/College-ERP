@@ -32,7 +32,7 @@ const CATEGORY_BADGES = {
 };
 
 export default function InventoryTable() {
-  const { inventory, addInventoryItem, systemSettings, orders, getRegisterForCategory } = useStore();
+  const { inventory, addInventoryItem, systemSettings, orders, issuedStock, getRegisterForCategory, inventoryCategories, inventorySubcategories } = useStore();
   const { flashes, showFlash, dismissFlash } = useFlash();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -42,6 +42,7 @@ export default function InventoryTable() {
   const [search, setSearch] = useState("");
   const [expandedGroups, setExpandedGroups] = useState({});
   const [expandedItems, setExpandedItems] = useState({});
+  const [activeHistoryTab, setActiveHistoryTab] = useState({});
   const [invoiceModalUrl, setInvoiceModalUrl] = useState(null);
   const [invoiceModalName, setInvoiceModalName] = useState("");
   
@@ -66,6 +67,30 @@ export default function InventoryTable() {
   const [unitPrice, setUnitPrice] = useState("");
   const [itemType, setItemType] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Derived: subcategories available for the currently selected category
+  const availableSubcategories = React.useMemo(() => {
+    if (!category) return [];
+    const matched = (inventoryCategories || []).find(
+      c => c.name.toLowerCase() === category.toLowerCase()
+    );
+    if (!matched) return [];
+    return (inventorySubcategories || []).filter(s => s.categoryId === matched.id).map(s => s.name);
+  }, [category, inventoryCategories, inventorySubcategories]);
+
+  // Open modal pre-filled from URL params
+  const handleOpenModal = () => {
+    setItemName("");
+    // Pre-fill category from ?department= param (that's the top-level register, e.g. "Sanitory")
+    setCategory(paramDepartment || "");
+    // Pre-fill subcategory from ?category= param (that's the subcategory, e.g. "Cleaning")
+    setSubcategory(paramCategory || "");
+    setQuantity("");
+    setUnitPrice("");
+    setItemType("");
+    setErrorMsg("");
+    setShowModal(true);
+  };
 
   const handleSaveItem = (e) => {
     e.preventDefault();
@@ -111,6 +136,7 @@ export default function InventoryTable() {
     setQuantity("");
     setUnitPrice("");
     setItemType("");
+    setErrorMsg("");
     setShowModal(false);
   };
 
@@ -247,6 +273,16 @@ export default function InventoryTable() {
     );
   };
 
+  const getIssueHistory = (item) => {
+    if (!issuedStock) return [];
+    return issuedStock.filter(
+      (issue) =>
+        (issue.category || "").toLowerCase() === (item.category || "").toLowerCase() &&
+        (issue.subcategory || "").toLowerCase() === (item.subcategory || "").toLowerCase() &&
+        (issue.type || "").toLowerCase() === (item.type || "").toLowerCase()
+    );
+  };
+
   // Get orders with invoice attached for an inventory item
   const getOrdersWithInvoice = (item) => {
     return getOrderHistory(item).filter(o => o.invoiceDataUrl);
@@ -267,16 +303,12 @@ export default function InventoryTable() {
       <div className="ml-64 p-6">
 
         {/* Print-only layout header */}
-        <div className="hidden print:block mb-8 border-b-2 border-slate-300 pb-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">{systemSettings?.collegeInfo?.name || "Rustamji Institute of Technology"}</h1>
-              <p className="text-xs text-slate-500">{systemSettings?.collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
-            </div>
-            <div className="text-right">
-              <h2 className="text-lg font-bold text-slate-700">Master Inventory Ledger</h2>
-              <p className="text-xs text-slate-400">Date: {new Date().toLocaleDateString()}</p>
-            </div>
+        <div className="hidden print:flex flex-col items-center justify-center mb-8 border-b-2 border-slate-300 pb-4 text-center">
+          <h1 className="text-3xl font-bold">{systemSettings?.collegeInfo?.name || "Rustamji Institute of Technology"}</h1>
+          <p className="text-sm text-slate-600 mt-1">{systemSettings?.collegeInfo?.address || "BSF Academy Tekkanpur Gwalior Madhya Pradhesh"}</p>
+          <div className="mt-4">
+            <h2 className="text-xl font-bold text-slate-800">Master Inventory Ledger</h2>
+            <p className="text-xs text-slate-500">Date: {new Date().toLocaleDateString()}</p>
           </div>
         </div>
 
@@ -287,7 +319,7 @@ export default function InventoryTable() {
 
           <div className="flex gap-3">
             <button
-              onClick={() => setShowModal(true)}
+              onClick={handleOpenModal}
               className="bg-green-600 text-white px-5 py-3 rounded-xl flex items-center gap-2 cursor-pointer hover:scale-105 transition"
             >
               <FaPlus />
@@ -484,11 +516,11 @@ export default function InventoryTable() {
                           ) : (
                             <FaChevronRight className="text-slate-400 flex-shrink-0 text-sm" />
                           )}
-                          <span className="capitalize">{group.itemName}</span>
-                          <span className="ml-1 text-[10px] text-slate-400 font-normal">
+                          <span className="capitalize text-lg">{group.itemName}</span>
+                          <span className="ml-2 text-sm text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
                             {group.subcategory}
                           </span>
-                          <span className="ml-1 text-[10px] font-bold text-slate-500 bg-slate-200/60 border border-slate-300/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          <span className="ml-2 text-xs font-bold text-slate-500 bg-slate-200/60 border border-slate-300/50 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                             {group.items.length} spec{group.items.length > 1 ? "s" : ""}
                           </span>
                         </div>
@@ -550,7 +582,7 @@ export default function InventoryTable() {
                                   <div>
                                     <div className="font-bold text-slate-850 flex items-center gap-2 flex-wrap">
                                       {/* Child shows the SPEC (Gel, Ball, etc.) — not item name again */}
-                                      <span className="text-blue-700 bg-blue-50 border border-blue-150 px-2 py-0.5 rounded-lg text-xs font-bold">
+                                      <span className="text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg text-sm font-extrabold shadow-sm">
                                         {item.type || "Standard"}
                                       </span>
                                       {getOrdersWithInvoice(item).length > 0 && (
@@ -611,70 +643,125 @@ export default function InventoryTable() {
                               </td>
                             </tr>
 
-                            {/* Nested Order History */}
+                            {/* Nested History */}
                             {isItemExpanded && (
                               <tr className="bg-slate-100/30">
                                 <td colSpan={7} className="p-4 pl-12 pr-6">
                                   <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-                                    <div className="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
-                                      <FaHistory className="text-indigo-500 text-sm" />
-                                      <h4 className="font-bold text-xs text-slate-800 uppercase tracking-wide">
-                                        Order history for <span className="text-indigo-600">{item.item}</span> — {item.type}
-                                      </h4>
+                                    <div className="flex items-center gap-4 mb-4 border-b border-slate-100 pb-0">
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); setActiveHistoryTab(prev => ({ ...prev, [item.id]: 'orders' })); }}
+                                        className={`pb-2 px-2 text-xs font-bold uppercase tracking-wide border-b-2 transition-all ${
+                                          (!activeHistoryTab[item.id] || activeHistoryTab[item.id] === 'orders') 
+                                            ? 'border-indigo-500 text-indigo-600' 
+                                            : 'border-transparent text-slate-400 hover:text-slate-600'
+                                        }`}
+                                      >
+                                        <FaHistory className="inline mr-1" /> Order History
+                                      </button>
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); setActiveHistoryTab(prev => ({ ...prev, [item.id]: 'issues' })); }}
+                                        className={`pb-2 px-2 text-xs font-bold uppercase tracking-wide border-b-2 transition-all ${
+                                          activeHistoryTab[item.id] === 'issues' 
+                                            ? 'border-emerald-500 text-emerald-600' 
+                                            : 'border-transparent text-slate-400 hover:text-slate-600'
+                                        }`}
+                                      >
+                                        <FaHistory className="inline mr-1" /> Issue History
+                                      </button>
                                     </div>
 
-                                    {getOrderHistory(item).length > 0 ? (
-                                      <div className="relative border-l-2 border-indigo-100 pl-4 ml-2 space-y-4 py-1">
-                                        {getOrderHistory(item).map((order) => (
-                                          <div
-                                            key={order.id}
-                                            className="relative before:absolute before:-left-[21px] before:top-1.5 before:w-2.5 before:h-2.5 before:rounded-full before:bg-indigo-400 before:border-2 before:border-white animate-fadeIn"
-                                          >
-                                            <div className="flex flex-wrap justify-between items-start gap-2 text-xs">
-                                              <div>
-                                                <div className="flex items-center gap-2">
-                                                  <span className="font-bold text-slate-700">Order Ref: #{order.id}</span>
-                                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap ${
-                                                    order.status === "Received" ? "bg-green-50 border-green-200 text-green-700" :
-                                                    order.status === "Partially Received" ? "bg-blue-50 border-blue-200 text-blue-700" :
-                                                    order.status === "Approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
-                                                    order.status === "Rejected" ? "bg-rose-50 border-rose-250 text-rose-700" :
-                                                    "bg-yellow-50 border-yellow-200 text-yellow-700"
-                                                  }`}>
-                                                    {order.status}
-                                                  </span>
-                                                </div>
-                                                <p className="text-slate-500 mt-1">
-                                                  Supplier: <strong className="text-slate-700">{order.supplier}</strong>
-                                                </p>
-                                                <p className="text-slate-400 text-[10px] mt-0.5">
-                                                  Requested by {order.faculty || order.placedBy || "Store"} for {order.department}
-                                                </p>
-                                              </div>
-                                              <div className="text-right">
-                                                <p className="font-bold text-slate-700">
-                                                  {order.quantity} unit{order.quantity > 1 ? "s" : ""} @ ₹{order.pricePerUnit?.toLocaleString("en-IN")}/unit
-                                                </p>
-                                                {(order.receivedQuantity !== undefined || order.status === "Partially Received") && (
-                                                  <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
-                                                    Rec: <span className="text-emerald-600 font-bold">{order.receivedQuantity || 0}</span> | Pend: <span className="text-amber-600 font-bold">{order.pendingQuantity !== undefined ? order.pendingQuantity : (order.quantity - (order.receivedQuantity || 0))}</span>
+                                    {(!activeHistoryTab[item.id] || activeHistoryTab[item.id] === 'orders') ? (
+                                      getOrderHistory(item).length > 0 ? (
+                                        <div className="relative border-l-2 border-indigo-100 pl-4 ml-2 space-y-4 py-1">
+                                          {getOrderHistory(item).map((order) => (
+                                            <div
+                                              key={order.id}
+                                              className="relative before:absolute before:-left-[21px] before:top-1.5 before:w-2.5 before:h-2.5 before:rounded-full before:bg-indigo-400 before:border-2 before:border-white animate-fadeIn"
+                                            >
+                                              <div className="flex flex-wrap justify-between items-start gap-2 text-xs">
+                                                <div>
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-slate-700">Order Ref: #{order.id}</span>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border whitespace-nowrap ${
+                                                      order.status === "Received" ? "bg-green-50 border-green-200 text-green-700" :
+                                                      order.status === "Partially Received" ? "bg-blue-50 border-blue-200 text-blue-700" :
+                                                      order.status === "Approved" ? "bg-emerald-50 border-emerald-200 text-emerald-700" :
+                                                      order.status === "Rejected" ? "bg-rose-50 border-rose-250 text-rose-700" :
+                                                      "bg-yellow-50 border-yellow-200 text-yellow-700"
+                                                    }`}>
+                                                      {order.status}
+                                                    </span>
+                                                  </div>
+                                                  <p className="text-slate-500 mt-1">
+                                                    Supplier: <strong className="text-slate-700">{order.supplier}</strong>
                                                   </p>
-                                                )}
-                                                <p className="font-extrabold text-indigo-650 text-sm mt-0.5">
-                                                  Total: ₹{(order.quantity * (order.pricePerUnit || 0)).toLocaleString("en-IN")}
-                                                </p>
-                                                <p className="text-slate-400 text-[10px] font-mono mt-1">
-                                                  Date Placed: {formatDateTime(order.orderDate)}
-                                                </p>
+                                                  <p className="text-slate-400 text-[10px] mt-0.5">
+                                                    Requested by {order.faculty || order.placedBy || "Store"} for {order.department}
+                                                  </p>
+                                                </div>
+                                                <div className="text-right">
+                                                  <p className="font-bold text-slate-700">
+                                                    {order.quantity} unit{order.quantity > 1 ? "s" : ""} @ ₹{order.pricePerUnit?.toLocaleString("en-IN")}/unit
+                                                  </p>
+                                                  {(order.receivedQuantity !== undefined || order.status === "Partially Received") && (
+                                                    <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                                                      Rec: <span className="text-emerald-600 font-bold">{order.receivedQuantity || 0}</span> | Pend: <span className="text-amber-600 font-bold">{order.pendingQuantity !== undefined ? order.pendingQuantity : (order.quantity - (order.receivedQuantity || 0))}</span>
+                                                    </p>
+                                                  )}
+                                                  <p className="font-extrabold text-indigo-650 text-sm mt-0.5">
+                                                    Total: ₹{(order.quantity * (order.pricePerUnit || 0)).toLocaleString("en-IN")}
+                                                  </p>
+                                                  <p className="text-slate-400 text-[10px] font-mono mt-1">
+                                                    Date Placed: {formatDateTime(order.orderDate)}
+                                                  </p>
+                                                </div>
                                               </div>
                                             </div>
-                                          </div>
-                                        ))}
-                                      </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <div className="text-center py-4 text-xs font-semibold text-slate-400 italic">
+                                          No purchase orders found for this specification.
+                                        </div>
+                                      )
                                     ) : (
-                                      <div className="text-center py-4 text-xs font-semibold text-slate-400 italic">
-                                        No purchase orders found for this specification.
-                                      </div>
+                                      getIssueHistory(item).length > 0 ? (
+                                        <div className="relative border-l-2 border-emerald-100 pl-4 ml-2 space-y-4 py-1">
+                                          {getIssueHistory(item).map((issue) => (
+                                            <div
+                                              key={issue.id}
+                                              className="relative before:absolute before:-left-[21px] before:top-1.5 before:w-2.5 before:h-2.5 before:rounded-full before:bg-emerald-400 before:border-2 before:border-white animate-fadeIn"
+                                            >
+                                              <div className="flex flex-wrap justify-between items-start gap-2 text-xs">
+                                                <div>
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-slate-700">Issue Ref: #IS-{String(issue.id).padStart(3, '0')}</span>
+                                                  </div>
+                                                  <p className="text-slate-500 mt-1">
+                                                    Department: <strong className="text-slate-700">{issue.department}</strong>
+                                                  </p>
+                                                  <p className="text-slate-400 text-[10px] mt-0.5">
+                                                    Issued to {issue.faculty}
+                                                  </p>
+                                                </div>
+                                                <div className="text-right">
+                                                  <p className="font-bold text-slate-700">
+                                                    {issue.quantity} unit{issue.quantity > 1 ? "s" : ""}
+                                                  </p>
+                                                  <p className="text-slate-400 text-[10px] font-mono mt-1">
+                                                    Issue Date: {formatDateTime(issue.date)}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <div className="text-center py-4 text-xs font-semibold text-slate-400 italic">
+                                          No issue history found for this specification.
+                                        </div>
+                                      )
                                     )}
                                   </div>
                                 </td>
@@ -719,24 +806,33 @@ export default function InventoryTable() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Category</label>
-                  <input
-                    placeholder="e.g. Electronics, Stationery"
+                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Category (Department)</label>
+                  <select
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="border p-3 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
+                    onChange={(e) => { setCategory(e.target.value); setSubcategory(""); }}
+                    className="border p-3 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 text-slate-700"
                     required
-                  />
+                  >
+                    <option value="">— Select Category —</option>
+                    {(inventoryCategories || []).map(c => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Subcategory</label>
-                  <input
-                    placeholder="e.g. Printer, Paper"
+                  <select
                     value={subcategory}
                     onChange={(e) => setSubcategory(e.target.value)}
-                    className="border p-3 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50"
+                    className="border p-3 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 text-slate-700"
                     required
-                  />
+                    disabled={!category}
+                  >
+                    <option value="">{category ? "— Select Subcategory —" : "Select category first"}</option>
+                    {availableSubcategories.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
