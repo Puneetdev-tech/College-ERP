@@ -67,7 +67,7 @@ export const createIssue = async (req, res, next) => {
     const { category, subcategory, type, item, department, faculty, quantity, unitCost, date } = req.body;
 
     // 1. Locate the matching active InventoryItem
-    const existingItem = await prisma.inventoryItem.findFirst({
+    let existingItem = await prisma.inventoryItem.findFirst({
       where: {
         category:    { equals: category,    mode: "insensitive" },
         subcategory: { equals: subcategory, mode: "insensitive" },
@@ -75,6 +75,25 @@ export const createIssue = async (req, res, next) => {
         ...(item ? { item: { equals: item, mode: "insensitive" } } : {})
       }
     });
+
+    if (!existingItem && item) {
+      existingItem = await prisma.inventoryItem.findFirst({
+        where: {
+          category:    { equals: category,    mode: "insensitive" },
+          subcategory: { equals: subcategory, mode: "insensitive" },
+          item:        { equals: item,        mode: "insensitive" }
+        }
+      });
+    }
+
+    if (!existingItem) {
+      existingItem = await prisma.inventoryItem.findFirst({
+        where: {
+          category:    { equals: category,    mode: "insensitive" },
+          subcategory: { equals: subcategory, mode: "insensitive" }
+        }
+      });
+    }
 
     if (!existingItem) {
       return errRes(res, 404, `"${item || subcategory} (${type})" is not found in the active inventory. Please check the item details.`);
@@ -110,9 +129,9 @@ export const createIssue = async (req, res, next) => {
       const newIssue  = await tx.issueLog.create({
         data: {
           item:       existingItem.item || item || `${subcategory} - ${type}`,
-          category,
-          subcategory,
-          type,
+          category:   existingItem.category || category,
+          subcategory: existingItem.subcategory || subcategory,
+          type:       type || existingItem.type || "Standard",
           department,
           faculty,
           quantity,
