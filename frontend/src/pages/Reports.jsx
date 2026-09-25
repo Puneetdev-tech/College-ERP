@@ -125,7 +125,7 @@ export default function Reports() {
       }
 
       const collegeName = collegeInfo?.name || "Rustamji Institute of Technology";
-      const collegeAddress = collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi";
+      const collegeAddress = collegeInfo?.address || "BSF Academy Tekkanpur Gwalior Madhya Pradhesh";
       const collegeDetails = `Phone: ${collegeInfo?.phone || "+91 11 2690 7400"} | Email: ${collegeInfo?.email || "info@rjit.edu.in"} | Web: ${collegeInfo?.website || "www.rjit.edu.in"}`;
 
       const workbook = new ExcelJS.Workbook();
@@ -1259,17 +1259,17 @@ export default function Reports() {
       {activeReportType && createPortal(
         <div className="hidden print-report-layout p-8 bg-white text-black font-sans min-h-screen">
           {/* Header Banners */}
-          <div className="flex justify-between items-center border-b-2 border-slate-300 pb-4 mb-6">
+          <div className="flex flex-col items-center justify-center border-b-2 border-slate-300 pb-4 mb-6 text-center">
             {collegeInfo?.logo ? (
-              <img src={collegeInfo.logo} alt="College Logo" className="w-20 h-20 object-contain" />
+              <img src={collegeInfo.logo} alt="College Logo" className="w-20 h-20 object-contain mb-3" />
             ) : (
-              <div className="w-20 h-20 border border-slate-300 flex items-center justify-center font-black text-2xl bg-blue-900 text-white rounded">
-                {collegeInfo?.name ? collegeInfo.name[0] : "C"}
+              <div className="w-20 h-20 mb-3 border border-slate-300 flex items-center justify-center font-black text-2xl bg-blue-900 text-white rounded">
+                {collegeInfo?.name ? collegeInfo.name[0] : "R"}
               </div>
             )}
-            <div className="text-right">
+            <div>
               <h1 className="text-2xl font-bold">{collegeInfo?.name || "Rustamji Institute of Technology"}</h1>
-              <p className="text-xs text-slate-500">{collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
+              <p className="text-xs text-slate-500 mt-1">{collegeInfo?.address || "BSF Academy Tekkanpur Gwalior Madhya Pradhesh"}</p>
               <p className="text-xs text-slate-500">Phone: {collegeInfo?.phone || "+91 11 2690 7400"} | Email: {collegeInfo?.email || "info@rjit.edu.in"}</p>
               <p className="text-xs text-slate-500">Website: {collegeInfo?.website || "www.rjit.edu.in"}</p>
             </div>

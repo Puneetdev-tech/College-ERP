@@ -64,19 +64,20 @@ export const getIssues = async (req, res, next) => {
  */
 export const createIssue = async (req, res, next) => {
   try {
-    const { category, subcategory, type, department, faculty, quantity, unitCost, date } = req.body;
+    const { category, subcategory, type, item, department, faculty, quantity, unitCost, date } = req.body;
 
     // 1. Locate the matching active InventoryItem
     const existingItem = await prisma.inventoryItem.findFirst({
       where: {
         category:    { equals: category,    mode: "insensitive" },
         subcategory: { equals: subcategory, mode: "insensitive" },
-        type:        { equals: type,        mode: "insensitive" }
+        type:        { equals: type,        mode: "insensitive" },
+        ...(item ? { item: { equals: item, mode: "insensitive" } } : {})
       }
     });
 
     if (!existingItem) {
-      return errRes(res, 404, `"${subcategory} (${type})" is not found in the active inventory. Please check the item details.`);
+      return errRes(res, 404, `"${item || subcategory} (${type})" is not found in the active inventory. Please check the item details.`);
     }
 
     // 2. Hard stock guard — returns 400 so the frontend can show a Flash Message
@@ -108,7 +109,7 @@ export const createIssue = async (req, res, next) => {
       const issueDate = date ? new Date(date) : new Date();
       const newIssue  = await tx.issueLog.create({
         data: {
-          item:       `${subcategory} - ${type}`,
+          item:       existingItem.item || item || `${subcategory} - ${type}`,
           category,
           subcategory,
           type,

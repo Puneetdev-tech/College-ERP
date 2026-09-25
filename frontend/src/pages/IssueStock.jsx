@@ -109,6 +109,7 @@ export default function IssueStock() {
   // Form states
   const [category, setCategory] = useState("Electronics");
   const [subcategory, setSubcategory] = useState("Computer");
+  const [selectedItemName, setSelectedItemName] = useState("");
   const [type, setType] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [department, setDepartment] = useState("");
@@ -134,10 +135,20 @@ export default function IssueStock() {
     getRegisterForCategory(item.category).toLowerCase() === category.toLowerCase()
   );
   const subcategories = Array.from(new Set(registerItems.map(item => item.subcategory)));
-  const availableTypes = Array.from(
+  const availableItems = Array.from(
     new Set(
       registerItems
         .filter(item => (item.subcategory || "").toLowerCase() === (subcategory || "").toLowerCase())
+        .map(item => item.item)
+    )
+  );
+  const availableTypes = Array.from(
+    new Set(
+      registerItems
+        .filter(item => 
+          (item.subcategory || "").toLowerCase() === (subcategory || "").toLowerCase() &&
+          (!selectedItemName || (item.item || "").toLowerCase() === selectedItemName.toLowerCase())
+        )
         .map(item => item.type)
     )
   );
@@ -145,7 +156,12 @@ export default function IssueStock() {
   const matchingItem = inventory.find(item => 
     getRegisterForCategory(item.category).toLowerCase() === category.toLowerCase() &&
     (item.subcategory || "").toLowerCase() === (subcategory || "").toLowerCase() &&
+    (!selectedItemName || (item.item || "").toLowerCase() === selectedItemName.toLowerCase()) &&
     (item.type || "").toLowerCase() === (type || "").trim().toLowerCase()
+  ) || inventory.find(item => 
+    getRegisterForCategory(item.category).toLowerCase() === category.toLowerCase() &&
+    (item.subcategory || "").toLowerCase() === (subcategory || "").toLowerCase() &&
+    (!selectedItemName || (item.item || "").toLowerCase() === selectedItemName.toLowerCase())
   );
   const availableStock = matchingItem ? matchingItem.stock : 0;
 
@@ -157,11 +173,12 @@ export default function IssueStock() {
     if (quantity <= 0) { setErrorMsg("Quantity must be at least 1."); return; }
     if (!department.trim()) { setErrorMsg("Please enter the issuing destination."); return; }
     if (!faculty.trim()) { setErrorMsg("Please enter the faculty name."); return; }
-    if (!matchingItem) { setErrorMsg("This specific item type does not exist in inventory."); return; }
+    if (!matchingItem) { setErrorMsg("This specific item does not exist in inventory."); return; }
     if (quantity > availableStock) { setErrorMsg(`Insufficient stock! Only ${availableStock} units available.`); return; }
 
     const formattedDate = new Date(issueDate).toISOString();
     const res = await issueStockItem({
+      item: matchingItem.item,
       category: matchingItem.category,
       subcategory,
       type: matchingItem.type,
@@ -174,7 +191,7 @@ export default function IssueStock() {
 
     if (res.success) {
       playBeep("issue-success");
-      showFlash("success", "Stock Issued", `${parseInt(quantity, 10)} unit(s) of ${subcategory} disbursed to ${department.trim()} successfully.`);
+      showFlash("success", "Stock Issued", `${parseInt(quantity, 10)} unit(s) of ${matchingItem.item} disbursed to ${department.trim()} successfully.`);
       setQuantity(1); setType(""); setDepartment(""); setFaculty(""); setIssueDate(getCurrentDateTimeString());
       setTimeout(() => { setShowModal(false); }, 800);
     } else {
@@ -353,9 +370,13 @@ export default function IssueStock() {
                   const subcats = Array.from(new Set(regItems.map(item => item.subcategory)));
                   const defaultSub = subcats.length > 0 ? subcats[0] : "";
                   setSubcategory(defaultSub);
+                  const itemsInSub = defaultSub ? Array.from(new Set(regItems.filter(item => (item.subcategory || "").toLowerCase() === defaultSub.toLowerCase()).map(item => item.item))) : [];
+                  const defaultItem = itemsInSub.length > 0 ? itemsInSub[0] : "";
+                  setSelectedItemName(defaultItem);
                   if (defaultSub) {
                     const types = Array.from(new Set(regItems.filter(item =>
-                      (item.subcategory || "").toLowerCase() === defaultSub.toLowerCase()
+                      (item.subcategory || "").toLowerCase() === defaultSub.toLowerCase() &&
+                      (!defaultItem || (item.item || "").toLowerCase() === defaultItem.toLowerCase())
                     ).map(item => item.type)));
                     setType(types.length > 0 ? types[0] : "");
                   } else setType("");
@@ -728,9 +749,12 @@ export default function IssueStock() {
                           const newSubcats = Array.from(new Set(regItems2.map(item => item.subcategory)));
                           const nextSubcat = newSubcats.length > 0 ? newSubcats[0] : "";
                           setSubcategory(nextSubcat);
+                          const newItems = nextSubcat ? Array.from(new Set(regItems2.filter(item => (item.subcategory || "").toLowerCase() === nextSubcat.toLowerCase()).map(item => item.item))) : [];
+                          const nextItem = newItems.length > 0 ? newItems[0] : "";
+                          setSelectedItemName(nextItem);
                           if (nextSubcat) {
                             const newTypes = Array.from(new Set(regItems2
-                              .filter(item => (item.subcategory || "").toLowerCase() === nextSubcat.toLowerCase())
+                              .filter(item => (item.subcategory || "").toLowerCase() === nextSubcat.toLowerCase() && (!nextItem || (item.item || "").toLowerCase() === nextItem.toLowerCase()))
                               .map(item => item.type)));
                             setType(newTypes.length > 0 ? newTypes[0] : "");
                           } else setType("");
@@ -747,8 +771,13 @@ export default function IssueStock() {
                         onChange={(e) => {
                           const newSub = e.target.value;
                           setSubcategory(newSub);
-                          const newTypes = Array.from(new Set(registerItems
+                          const newItems = Array.from(new Set(registerItems
                             .filter(item => (item.subcategory || "").toLowerCase() === newSub.toLowerCase())
+                            .map(item => item.item)));
+                          const nextItem = newItems.length > 0 ? newItems[0] : "";
+                          setSelectedItemName(nextItem);
+                          const newTypes = Array.from(new Set(registerItems
+                            .filter(item => (item.subcategory || "").toLowerCase() === newSub.toLowerCase() && (!nextItem || (item.item || "").toLowerCase() === nextItem.toLowerCase()))
                             .map(item => item.type)));
                           setType(newTypes.length > 0 ? newTypes[0] : "");
                         }}
@@ -760,6 +789,27 @@ export default function IssueStock() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Item Name</label>
+                      <select
+                        value={selectedItemName}
+                        onChange={(e) => {
+                          const newItem = e.target.value;
+                          setSelectedItemName(newItem);
+                          const newTypes = Array.from(new Set(registerItems
+                            .filter(item => (item.subcategory || "").toLowerCase() === (subcategory || "").toLowerCase() && (item.item || "").toLowerCase() === newItem.toLowerCase())
+                            .map(item => item.type)));
+                          setType(newTypes.length > 0 ? newTypes[0] : "");
+                        }}
+                        className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-medium cursor-pointer transition-all"
+                      >
+                        {availableItems.length > 0 ? (
+                          availableItems.map(it => <option key={it} value={it}>{it}</option>)
+                        ) : (
+                          <option value="">No items found</option>
+                        )}
+                      </select>
+                    </div>
                     <div className="relative">
                       <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Type / Specification</label>
                       <input
@@ -786,18 +836,19 @@ export default function IssueStock() {
                         </div>
                       )}
                     </div>
-                    <div>
-                      <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Quantity</label>
-                      <input
-                        type="number" min="1" value={quantity}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === "") setQuantity("");
-                          else { const parsed = parseInt(val, 10); setQuantity(isNaN(parsed) ? "" : parsed); }
-                        }}
-                        className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-bold transition-all"
-                      />
-                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Quantity</label>
+                    <input
+                      type="number" min="1" value={quantity}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "") setQuantity("");
+                        else { const parsed = parseInt(val, 10); setQuantity(isNaN(parsed) ? "" : parsed); }
+                      }}
+                      className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 font-bold transition-all"
+                    />
                   </div>
 
                   {/* Stock Level Banner */}

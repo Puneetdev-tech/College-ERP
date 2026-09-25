@@ -71,7 +71,7 @@ export function StoreProvider({ children }) {
     collegeInfo: {
       name: "Rustamji Institute of Technology",
       logo: "/rjit_logo.png",
-      address: "123 Campus Lane, Okhla, New Delhi",
+      address: "BSF Academy Tekkanpur Gwalior Madhya Pradhesh",
       phone: "+91 11 2690 7400",
       email: "info@rjit.edu.in",
       website: "www.rjit.edu.in"
