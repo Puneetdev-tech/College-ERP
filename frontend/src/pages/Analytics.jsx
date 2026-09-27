@@ -12,42 +12,19 @@ import {
   Legend,
   Sector
 } from "recharts";
-import { FaBoxes, FaTruck, FaChartLine, FaArrowUp, FaStar, FaFire, FaBolt, FaTimes, FaPlay, FaStop } from "react-icons/fa";
+import { FaBoxes, FaTruck, FaChartLine, FaArrowUp, FaStar, FaFire, FaBolt, FaTimes } from "react-icons/fa";
 import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
 import { useStore } from "../context/StoreContext";
 
 // Baseline mappings to carry over initial mock data offsets
-const baseDepartmentData = {
-  CSE: 0, IT: 0, ME: 0, EC: 0,
-  EE: 0, AU: 0, "AI/ML": 0, DS: 0
-};
+const baseDepartmentData = {};
 
 const baseCategoryData = {};
 
 const baseFrequentItems = {};
 
-const DEMO_ISSUED_STOCK = [
-  { id: 1, date: new Date().toISOString(), item: "A4 Sheets", subcategory: "A4 Sheets", category: "Stationary", department: "CSE", faculty: "Dr. Smith", quantity: 50 },
-  { id: 2, date: new Date().toISOString(), item: "Markers", subcategory: "Markers", category: "Stationary", department: "IT", faculty: "Prof. John", quantity: 20 },
-  { id: 3, date: new Date().toISOString(), item: "Mouse", subcategory: "Mouse", category: "Electronics", department: "AI/ML", faculty: "Dr. Alan", quantity: 15 },
-  { id: 4, date: new Date().toISOString(), item: "Office Chair", subcategory: "Chair", category: "Furniture", department: "ME", faculty: "Mr. Dave", quantity: 5 },
-  { id: 5, date: new Date().toISOString(), item: "Printer Ink", subcategory: "Ink", category: "Stationary", department: "CSE", faculty: "Dr. Smith", quantity: 10 },
-  { id: 6, date: new Date().toISOString(), item: "Whiteboard", subcategory: "Board", category: "Stationary", department: "EC", faculty: "Dr. Jane", quantity: 2 },
-  { id: 7, date: new Date().toISOString(), item: "Keyboard", subcategory: "Keyboard", category: "Electronics", department: "IT", faculty: "Prof. John", quantity: 10 },
-  { id: 8, date: new Date().toISOString(), item: "Projector", subcategory: "Projector", category: "Electronics", department: "DS", faculty: "Dr. Lee", quantity: 1 },
-];
 
-const DEMO_INVENTORY = [
-  { id: 1, item: "A4 Sheets", category: "Stationary", stock: 200 },
-  { id: 2, item: "Markers", category: "Stationary", stock: 150 },
-  { id: 3, item: "Mouse", category: "Electronics", stock: 40 },
-  { id: 4, item: "Office Chair", category: "Furniture", stock: 10 },
-  { id: 5, item: "Printer Ink", category: "Stationary", stock: 30 },
-  { id: 6, item: "Whiteboard", category: "Stationary", stock: 5 },
-  { id: 7, item: "Keyboard", category: "Electronics", stock: 25 },
-  { id: 8, item: "Projector", category: "Electronics", stock: 3 },
-];
 
 const DEPARTMENT_COLORS = [
   "url(#gradientStationary)", "url(#gradientHostel)", "url(#gradientSports)",
@@ -201,7 +178,6 @@ export default function Analytics() {
   const { inventory, issuedStock, inventoryCategories, getRegisterForCategory } = useStore();
   const [activeIndex, setActiveIndex] = useState(-1);
   const [selectedDept, setSelectedDept] = useState(null);
-  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const [filterType, setFilterType] = useState("all"); // "all", "week", "month", "prev-month", "year", "custom"
   const [customStart, setCustomStart] = useState("");
@@ -211,8 +187,7 @@ export default function Analytics() {
   const onPieLeave = () => setActiveIndex(-1);
 
   const getFilteredIssuedStock = () => {
-    const dataSource = isDemoMode ? DEMO_ISSUED_STOCK : issuedStock;
-    return dataSource.filter(log => {
+    return issuedStock.filter(log => {
       if (!log.date) return false;
       const logDateStr = log.date.split(" ")[0]; // YYYY-MM-DD
       const logDate = new Date(logDateStr);
@@ -271,15 +246,21 @@ export default function Analytics() {
   const isFiltered = filterType !== "all";
 
   // ─── Dynamic data (all unchanged logic) ────────────────────────────────
-  const departmentData = Object.keys(baseDepartmentData).map((dept) => {
+  // Collect all unique departments from real issued logs + base keys
+  const allDepts = Array.from(new Set([
+    ...Object.keys(baseDepartmentData),
+    ...filteredIssued.map(log => log.department).filter(Boolean)
+  ]));
+
+  const departmentData = allDepts.map((dept) => {
     const baseOffset = isFiltered ? 0 : (baseDepartmentData[dept] || 0);
     const issuedQty = filteredIssued
       .filter((log) => (log.department || "").toLowerCase() === dept.toLowerCase())
       .reduce((sum, log) => sum + log.quantity, 0);
     return { name: dept, value: baseOffset + issuedQty };
-  });
+  }).filter(d => d.value > 0);
 
-  const activeInventory = isDemoMode ? DEMO_INVENTORY : inventory;
+  const activeInventory = inventory;
 
   const categoryData = (inventoryCategories || []).map((catObj) => {
     const cat = catObj.name;
@@ -373,14 +354,6 @@ export default function Analytics() {
             </div>
             
             <div className="flex flex-wrap items-center gap-4">
-              {/* DEMO MODE TOGGLE */}
-              <button
-                onClick={() => setIsDemoMode(!isDemoMode)}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 cursor-pointer ${isDemoMode ? "bg-red-500 text-white shadow-lg shadow-red-500/30" : "bg-slate-200 text-slate-600 hover:bg-slate-300"}`}
-              >
-                {isDemoMode ? <><FaStop /> Stop Demo Mode</> : <><FaPlay /> Start Demo Mode</>}
-              </button>
-
               <div className="flex flex-wrap items-center gap-2">
                 {[
                 { id: "all", label: "All Time" },
