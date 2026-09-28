@@ -156,12 +156,15 @@ export const createIssue = async (req, res, next) => {
       });
     }
 
+    const issueDateObj = issueDate ? new Date(issueDate) : new Date();
+
     await prisma.notification.create({
       data: {
         type:    "Stock Issued",
-        message: `${quantity} × ${subcategory} (${type}) issued to ${department} — Unit cost: ₹${resolvedUnitCost.toLocaleString()}`,
+        message: `${quantity} × ${subcategory} (${type}) issued to ${department} on ${formatDateStr(result.date)} — Unit cost: ₹${resolvedUnitCost.toLocaleString()}`,
         iconType: "issued",
-        color:   "bg-blue-100 text-blue-800"
+        color:   "bg-blue-100 text-blue-800",
+        createdAt: issueDateObj
       }
     });
 
