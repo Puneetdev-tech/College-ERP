@@ -138,8 +138,8 @@ export default function Reports() {
       }
 
       const collegeName = collegeInfo?.name || "Rustamji Institute of Technology";
-      const collegeAddress = collegeInfo?.address || "BSF Academy Tekkanpur Gwalior Madhya Pradhesh";
-      const collegeDetails = `Phone: ${collegeInfo?.phone || "+91 11 2690 7400"} | Email: ${collegeInfo?.email || "info@rjit.edu.in"} | Web: ${collegeInfo?.website || "www.rjit.edu.in"}`;
+      const collegeAddress = collegeInfo?.address || "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh Pincode: 475005";
+      const collegeDetails = `Phone: ${collegeInfo?.phone || "+91-(07524)-274320"} | Email: ${collegeInfo?.email || "rjit_bsft@yahoo.com"} | Web: ${collegeInfo?.website || "www.rjit.ac.in"}`;
 
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Audit Report");
@@ -1270,11 +1270,11 @@ export default function Reports() {
                   )}
                   <div className="text-center md:text-left">
                     <h3 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">{collegeInfo?.name || "Rustamji Institute of Technology"}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-450 mt-0.5">{collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-450 mt-0.5">{collegeInfo?.address || "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh Pincode: 475005"}</p>
                     <div className="flex flex-wrap gap-4 justify-center md:justify-start mt-2 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                      <span>Phone: {collegeInfo?.phone || "+91 11 2690 7400"}</span>
-                      <span>Email: {collegeInfo?.email || "info@rjit.edu.in"}</span>
-                      <span>Web: {collegeInfo?.website || "www.rjit.edu.in"}</span>
+                      <span>Phone: {collegeInfo?.phone || "+91-(07524)-274320"}</span>
+                      <span>Email: {collegeInfo?.email || "rjit_bsft@yahoo.com"}</span>
+                      <span>Web: {collegeInfo?.website || "www.rjit.ac.in"}</span>
                     </div>
                   </div>
                 </div>
@@ -1508,9 +1508,9 @@ export default function Reports() {
             )}
             <div>
               <h1 className="text-2xl font-bold">{collegeInfo?.name || "Rustamji Institute of Technology"}</h1>
-              <p className="text-xs text-slate-500 mt-1">{collegeInfo?.address || "BSF Academy Tekkanpur Gwalior Madhya Pradhesh"}</p>
-              <p className="text-xs text-slate-500">Phone: {collegeInfo?.phone || "+91 11 2690 7400"} | Email: {collegeInfo?.email || "info@rjit.edu.in"}</p>
-              <p className="text-xs text-slate-500">Website: {collegeInfo?.website || "www.rjit.edu.in"}</p>
+              <p className="text-xs text-slate-500 mt-1">{collegeInfo?.address || "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh Pincode: 475005"}</p>
+              <p className="text-xs text-slate-500">Phone: {collegeInfo?.phone || "+91-(07524)-274320"} | Email: {collegeInfo?.email || "rjit_bsft@yahoo.com"}</p>
+              <p className="text-xs text-slate-500">Website: {collegeInfo?.website || "www.rjit.ac.in"}</p>
             </div>
           </div>
 

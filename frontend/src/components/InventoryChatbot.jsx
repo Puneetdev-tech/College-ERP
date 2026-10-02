@@ -17,8 +17,8 @@ async function downloadExcelReport(startDate, endDate, { orders, issuedStock, in
   const filteredOrders = orders.filter(o => isWithinRange(o.orderDate));
 
   const collegeName = systemSettings?.collegeInfo?.name || "Rustamji Institute of Technology";
-  const collegeAddress = systemSettings?.collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi";
-  const collegeDetails = `Phone: ${systemSettings?.collegeInfo?.phone || "+91 11 2690 7400"} | Email: ${systemSettings?.collegeInfo?.email || "info@rjit.edu.in"} | Web: ${systemSettings?.collegeInfo?.website || "www.rjit.edu.in"}`;
+  const collegeAddress = systemSettings?.collegeInfo?.address || "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh Pincode: 475005";
+  const collegeDetails = `Phone: ${systemSettings?.collegeInfo?.phone || "+91-(07524)-274320"} | Email: ${systemSettings?.collegeInfo?.email || "rjit_bsft@yahoo.com"} | Web: ${systemSettings?.collegeInfo?.website || "www.rjit.ac.in"}`;
 
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Audit Report");
@@ -2398,12 +2398,12 @@ export default function InventoryChatbot() {
             )}
             <div className="text-right" style={{ textAlign: "right" }}>
               <h1 className="text-2xl font-bold" style={{ fontSize: "1.5rem", fontWeight: "bold", margin: 0 }}>{systemSettings?.collegeInfo?.name || "Rustamji Institute of Technology"}</h1>
-              <p className="text-xs text-slate-500" style={{ fontSize: "0.75rem", color: "#64748b", margin: "0.125rem 0 0 0" }}>{systemSettings?.collegeInfo?.address || "123 Campus Lane, Okhla, New Delhi"}</p>
+              <p className="text-xs text-slate-500" style={{ fontSize: "0.75rem", color: "#64748b", margin: "0.125rem 0 0 0" }}>{systemSettings?.collegeInfo?.address || "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh Pincode: 475005"}</p>
               <p className="text-xs text-slate-500" style={{ fontSize: "0.75rem", color: "#64748b", margin: "0.125rem 0 0 0" }}>
-                Phone: {systemSettings?.collegeInfo?.phone || "+91 11 2690 7400"} | Email: {systemSettings?.collegeInfo?.email || "info@rjit.edu.in"}
+                Phone: {systemSettings?.collegeInfo?.phone || "+91-(07524)-274320"} | Email: {systemSettings?.collegeInfo?.email || "rjit_bsft@yahoo.com"}
               </p>
               <p className="text-xs text-slate-500" style={{ fontSize: "0.75rem", color: "#64748b", margin: "0.125rem 0 0 0" }}>
-                Website: {systemSettings?.collegeInfo?.website || "www.rjit.edu.in"}
+                Website: {systemSettings?.collegeInfo?.website || "www.rjit.ac.in"}
               </p>
             </div>
           </div>

@@ -71,10 +71,10 @@ export function StoreProvider({ children }) {
     collegeInfo: {
       name: "Rustamji Institute of Technology",
       logo: "/rjit_logo.png",
-      address: "BSF Academy Tekkanpur Gwalior Madhya Pradhesh",
-      phone: "+91 11 2690 7400",
-      email: "info@rjit.edu.in",
-      website: "www.rjit.edu.in"
+      address: "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh Pincode: 475005",
+      phone: "+91-(07524)-274320",
+      email: "rjit_bsft@yahoo.com",
+      website: "www.rjit.ac.in"
     }
   });
 
@@ -138,7 +138,31 @@ export function StoreProvider({ children }) {
   const fetchSettings = async () => {
     const res = await apiFetch("/settings");
     if (res && res.success && res.settings) {
-      const updatedSettings = { ...res.settings, theme: "light" };
+      const s = res.settings;
+      const rawAddress = s.collegeInfo?.address || s.collegeAddress;
+      const rawPhone = s.collegeInfo?.phone || s.collegePhone;
+      const rawEmail = s.collegeInfo?.email || s.collegeEmail;
+      
+      const normalizedCollegeInfo = {
+        name: s.collegeInfo?.name || s.collegeName || "Rustamji Institute of Technology",
+        logo: s.collegeInfo?.logo || s.collegeLogo || "/rjit_logo.png",
+        address: (!rawAddress || rawAddress.includes("Okhla") || !rawAddress.includes("475005"))
+          ? "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh Pincode: 475005"
+          : rawAddress,
+        phone: (!rawPhone || rawPhone.includes("2690 7400"))
+          ? "+91-(07524)-274320"
+          : rawPhone,
+        email: (!rawEmail || rawEmail.includes("info@rjit.edu.in"))
+          ? "rjit_bsft@yahoo.com"
+          : rawEmail,
+        website: s.collegeInfo?.website || s.collegeWebsite || "www.rjit.ac.in"
+      };
+
+      const updatedSettings = {
+        ...s,
+        collegeInfo: normalizedCollegeInfo,
+        theme: "light"
+      };
       setSystemSettings(updatedSettings);
     }
   };

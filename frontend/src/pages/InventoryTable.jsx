@@ -305,7 +305,8 @@ export default function InventoryTable() {
         {/* Print-only layout header */}
         <div className="hidden print:flex flex-col items-center justify-center mb-8 border-b-2 border-slate-300 pb-4 text-center">
           <h1 className="text-3xl font-bold">{systemSettings?.collegeInfo?.name || "Rustamji Institute of Technology"}</h1>
-          <p className="text-sm text-slate-600 mt-1">{systemSettings?.collegeInfo?.address || "BSF Academy Tekkanpur Gwalior Madhya Pradhesh"}</p>
+          <p className="text-sm text-slate-600 mt-1">{systemSettings?.collegeInfo?.address || "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh Pincode: 475005"}</p>
+          <p className="text-xs text-slate-500">Phone: {systemSettings?.collegeInfo?.phone || "+91-(07524)-274320"} | Email: {systemSettings?.collegeInfo?.email || "rjit_bsft@yahoo.com"} | Web: {systemSettings?.collegeInfo?.website || "www.rjit.ac.in"}</p>
           <div className="mt-4">
             <h2 className="text-xl font-bold text-slate-800">Master Inventory Ledger</h2>
             <p className="text-xs text-slate-500">Date: {new Date().toLocaleDateString()}</p>

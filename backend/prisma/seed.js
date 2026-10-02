@@ -122,10 +122,10 @@ async function main() {
       lowStockThreshold: 10,
       collegeName: "Rustamji Institute of Technology",
       collegeLogo: "/rjit_logo.png",
-      collegeAddress: "123 Campus Lane, Okhla, New Delhi",
-      collegePhone: "+91 11 2690 7400",
-      collegeEmail: "info@rjit.edu.in",
-      collegeWebsite: "www.rjit.edu.in"
+      collegeAddress: "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh Pincode: 475005",
+      collegePhone: "+91-(07524)-274320",
+      collegeEmail: "rjit_bsft@yahoo.com",
+      collegeWebsite: "www.rjit.ac.in"
     }
   });
   console.log("Seeded system settings.");

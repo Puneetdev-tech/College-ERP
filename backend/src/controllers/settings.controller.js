@@ -40,10 +40,28 @@ export const getSettings = async (req, res, next) => {
           lowStockThreshold: 10,
           collegeName: "Rustamji Institute of Technology",
           collegeLogo: "/rjit_logo.png",
-          collegeAddress: "123 Campus Lane, Okhla, New Delhi",
-          collegePhone: "+91 11 2690 7400",
-          collegeEmail: "info@rjit.edu.in",
-          collegeWebsite: "www.rjit.edu.in"
+          collegeAddress: "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh Pincode: 475005",
+          collegePhone: "+91-(07524)-274320",
+          collegeEmail: "rjit_bsft@yahoo.com",
+          collegeWebsite: "www.rjit.ac.in"
+        }
+      });
+    } else if (
+      !settings.collegePhone ||
+      settings.collegePhone.includes("2690 7400") ||
+      !settings.collegeAddress ||
+      settings.collegeAddress.includes("Okhla") ||
+      !settings.collegeAddress.includes("475005") ||
+      settings.collegeEmail === "info@rjit.edu.in"
+    ) {
+      // Migrate legacy placeholder data to official institution details
+      settings = await prisma.systemSettings.update({
+        where: { id: 1 },
+        data: {
+          collegeAddress: "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh Pincode: 475005",
+          collegePhone: "+91-(07524)-274320",
+          collegeEmail: "rjit_bsft@yahoo.com",
+          collegeWebsite: "www.rjit.ac.in"
         }
       });
     }
