@@ -15,7 +15,10 @@ import {
   FaFilePdf,
   FaChevronDown,
   FaChevronRight,
-  FaTimes
+  FaTimes,
+  FaSearch,
+  FaLayerGroup,
+  FaTag
 } from "react-icons/fa";
 import { useStore } from "../context/StoreContext";
 import Sidebar from "../components/sidebar";
@@ -38,10 +41,12 @@ export default function Reports() {
   const [expandedDepartment, setExpandedDepartment] = useState(null);
 
   // Configuration options
-  const [selectedDepartment, setSelectedDepartment] = useState("IT,CSE");
-  const [selectedCategory, setSelectedCategory] = useState("Electronics");
-  const [startDate, setStartDate] = useState("2026-06-01");
-  const [endDate, setEndDate] = useState("2026-06-30");
+  const [selectedDepartment, setSelectedDepartment] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedItem, setSelectedItem] = useState("all");
+  const [itemSearchQuery, setItemSearchQuery] = useState("");
+  const [startDate, setStartDate] = useState("2020-02-01");
+  const [endDate, setEndDate] = useState("2020-02-29");
 
   // Dual report type checkboxes
   const [includeIssued, setIncludeIssued] = useState(true);
@@ -52,6 +57,9 @@ export default function Reports() {
   const [toastMessage, setToastMessage] = useState("");
 
   const getIssuedItemPrice = (log) => {
+    if (log.unitCost !== undefined && log.unitCost !== null && !isNaN(Number(log.unitCost)) && Number(log.unitCost) > 0) {
+      return Number(log.unitCost);
+    }
     const invItem = inventory.find(item => 
       (item.category || "").toLowerCase() === (log.category || "").toLowerCase() &&
       (item.subcategory || "").toLowerCase() === (log.subcategory || "").toLowerCase() &&
@@ -64,15 +72,20 @@ export default function Reports() {
     setDatePreset(preset);
     if (preset === "custom") return;
 
-    // Standard relative today: 2026-06-10 (from current local time metadata)
-    const today = new Date("2026-06-10");
+    if (preset === "single") {
+      setEndDate(startDate);
+      return;
+    }
+
+    const today = new Date();
     let start = "";
     let end = "";
 
     if (preset === "weekly") {
       const day = today.getDay();
       const diffToMonday = today.getDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(today.setDate(diffToMonday));
+      const monday = new Date(today);
+      monday.setDate(diffToMonday);
       
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
@@ -387,8 +400,21 @@ export default function Reports() {
     }
   };
 
-  // Unique categories in inventory
-  const categories = Array.from(new Set(inventory.map((item) => item.category)));
+  // Distinct lists from store
+  const departmentsList = Array.from(new Set(
+    issuedStock.map(log => log.department).filter(Boolean)
+  )).sort();
+
+  const categories = Array.from(new Set([
+    ...inventory.map(item => item.category),
+    ...issuedStock.map(log => log.category),
+    ...inventoryCategories.map(c => c.name)
+  ].filter(Boolean))).sort();
+
+  const itemsList = Array.from(new Set([
+    ...issuedStock.map(log => log.subcategory || log.item),
+    ...inventory.map(item => item.subcategory || item.item)
+  ].filter(Boolean))).sort();
 
   // Helper date matching function
   const isWithinRange = (dateStr) => {
@@ -398,23 +424,69 @@ export default function Reports() {
   };
 
   // 1. FILTER ISSUED STOCK LOGS
-  const filteredIssued = issuedStock.filter((log) => {
-    if (!isWithinRange(log.date)) return false;
-    if (activeReportType === "department" && log.department !== selectedDepartment) return false;
-    if (activeReportType === "category" && (log.category || "").toLowerCase() !== (selectedCategory || "").toLowerCase()) return false;
-    return true;
-  });
+  const filteredIssued = issuedStock
+    .filter((log) => {
+      if (!isWithinRange(log.date)) return false;
+
+      // Department filter
+      if (selectedDepartment && selectedDepartment !== "all") {
+        if ((log.department || "").trim().toLowerCase() !== selectedDepartment.trim().toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Category filter
+      if (selectedCategory && selectedCategory !== "all") {
+        const logCat = (log.category || "").trim().toLowerCase();
+        const selCat = selectedCategory.trim().toLowerCase();
+        if (logCat !== selCat && getRegisterForCategory(logCat).toLowerCase() !== selCat) {
+          return false;
+        }
+      }
+
+      // Item filter (dropdown or search)
+      const activeSearch = (selectedItem !== "all" ? selectedItem : itemSearchQuery).trim().toLowerCase();
+      if (activeSearch) {
+        const logItem = (log.item || "").toLowerCase();
+        const logSub = (log.subcategory || "").toLowerCase();
+        const logType = (log.type || "").toLowerCase();
+        if (!logItem.includes(activeSearch) && !logSub.includes(activeSearch) && !logType.includes(activeSearch)) {
+          return false;
+        }
+      }
+
+      return true;
+    })
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
   // 2. FILTER PURCHASE ORDERS
   const filteredOrders = orders.filter((order) => {
     if (!isWithinRange(order.orderDate)) return false;
-    if (activeReportType === "category" && (order.category || "").toLowerCase() !== (selectedCategory || "").toLowerCase()) return false;
-    if (activeReportType === "department") {
-      const regName = getRegisterForCategory(order.category);
-      if (regName.toLowerCase() !== selectedDepartment.toLowerCase()) {
+
+    if (selectedCategory && selectedCategory !== "all") {
+      const orderCat = (order.category || "").toLowerCase();
+      const selCat = selectedCategory.toLowerCase();
+      if (orderCat !== selCat && getRegisterForCategory(orderCat).toLowerCase() !== selCat) {
         return false;
       }
     }
+
+    if (selectedDepartment && selectedDepartment !== "all") {
+      const regName = getRegisterForCategory(order.category);
+      if (regName.toLowerCase() !== selectedDepartment.toLowerCase() && (order.department || "").toLowerCase() !== selectedDepartment.toLowerCase()) {
+        return false;
+      }
+    }
+
+    const activeSearch = (selectedItem !== "all" ? selectedItem : itemSearchQuery).trim().toLowerCase();
+    if (activeSearch) {
+      const oItem = (order.item || "").toLowerCase();
+      const oSub = (order.subcategory || "").toLowerCase();
+      if (!oItem.includes(activeSearch) && !oSub.includes(activeSearch)) {
+        return false;
+      }
+    }
+
     return true;
   });
 
@@ -464,22 +536,18 @@ export default function Reports() {
 
   const itemsRemaining = filteredInventory.reduce((sum, item) => sum + getStockAtEndDate(item), 0);
   const totalInventoryAmountRemaining = filteredInventory.reduce((sum, item) => sum + (getStockAtEndDate(item) * item.price), 0);
-
-  const departmentsList = inventoryCategories.map(c => c.name);
   
-  const departmentIssuesSummary = departmentsList.map(dept => {
-    const deptLogs = filteredIssued.filter(log => {
-      const logReg = getRegisterForCategory(log.category || log.department);
-      return logReg.toLowerCase() === dept.toLowerCase();
-    });
+  const departmentIssuesSummary = departmentsList.map((deptName) => {
+    const deptLogs = filteredIssued.filter(log => (log.department || "").trim().toLowerCase() === deptName.trim().toLowerCase());
     const qty = deptLogs.reduce((sum, log) => sum + log.quantity, 0);
     const amount = deptLogs.reduce((sum, log) => sum + (log.quantity * getIssuedItemPrice(log)), 0);
     return {
-      name: dept,
+      name: deptName,
       qty,
-      amount
+      amount,
+      logs: deptLogs
     };
-  });
+  }).filter(d => d.qty > 0 || (selectedDepartment !== "all" && d.name.toLowerCase() === selectedDepartment.toLowerCase()));
 
   const reportCards = [
     {
@@ -596,72 +664,193 @@ export default function Reports() {
             {/* Inputs & Parameters Panel */}
             <div className="space-y-6 mb-8">
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                {/* Dynamic Parameter Dropdown */}
-                {activeReportType === "department" && (
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Target Department</label>
-                    <select
-                      value={selectedDepartment}
-                      onChange={(e) => setSelectedDepartment(e.target.value)}
-                      className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer"
-                    >
-                      {departmentsList.map((dept) => (
-                        <option key={dept} value={dept}>{dept}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {activeReportType === "category" && (
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Asset Category</label>
-                    <select
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer"
-                    >
-                      {categories.map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Universal Preset selector */}
-                <div className="col-span-1 md:col-span-2">
-                  <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Report Period</label>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                {/* Department Dropdown */}
+                <div>
+                  <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">
+                    Target Department
+                  </label>
                   <select
-                    value={datePreset}
-                    onChange={(e) => handlePresetChange(e.target.value)}
-                    className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer text-slate-700 dark:text-slate-200"
+                    value={selectedDepartment}
+                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                    className="w-full border border-slate-200 p-3 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer text-sm"
                   >
-                    <option value="weekly">Weekly Report</option>
-                    <option value="monthly">Monthly Report</option>
-                    <option value="yearly">Yearly Report</option>
-                    <option value="custom">Custom Date Range</option>
+                    <option value="all">All Departments ({departmentsList.length})</option>
+                    {departmentsList.map((dept) => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
                   </select>
                 </div>
 
-                {/* Date Filters */}
+                {/* Category Dropdown */}
                 <div>
-                  <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">Start Date</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700 dark:text-slate-200"
-                  />
+                  <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">
+                    Asset Category
+                  </label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full border border-slate-200 p-3 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer text-sm"
+                  >
+                    <option value="all">All Categories ({categories.length})</option>
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
 
+                {/* Item / Subcategory Dropdown */}
                 <div>
-                  <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">End Date</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full border border-slate-200 p-3.5 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700 dark:text-slate-200"
-                  />
+                  <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">
+                    Item / Subcategory
+                  </label>
+                  <select
+                    value={selectedItem}
+                    onChange={(e) => {
+                      setSelectedItem(e.target.value);
+                      if (e.target.value !== "all") setItemSearchQuery("");
+                    }}
+                    className="w-full border border-slate-200 p-3 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer text-sm"
+                  >
+                    <option value="all">All Items ({itemsList.length})</option>
+                    {itemsList.map((item) => (
+                      <option key={item} value={item}>{item}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Item Keyword Search */}
+                <div>
+                  <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">
+                    Search Keyword
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="e.g. Phynil, Cleaning..."
+                      value={itemSearchQuery}
+                      onChange={(e) => {
+                        setItemSearchQuery(e.target.value);
+                        if (e.target.value) setSelectedItem("all");
+                      }}
+                      className="w-full border border-slate-200 p-3 pl-9 pr-8 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm text-slate-700"
+                    />
+                    <FaSearch className="absolute left-3 top-3.5 text-slate-400 text-xs" />
+                    {itemSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setItemSearchQuery("")}
+                        className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Date Filters Row */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                {/* Date Preset Selector */}
+                <div>
+                  <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">
+                    Date Mode / Preset
+                  </label>
+                  <select
+                    value={datePreset}
+                    onChange={(e) => handlePresetChange(e.target.value)}
+                    className="w-full border border-slate-200 p-3 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer text-slate-700 text-sm"
+                  >
+                    <option value="custom">Custom Date Range</option>
+                    <option value="single">Single Day (Exact Date)</option>
+                    <option value="monthly">Current Month</option>
+                    <option value="weekly">Current Week</option>
+                    <option value="yearly">Current Year</option>
+                  </select>
+                </div>
+
+                {datePreset === "single" ? (
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">
+                      Specific Date (e.g. 2020-02-26)
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        setEndDate(e.target.value);
+                      }}
+                      className="w-full border border-slate-200 p-3 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700 text-sm"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">
+                        Start Date
+                      </label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => {
+                          setStartDate(e.target.value);
+                          setDatePreset("custom");
+                        }}
+                        className="w-full border border-slate-200 p-3 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-500 font-bold text-xs mb-2 uppercase tracking-wider">
+                        End Date
+                      </label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => {
+                          setEndDate(e.target.value);
+                          setDatePreset("custom");
+                        }}
+                        className="w-full border border-slate-200 p-3 rounded-2xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-slate-700 text-sm"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Quick Date Presets */}
+                <div className="col-span-1 md:col-span-4 flex flex-wrap items-center gap-2 pt-1">
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mr-1">
+                    Quick Pick:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setStartDate("2020-02-01"); setEndDate("2020-02-29"); setDatePreset("custom"); }}
+                    className="px-3 py-1.5 text-xs font-bold rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 transition cursor-pointer"
+                  >
+                    Full Month Feb 2020
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setStartDate("2020-02-26"); setEndDate("2020-02-26"); setDatePreset("single"); }}
+                    className="px-3 py-1.5 text-xs font-bold rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 transition cursor-pointer"
+                  >
+                    26 Feb 2020 (Single Day)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setStartDate("2020-03-01"); setEndDate("2020-03-31"); setDatePreset("custom"); }}
+                    className="px-3 py-1.5 text-xs font-bold rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 transition cursor-pointer"
+                  >
+                    Full Month Mar 2020
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setStartDate("2020-01-01"); setEndDate("2026-12-31"); setDatePreset("custom"); }}
+                    className="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer"
+                  >
+                    All Records (2020–2026)
+                  </button>
                 </div>
               </div>
 
@@ -697,7 +886,13 @@ export default function Reports() {
                     <button
                       disabled={loading}
                       onClick={() => triggerDownload(
-                        activeReportType === "department" ? selectedDepartment : activeReportType === "category" ? selectedCategory : `${startDate} to ${endDate}`
+                        (selectedItem !== "all" || itemSearchQuery)
+                          ? `${(selectedItem !== "all" ? selectedItem : itemSearchQuery)} Item Report`
+                          : activeReportType === "department"
+                          ? (selectedDepartment === "all" ? "All Departments Report" : `${selectedDepartment} Department`)
+                          : activeReportType === "category"
+                          ? (selectedCategory === "all" ? "All Categories Report" : `${selectedCategory} Category`)
+                          : `${startDate} to ${endDate}`
                       )}
                       className="bg-blue-600 hover:bg-blue-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-500/10 active:scale-95 transition disabled:opacity-50 text-xs"
                     >
@@ -838,10 +1033,7 @@ export default function Reports() {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
                           {departmentIssuesSummary.map((dept, idx) => {
                             const isExpanded = expandedDepartment === dept.name;
-                            const deptLogs = filteredIssued.filter(log => {
-                               const logReg = getRegisterForCategory(log.category || log.department);
-                               return logReg.toLowerCase() === dept.name.toLowerCase();
-                             });
+                            const deptLogs = dept.logs || filteredIssued.filter(log => (log.department || "").trim().toLowerCase() === dept.name.trim().toLowerCase());
 
                             return (
                               <React.Fragment key={idx}>
@@ -1115,11 +1307,50 @@ export default function Reports() {
 
               {/* 1. DISBURSED LOGS PREVIEW */}
               {includeIssued && (
-                <div className="bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl border border-slate-150 dark:border-slate-800/80 p-5 shadow-sm">
-                  <div className="flex items-center justify-between mb-3.5">
+                <div className="bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl border border-slate-150 dark:border-slate-800/80 p-5 shadow-sm space-y-4">
+                  
+                  {/* Active Filter Scope Summary Card */}
+                  <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-indigo-150 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-sm">
+                        <FaLayerGroup className="text-sm" />
+                      </div>
+                      <div>
+                        <h5 className="font-extrabold text-sm text-slate-800">
+                          {(selectedItem !== "all" || itemSearchQuery) ? (
+                            <span>Item Report: <span className="text-indigo-600 font-black">"{selectedItem !== "all" ? selectedItem : itemSearchQuery}"</span></span>
+                          ) : selectedDepartment !== "all" ? (
+                            <span>Department Report: <span className="text-indigo-600 font-black">"{selectedDepartment}"</span></span>
+                          ) : selectedCategory !== "all" ? (
+                            <span>Category Report: <span className="text-indigo-600 font-black">"{selectedCategory}"</span></span>
+                          ) : (
+                            <span>Stock Disbursement Ledger</span>
+                          )}
+                        </h5>
+                        <p className="text-xs text-slate-500 font-medium">
+                          Period: <span className="font-bold text-slate-700">{startDate === endDate ? `Exact Date ${startDate}` : `${startDate} to ${endDate}`}</span>
+                          {selectedDepartment !== "all" && <> • Dept: <span className="font-bold text-slate-700">{selectedDepartment}</span></>}
+                          {selectedCategory !== "all" && <> • Cat: <span className="font-bold text-slate-700">{selectedCategory}</span></>}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-right">
+                      <div className="bg-white/80 border border-indigo-100 px-3.5 py-1.5 rounded-xl shadow-xs">
+                        <span className="block text-[10px] font-bold text-slate-400 uppercase">Filtered Units</span>
+                        <span className="text-base font-black text-indigo-700">{totalIssuedQty} units</span>
+                      </div>
+                      <div className="bg-white/80 border border-indigo-100 px-3.5 py-1.5 rounded-xl shadow-xs">
+                        <span className="block text-[10px] font-bold text-slate-400 uppercase">Total Value</span>
+                        <span className="text-base font-black text-emerald-700">₹{totalIssuedAmount.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-1">
                     <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
-                      <span>Stock Disbursement Ledger ({filteredIssued.length} transaction logs)</span>
+                      <span>Disbursed Transactions ({filteredIssued.length} records)</span>
                     </h4>
                   </div>
 
@@ -1130,29 +1361,37 @@ export default function Reports() {
                           <th className="p-3.5 text-left text-xs font-bold text-slate-500 dark:text-slate-450 uppercase">Item Details</th>
                           <th className="p-3.5 text-left text-xs font-bold text-slate-500 dark:text-slate-450 uppercase">Category</th>
                           <th className="p-3.5 text-left text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">Department</th>
-                          <th className="p-3.5 text-left text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">Faculty</th>
-                          <th className="p-3.5 text-left text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">Qty</th>
+                          <th className="p-3.5 text-left text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">Faculty / Staff</th>
+                          <th className="p-3.5 text-center text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">Qty</th>
+                          <th className="p-3.5 text-right text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">Unit Cost</th>
+                          <th className="p-3.5 text-right text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">Total Cost</th>
                           <th className="p-3.5 text-left text-xs font-bold text-slate-500 dark:text-slate-455 uppercase">Issue Date</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
                         {filteredIssued.length > 0 ? (
-                          filteredIssued.map((log) => (
-                            <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                              <td className="p-3.5 text-sm font-semibold text-slate-700 dark:text-slate-350">
-                                {log.item} <span className="text-xs text-slate-400 font-normal">({log.type})</span>
-                              </td>
-                              <td className="p-3.5 text-sm text-slate-600 dark:text-slate-400">{log.category}</td>
-                              <td className="p-3.5 text-sm text-slate-600 dark:text-slate-400">{log.department}</td>
-                              <td className="p-3.5 text-sm text-slate-600 dark:text-slate-400">{log.faculty}</td>
-                              <td className="p-3.5 text-sm font-black text-slate-800 dark:text-white">{log.quantity}</td>
-                              <td className="p-3.5 text-xs text-slate-500">{log.date}</td>
-                            </tr>
-                          ))
+                          filteredIssued.map((log) => {
+                            const uCost = Number(log.unitCost || getIssuedItemPrice(log)) || 0;
+                            const tCost = Number(log.quantity) * uCost;
+                            return (
+                              <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                                <td className="p-3.5 text-sm font-semibold text-slate-700 dark:text-slate-350">
+                                  {log.item} <span className="text-xs text-slate-400 font-normal">({log.type})</span>
+                                </td>
+                                <td className="p-3.5 text-sm text-slate-600 dark:text-slate-400">{log.category}</td>
+                                <td className="p-3.5 text-sm font-bold text-indigo-700 dark:text-indigo-400">{log.department}</td>
+                                <td className="p-3.5 text-sm text-slate-600 dark:text-slate-400">{log.faculty}</td>
+                                <td className="p-3.5 text-sm font-black text-center text-slate-800 dark:text-white">{log.quantity}</td>
+                                <td className="p-3.5 text-sm text-right text-slate-600 dark:text-slate-400">₹{uCost.toLocaleString()}</td>
+                                <td className="p-3.5 text-sm text-right font-black text-emerald-700 dark:text-emerald-400">₹{tCost.toLocaleString()}</td>
+                                <td className="p-3.5 text-xs text-slate-500 font-mono font-medium">{log.date}</td>
+                              </tr>
+                            );
+                          })
                         ) : (
                           <tr>
-                            <td colSpan="6" className="p-8 text-center text-sm text-slate-400 font-medium bg-white dark:bg-slate-950">
-                              No disbursed assets found in this configuration range.
+                            <td colSpan="8" className="p-8 text-center text-sm text-slate-400 font-medium bg-white dark:bg-slate-950">
+                              No disbursed assets found matching the selected filters.
                             </td>
                           </tr>
                         )}
@@ -1278,16 +1517,19 @@ export default function Reports() {
           {/* Title and Date Range */}
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold uppercase tracking-wider text-slate-800">
-              {activeReportType === "department" 
-                ? `${selectedDepartment} Department Report` 
+              {(selectedItem !== "all" || itemSearchQuery) 
+                ? `${selectedItem !== "all" ? selectedItem : itemSearchQuery} Item Disbursement Report` 
+                : activeReportType === "department" 
+                ? (selectedDepartment === "all" ? "All Departments Report" : `${selectedDepartment} Department Report`) 
                 : activeReportType === "category" 
-                ? `${selectedCategory} Category Report` 
-                : activeReportType === "detail" 
-                ? "Detail Report" 
-                : "Report"}
+                ? (selectedCategory === "all" ? "All Categories Report" : `${selectedCategory} Category Report`) 
+                : "Detail Report"}
             </h2>
             <p className="text-sm text-slate-500 mt-1">
-              Date Range: {startDate} to {endDate}
+              Date Range: {startDate === endDate ? `Exact Date: ${startDate}` : `${startDate} to ${endDate}`}
+              {(selectedItem !== "all" || itemSearchQuery) && ` | Item: ${selectedItem !== "all" ? selectedItem : itemSearchQuery}`}
+              {selectedDepartment !== "all" && ` | Dept: ${selectedDepartment}`}
+              {selectedCategory !== "all" && ` | Category: ${selectedCategory}`}
             </p>
           </div>
 
@@ -1324,25 +1566,33 @@ export default function Reports() {
                     <th className="p-2 border border-slate-200 font-bold uppercase">Category</th>
                     <th className="p-2 border border-slate-200 font-bold uppercase">Department</th>
                     <th className="p-2 border border-slate-200 font-bold uppercase">Faculty</th>
-                    <th className="p-2 border border-slate-200 font-bold uppercase">Qty</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase text-center">Qty</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase text-right">Unit Cost</th>
+                    <th className="p-2 border border-slate-200 font-bold uppercase text-right">Total Cost</th>
                     <th className="p-2 border border-slate-200 font-bold uppercase">Issue Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredIssued.length > 0 ? (
-                    filteredIssued.map((log) => (
-                      <tr key={log.id} className="border-b border-slate-200">
-                        <td className="p-2 border border-slate-200 font-semibold">{log.item} ({log.type})</td>
-                        <td className="p-2 border border-slate-200">{log.category}</td>
-                        <td className="p-2 border border-slate-200">{log.department}</td>
-                        <td className="p-2 border border-slate-200">{log.faculty}</td>
-                        <td className="p-2 border border-slate-200 font-bold">{log.quantity}</td>
-                        <td className="p-2 border border-slate-200">{log.date}</td>
-                      </tr>
-                    ))
+                    filteredIssued.map((log) => {
+                      const uCost = Number(log.unitCost || getIssuedItemPrice(log)) || 0;
+                      const tCost = Number(log.quantity) * uCost;
+                      return (
+                        <tr key={log.id} className="border-b border-slate-200">
+                          <td className="p-2 border border-slate-200 font-semibold">{log.item} ({log.type})</td>
+                          <td className="p-2 border border-slate-200">{log.category}</td>
+                          <td className="p-2 border border-slate-200">{log.department}</td>
+                          <td className="p-2 border border-slate-200">{log.faculty}</td>
+                          <td className="p-2 border border-slate-200 font-bold text-center">{log.quantity}</td>
+                          <td className="p-2 border border-slate-200 text-right">₹{uCost.toLocaleString()}</td>
+                          <td className="p-2 border border-slate-200 font-bold text-right">₹{tCost.toLocaleString()}</td>
+                          <td className="p-2 border border-slate-200">{log.date}</td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
-                      <td colSpan="6" className="p-4 text-center text-slate-400 italic">
+                      <td colSpan="8" className="p-4 text-center text-slate-400 italic">
                         No disbursed assets found in this configuration range.
                       </td>
                     </tr>
