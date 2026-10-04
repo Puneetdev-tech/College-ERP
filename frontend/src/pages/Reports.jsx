@@ -69,6 +69,7 @@ export default function Reports() {
 
   const inRange = (dateStr) => {
     if (!dateStr) return false;
+    if (dateMode === "all") return true;
     const d = dateStr.slice(0, 10);
     if (dateMode === "single") {
       return singleDate ? d === singleDate : true;
@@ -77,6 +78,9 @@ export default function Reports() {
   };
 
   const getPeriodLabel = () => {
+    if (dateMode === "all") {
+      return "All Time (All Records)";
+    }
     if (dateMode === "single") {
       return singleDate ? `Date: ${singleDate}` : "All Records";
     }
@@ -367,8 +371,8 @@ export default function Reports() {
 
   const activeCard = reportCards.find(c => c.type === activeReport);
 
-  // ── Sub-components ──────────────────────────────────────────────────────────
-  const CollegeHeader = () => (
+  // ── Sub-components & Render helpers ─────────────────────────────────────────
+  const renderCollegeHeader = () => (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4
                     bg-slate-50 border border-slate-200 rounded-xl mb-4">
       <div className="flex items-center gap-3 min-w-0">
@@ -401,7 +405,7 @@ export default function Reports() {
     </div>
   );
 
-  const StatChips = ({ chips }) => (
+  const renderStatChips = (chips) => (
     <div className="flex flex-wrap gap-2 mb-5">
       {chips.map(c => (
         <div key={c.label}
@@ -413,7 +417,7 @@ export default function Reports() {
     </div>
   );
 
-  const DateBar = ({ accentColor = "blue" }) => {
+  const renderDateBar = (accentColor = "blue") => {
     const ringClass =
       accentColor === "amber"   ? "focus:ring-amber-400" :
       accentColor === "emerald" ? "focus:ring-emerald-400" :
@@ -424,14 +428,18 @@ export default function Reports() {
                                   "bg-blue-600 text-white shadow-xs";
 
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-2">
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Date Filter</label>
-          <div className="inline-flex bg-slate-200/80 p-0.5 rounded-lg text-[10px] font-bold">
+          <div className="inline-flex bg-slate-200/90 p-0.5 rounded-lg text-[10px] font-bold shadow-inner">
             <button
               type="button"
-              onClick={() => setDateMode("range")}
-              className={`px-2 py-0.5 rounded-md cursor-pointer transition ${
+              onClick={() => {
+                setDateMode("range");
+                if (!startDate) setStartDate("2020-02-01");
+                if (!endDate) setEndDate("2020-02-29");
+              }}
+              className={`px-2.5 py-1 rounded-md cursor-pointer transition ${
                 dateMode === "range" ? activeChipClass : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -439,35 +447,30 @@ export default function Reports() {
             </button>
             <button
               type="button"
-              onClick={() => setDateMode("single")}
-              className={`px-2 py-0.5 rounded-md cursor-pointer transition ${
+              onClick={() => {
+                setDateMode("single");
+                if (!singleDate) setSingleDate("2020-02-28");
+              }}
+              className={`px-2.5 py-1 rounded-md cursor-pointer transition ${
                 dateMode === "single" ? activeChipClass : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              Specific Day
+              Specific Date
             </button>
-          </div>
-          {(startDate || endDate || singleDate) && (
             <button
               type="button"
-              onClick={() => {
-                if (dateMode === "range") {
-                  setStartDate("");
-                  setEndDate("");
-                } else {
-                  setSingleDate("");
-                }
-              }}
-              className="text-[10px] text-slate-400 hover:text-slate-600 underline ml-auto cursor-pointer"
-              title="Show all records without date filter"
+              onClick={() => setDateMode("all")}
+              className={`px-2.5 py-1 rounded-md cursor-pointer transition ${
+                dateMode === "all" ? activeChipClass : "text-slate-600 hover:text-slate-900"
+              }`}
             >
               All Time
             </button>
-          )}
+          </div>
         </div>
 
-        {dateMode === "range" ? (
-          <div className="flex items-center gap-2">
+        {dateMode === "range" && (
+          <div className="flex items-center gap-2 mt-0.5">
             <input
               type="date"
               value={startDate}
@@ -484,8 +487,10 @@ export default function Reports() {
                          focus:outline-none focus:ring-2 ${ringClass} bg-white`}
             />
           </div>
-        ) : (
-          <div className="flex items-center gap-2">
+        )}
+
+        {dateMode === "single" && (
+          <div className="flex items-center gap-2 mt-0.5">
             <input
               type="date"
               value={singleDate}
@@ -493,14 +498,24 @@ export default function Reports() {
               className={`border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700
                          focus:outline-none focus:ring-2 ${ringClass} bg-white w-44`}
             />
-            <span className="text-[11px] text-slate-400 font-medium">Single Day</span>
+            <span className="text-[11px] text-slate-500 font-semibold bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+              Specific Date
+            </span>
+          </div>
+        )}
+
+        {dateMode === "all" && (
+          <div className="flex items-center gap-1.5 mt-0.5 py-0.5">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+              <FaCheckCircle className="text-xs" /> Showing All Historical Records
+            </span>
           </div>
         )}
       </div>
     );
   };
 
-  const FilterBar = ({ onExport, onPrint, children }) => (
+  const renderFilterBar = (onExport, onPrint, children) => (
     <div className="flex flex-wrap gap-3 items-end mb-5 p-4 bg-slate-50 border border-slate-200 rounded-xl">
       {children}
       <div className="ml-auto flex gap-2 flex-shrink-0">
@@ -521,60 +536,62 @@ export default function Reports() {
   // ══════════════════════════════════════════════════════════════════════════
   // DEPARTMENT REPORT
   // ══════════════════════════════════════════════════════════════════════════
-  const DepartmentReport = () => {
+  const renderDepartmentReport = () => {
     const depts = selectedDepartment === "all"
       ? deptSummary
       : deptSummary.filter(d => d.name.toLowerCase() === selectedDepartment.toLowerCase());
 
     return (
       <>
-        <FilterBar onExport={exportDept} onPrint={() => window.print()}>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Department</label>
-            <select
-              value={selectedDepartment}
-              onChange={e => { setSelectedDepartment(e.target.value); setExpandedDept(null); }}
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
-                         focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white cursor-pointer"
-            >
-              <option value="all">All Departments ({departmentsList.length})</option>
-              {departmentsList.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-          <DateBar accentColor="blue" />
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search Item</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="e.g. Phenyl, Chalk…"
-                value={itemSearchQuery}
-                onChange={e => { setItemSearchQuery(e.target.value); setExpandedDept(null); }}
-                className="border border-slate-200 rounded-lg px-3 py-2 pl-8 pr-7 text-sm text-slate-700
-                           focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white w-48 transition"
-              />
-              <FaSearch className="absolute left-2.5 top-3 text-slate-400 text-xs pointer-events-none" />
-              {itemSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => { setItemSearchQuery(""); setExpandedDept(null); }}
-                  className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 text-xs rounded-full hover:bg-slate-100 cursor-pointer"
-                  title="Clear search"
-                >
-                  <FaTimes size={11} />
-                </button>
-              )}
+        {renderFilterBar(exportDept, () => window.print(), (
+          <>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Department</label>
+              <select
+                value={selectedDepartment}
+                onChange={e => { setSelectedDepartment(e.target.value); setExpandedDept(null); }}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
+                           focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white cursor-pointer"
+              >
+                <option value="all">All Departments ({departmentsList.length})</option>
+                {departmentsList.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
-          </div>
-        </FilterBar>
+            {renderDateBar("blue")}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search Item</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="e.g. Phenyl, Chalk…"
+                  value={itemSearchQuery}
+                  onChange={e => { setItemSearchQuery(e.target.value); setExpandedDept(null); }}
+                  className="border border-slate-200 rounded-lg px-3 py-2 pl-8 pr-7 text-sm text-slate-700
+                             focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white w-48 transition"
+                />
+                <FaSearch className="absolute left-2.5 top-3 text-slate-400 text-xs pointer-events-none" />
+                {itemSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setItemSearchQuery(""); setExpandedDept(null); }}
+                    className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 text-xs rounded-full hover:bg-slate-100 cursor-pointer"
+                    title="Clear search"
+                  >
+                    <FaTimes size={11} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        ))}
 
-        <CollegeHeader />
+        {renderCollegeHeader()}
 
-        <StatChips chips={[
+        {renderStatChips([
           { label: "Departments", val: depts.length },
           { label: "Total Qty",   val: fmt(totalIssuedQty) },
           { label: "Total Value", val: "₹" + fmt(totalIssuedAmt) },
-        ]} />
+        ])}
 
         <p className="text-xs text-slate-400 mb-3 -mt-2">
           Click any department to see all its issue records.
@@ -760,7 +777,7 @@ export default function Reports() {
   // ══════════════════════════════════════════════════════════════════════════
   // ISSUE REPORT
   // ══════════════════════════════════════════════════════════════════════════
-  const IssueReport = () => {
+  const renderIssueReport = () => {
     // Group filteredIssued by item + type + category
     const itemsSummary = Array.from(
       filteredIssued.reduce((m, log) => {
@@ -791,65 +808,67 @@ export default function Reports() {
 
     return (
       <>
-        <FilterBar onExport={exportIssue} onPrint={() => window.print()}>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Department</label>
-            <select
-              value={selectedDepartment}
-              onChange={e => { setSelectedDepartment(e.target.value); setExpandedItem(null); }}
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
-                         focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white cursor-pointer"
-            >
-              <option value="all">All Departments</option>
-              {departmentsList.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Category</label>
-            <select
-              value={selectedCategory}
-              onChange={e => { setSelectedCategory(e.target.value); setExpandedItem(null); }}
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
-                         focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white cursor-pointer"
-            >
-              <option value="all">All Categories</option>
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <DateBar accentColor="amber" />
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search Item</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="e.g. Phenyl, Chalk, Pen…"
-                value={itemSearchQuery}
-                onChange={e => { setItemSearchQuery(e.target.value); setExpandedItem(null); }}
-                className="border border-slate-200 rounded-lg px-3 py-2 pl-8 pr-7 text-sm text-slate-700
-                           focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white w-48 transition"
-              />
-              <FaSearch className="absolute left-2.5 top-3 text-slate-400 text-xs pointer-events-none" />
-              {itemSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => { setItemSearchQuery(""); setExpandedItem(null); }}
-                  className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 text-xs rounded-full hover:bg-slate-100 cursor-pointer"
-                  title="Clear search"
-                >
-                  <FaTimes size={11} />
-                </button>
-              )}
+        {renderFilterBar(exportIssue, () => window.print(), (
+          <>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Department</label>
+              <select
+                value={selectedDepartment}
+                onChange={e => { setSelectedDepartment(e.target.value); setExpandedItem(null); }}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
+                           focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white cursor-pointer"
+              >
+                <option value="all">All Departments</option>
+                {departmentsList.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
-          </div>
-        </FilterBar>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Category</label>
+              <select
+                value={selectedCategory}
+                onChange={e => { setSelectedCategory(e.target.value); setExpandedItem(null); }}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
+                           focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white cursor-pointer"
+              >
+                <option value="all">All Categories</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            {renderDateBar("amber")}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search Item</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="e.g. Phenyl, Chalk, Pen…"
+                  value={itemSearchQuery}
+                  onChange={e => { setItemSearchQuery(e.target.value); setExpandedItem(null); }}
+                  className="border border-slate-200 rounded-lg px-3 py-2 pl-8 pr-7 text-sm text-slate-700
+                             focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white w-48 transition"
+                />
+                <FaSearch className="absolute left-2.5 top-3 text-slate-400 text-xs pointer-events-none" />
+                {itemSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setItemSearchQuery(""); setExpandedItem(null); }}
+                    className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 text-xs rounded-full hover:bg-slate-100 cursor-pointer"
+                    title="Clear search"
+                  >
+                    <FaTimes size={11} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        ))}
 
-        <CollegeHeader />
+        {renderCollegeHeader()}
 
-        <StatChips chips={[
+        {renderStatChips([
           { label: "Items",       val: itemsSummary.length },
           { label: "Total Qty",   val: fmt(totalIssuedQty) + " units" },
           { label: "Total Value", val: "₹" + fmt(totalIssuedAmt) },
-        ]} />
+        ])}
 
         <p className="text-xs text-slate-400 mb-3 -mt-2">
           Click any item to see all its issue records.
@@ -1015,7 +1034,7 @@ export default function Reports() {
   // ══════════════════════════════════════════════════════════════════════════
   // PURCHASE REPORT
   // ══════════════════════════════════════════════════════════════════════════
-  const PurchaseReport = () => {
+  const renderPurchaseReport = () => {
     // Group filteredOrders by item + type + category
     const purchaseItemsSummary = Array.from(
       filteredOrders.reduce((m, o) => {
@@ -1054,54 +1073,56 @@ export default function Reports() {
 
     return (
       <>
-        <FilterBar onExport={exportPurchase} onPrint={() => window.print()}>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Category</label>
-            <select
-              value={selectedCategory}
-              onChange={e => { setSelectedCategory(e.target.value); setExpandedPurchaseItem(null); }}
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
-                         focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white cursor-pointer"
-            >
-              <option value="all">All Categories</option>
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <DateBar accentColor="emerald" />
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search Item</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="e.g. Laptop, Phenyl, Supplier…"
-                value={itemSearchQuery}
-                onChange={e => { setItemSearchQuery(e.target.value); setExpandedPurchaseItem(null); }}
-                className="border border-slate-200 rounded-lg px-3 py-2 pl-8 pr-7 text-sm text-slate-700
-                           focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white w-48 transition"
-              />
-              <FaSearch className="absolute left-2.5 top-3 text-slate-400 text-xs pointer-events-none" />
-              {itemSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => { setItemSearchQuery(""); setExpandedPurchaseItem(null); }}
-                  className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 text-xs rounded-full hover:bg-slate-100 cursor-pointer"
-                  title="Clear search"
-                >
-                  <FaTimes size={11} />
-                </button>
-              )}
+        {renderFilterBar(exportPurchase, () => window.print(), (
+          <>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Category</label>
+              <select
+                value={selectedCategory}
+                onChange={e => { setSelectedCategory(e.target.value); setExpandedPurchaseItem(null); }}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
+                           focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white cursor-pointer"
+              >
+                <option value="all">All Categories</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
-          </div>
-        </FilterBar>
+            {renderDateBar("emerald")}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search Item</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="e.g. Laptop, Phenyl, Supplier…"
+                  value={itemSearchQuery}
+                  onChange={e => { setItemSearchQuery(e.target.value); setExpandedPurchaseItem(null); }}
+                  className="border border-slate-200 rounded-lg px-3 py-2 pl-8 pr-7 text-sm text-slate-700
+                             focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white w-48 transition"
+                />
+                <FaSearch className="absolute left-2.5 top-3 text-slate-400 text-xs pointer-events-none" />
+                {itemSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setItemSearchQuery(""); setExpandedPurchaseItem(null); }}
+                    className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 text-xs rounded-full hover:bg-slate-100 cursor-pointer"
+                    title="Clear search"
+                  >
+                    <FaTimes size={11} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        ))}
 
-        <CollegeHeader />
+        {renderCollegeHeader()}
 
-        <StatChips chips={[
+        {renderStatChips([
           { label: "Items",       val: purchaseItemsSummary.length },
           { label: "Orders",      val: filteredOrders.length },
           { label: "Total Qty",   val: fmt(totalOrderedQty) + " units" },
           { label: "Total Value", val: "₹" + fmt(totalOrderedAmt) },
-        ]} />
+        ])}
 
         <p className="text-xs text-slate-400 mb-3 -mt-2">
           Click any item to see all its purchase orders and history.
@@ -1274,7 +1295,7 @@ export default function Reports() {
   // ══════════════════════════════════════════════════════════════════════════
   // PRINT PORTAL
   // ══════════════════════════════════════════════════════════════════════════
-  const PrintPortal = () => (
+  const renderPrintPortal = () => (
     <div className="hidden print-report-layout p-8 bg-white text-black font-sans min-h-screen">
       <div className="flex items-center gap-4 border-b-2 border-slate-300 pb-4 mb-6">
         {collegeInfo?.logo
@@ -1440,9 +1461,9 @@ export default function Reports() {
             </div>
 
             <div className="p-6">
-              {activeReport === "department" && <DepartmentReport />}
-              {activeReport === "issue"      && <IssueReport />}
-              {activeReport === "purchase"   && <PurchaseReport />}
+              {activeReport === "department" && renderDepartmentReport()}
+              {activeReport === "issue"      && renderIssueReport()}
+              {activeReport === "purchase"   && renderPurchaseReport()}
             </div>
           </div>
         )}
@@ -1462,7 +1483,7 @@ export default function Reports() {
       </div>
 
       {/* Print portal */}
-      {activeReport && createPortal(<PrintPortal />, document.body)}
+      {activeReport && createPortal(renderPrintPortal(), document.body)}
     </div>
   );
 }
