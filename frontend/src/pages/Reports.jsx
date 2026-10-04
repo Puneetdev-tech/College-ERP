@@ -62,6 +62,7 @@ export default function Reports() {
 
   // Department report expand
   const [expandedDept, setExpandedDept] = useState(null);
+  const [expandedItem, setExpandedItem] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [toast, setToast]     = useState("");
@@ -643,38 +644,57 @@ export default function Reports() {
   // ISSUE REPORT
   // ══════════════════════════════════════════════════════════════════════════
   const IssueReport = () => {
-    // Summary: group by date → total qty & value per day
-    const byDate = Array.from(
+    // Group filteredIssued by item + type + category
+    const itemsSummary = Array.from(
       filteredIssued.reduce((m, log) => {
-        const d = dFmt(log.date);
-        if (!m.has(d)) m.set(d, { date: d, qty: 0, amt: 0, items: new Set() });
+        const itemName = (log.item || "Unknown").trim();
+        const itemType = (log.type || "").trim();
+        const category = (log.category || "").trim();
+        const key = `${itemName}:::${itemType}:::${category}`;
+        if (!m.has(key)) {
+          m.set(key, {
+            key,
+            itemName,
+            itemType,
+            displayName: itemType ? `${itemName} (${itemType})` : itemName,
+            category,
+            qty: 0,
+            amt: 0,
+            logs: [],
+          });
+        }
+        const entry = m.get(key);
         const uc = getIssuedItemPrice(log);
-        const e = m.get(d);
-        e.qty += log.quantity;
-        e.amt += log.quantity * uc;
-        e.items.add(log.item);
+        entry.qty += log.quantity;
+        entry.amt += log.quantity * uc;
+        entry.logs.push(log);
         return m;
-      }, new Map())
-    ).map(([, v]) => ({ ...v, items: v.items.size }))
-     .sort((a, b) => b.date.localeCompare(a.date));
+      }, new Map()).values()
+    ).sort((a, b) => b.amt - a.amt || b.qty - a.qty);
 
     return (
       <>
         <FilterBar onExport={exportIssue} onPrint={() => window.print()}>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Department</label>
-            <select value={selectedDepartment} onChange={e => setSelectedDepartment(e.target.value)}
+            <select
+              value={selectedDepartment}
+              onChange={e => { setSelectedDepartment(e.target.value); setExpandedItem(null); }}
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
-                         focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white cursor-pointer">
+                         focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white cursor-pointer"
+            >
               <option value="all">All Departments</option>
               {departmentsList.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Category</label>
-            <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
+            <select
+              value={selectedCategory}
+              onChange={e => { setSelectedCategory(e.target.value); setExpandedItem(null); }}
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
-                         focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white cursor-pointer">
+                         focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white cursor-pointer"
+            >
               <option value="all">All Categories</option>
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -683,10 +703,14 @@ export default function Reports() {
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search Item</label>
             <div className="relative">
-              <input type="text" placeholder="e.g. Phenyl, Chalk…" value={itemSearchQuery}
-                onChange={e => setItemSearchQuery(e.target.value)}
+              <input
+                type="text"
+                placeholder="e.g. Phenyl, Chalk…"
+                value={itemSearchQuery}
+                onChange={e => { setItemSearchQuery(e.target.value); setExpandedItem(null); }}
                 className="border border-slate-200 rounded-lg px-3 py-2 pl-8 text-sm text-slate-700
-                           focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white w-44" />
+                           focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white w-44"
+              />
               <FaSearch className="absolute left-2.5 top-3 text-slate-400 text-xs" />
             </div>
           </div>
@@ -694,95 +718,169 @@ export default function Reports() {
 
         <CollegeHeader />
 
-        <div className="flex items-center justify-between mb-4">
-          <StatChips chips={[
-            { label: "Records",     val: filteredIssued.length },
-            { label: "Total Qty",   val: fmt(totalIssuedQty) + " units" },
-            { label: "Total Value", val: "₹" + fmt(totalIssuedAmt) },
-          ]} />
-          <ViewToggle mode={viewMode} setMode={setViewMode} />
-        </div>
+        <StatChips chips={[
+          { label: "Items",       val: itemsSummary.length },
+          { label: "Total Qty",   val: fmt(totalIssuedQty) + " units" },
+          { label: "Total Value", val: "₹" + fmt(totalIssuedAmt) },
+        ]} />
 
-        {viewMode === "summary" ? (
-          /* ─ SUMMARY: date-wise totals ─ */
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-amber-600 text-white">
-                  <th className="p-3 text-left font-bold text-xs uppercase">Date</th>
-                  <th className="p-3 text-center font-bold text-xs uppercase">Distinct Items</th>
-                  <th className="p-3 text-center font-bold text-xs uppercase">Total Qty</th>
-                  <th className="p-3 text-right font-bold text-xs uppercase">Total Value</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {byDate.length === 0
-                  ? <EmptyRow colSpan={4} />
-                  : byDate.map((row, idx) => (
-                    <tr key={row.date} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
-                      <td className="p-3 font-bold text-slate-700 font-mono">{row.date}</td>
-                      <td className="p-3 text-center text-slate-600">{row.items}</td>
-                      <td className="p-3 text-center font-black text-amber-700">{row.qty}</td>
-                      <td className="p-3 text-right font-black text-slate-800">₹{fmt(row.amt)}</td>
-                    </tr>
-                  ))}
-              </tbody>
-              {byDate.length > 0 && (
-                <tfoot>
-                  <tr className="bg-slate-800 text-white">
-                    <td className="p-3 font-black text-xs uppercase">Total ({byDate.length} days)</td>
-                    <td />
-                    <td className="p-3 text-center font-black text-xs">{totalIssuedQty}</td>
-                    <td className="p-3 text-right font-black text-xs">₹{fmt(totalIssuedAmt)}</td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </div>
-        ) : (
-          /* ─ FULL LIST ─ */
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-amber-600 text-white">
-                  {["#", "Date", "Item", "Category", "Department", "Faculty/Staff", "Qty", "Unit Rate", "Total"].map(h => (
-                    <th key={h} className="p-3 text-left font-bold text-xs uppercase">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredIssued.length > 0
-                  ? filteredIssued.map((log, idx) => {
-                      const uc = getIssuedItemPrice(log);
-                      return (
-                        <tr key={log.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
-                          <td className="p-3 text-xs text-slate-400 font-mono">{idx + 1}</td>
-                          <td className="p-3 text-xs font-bold text-slate-700 font-mono whitespace-nowrap">{dFmt(log.date)}</td>
-                          <td className="p-3 font-semibold text-slate-800">{log.item}</td>
-                          <td className="p-3 text-xs text-slate-500">{log.category}</td>
-                          <td className="p-3 text-xs font-bold text-amber-700">{log.department}</td>
-                          <td className="p-3 text-xs text-slate-500">{log.faculty}</td>
-                          <td className="p-3 text-center font-black text-slate-800">{log.quantity}</td>
-                          <td className="p-3 text-right text-xs text-slate-600">₹{fmt(uc)}</td>
-                          <td className="p-3 text-right font-black text-slate-800">₹{fmt(log.quantity * uc)}</td>
+        <p className="text-xs text-slate-400 mb-3 -mt-2">
+          Click any item to see all its issue records.
+        </p>
+
+        <div className="rounded-xl border border-slate-200 overflow-hidden">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-amber-600 text-white">
+                <th className="p-3 text-left font-bold text-xs uppercase">Item</th>
+                <th className="p-3 text-left font-bold text-xs uppercase">Category</th>
+                <th className="p-3 text-center font-bold text-xs uppercase">Total Qty</th>
+                <th className="p-3 text-right font-bold text-xs uppercase">Total Value</th>
+                <th className="p-3 w-8"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {itemsSummary.length === 0 ? (
+                <EmptyRow colSpan={5} />
+              ) : (
+                itemsSummary.map((item, idx) => {
+                  const isOpen = expandedItem === item.key;
+                  return (
+                    <React.Fragment key={item.key}>
+                      <tr
+                        className={"cursor-pointer transition-colors " +
+                          (isOpen
+                            ? "bg-amber-50/50 "
+                            : idx % 2 === 0 ? "bg-white " : "bg-slate-50/50 ") +
+                          "hover:bg-amber-50/70"}
+                        onClick={() => setExpandedItem(isOpen ? null : item.key)}
+                      >
+                        <td className="p-3.5 font-semibold text-slate-800">
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-black text-xs flex-shrink-0">
+                              {(item.itemName || "I")[0].toUpperCase()}
+                            </span>
+                            <div>
+                              <p className="font-bold text-slate-800 text-sm">
+                                {item.itemName}
+                                {item.itemType ? (
+                                  <span className="text-slate-400 font-normal ml-1 text-xs">({item.itemType})</span>
+                                ) : null}
+                              </p>
+                              <p className="text-[11px] font-bold text-amber-700 mt-0.5">
+                                {item.logs.length} record{item.logs.length !== 1 ? "s" : ""} · {item.qty} units · ₹{fmt(item.amt)}
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                {isOpen ? "▲ Collapse" : "▼ See all records"}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3.5 text-xs font-medium text-slate-600">
+                          <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold border border-slate-200">
+                            {item.category || "—"}
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-center font-black text-slate-800 text-sm">
+                          {item.qty}
+                        </td>
+                        <td className="p-3.5 text-right font-black text-slate-800 text-sm">
+                          ₹{fmt(item.amt)}
+                        </td>
+                        <td className="p-3.5 text-center text-amber-500">
+                          {isOpen ? <FaChevronDown size={12}/> : <FaChevronRight size={12}/>}
+                        </td>
+                      </tr>
+
+                      {isOpen && (
+                        <tr>
+                          <td colSpan={5} className="p-0">
+                            <div className="border-y-2 border-amber-300 bg-white">
+                              <div className="flex items-center justify-between px-5 py-2.5 bg-amber-600">
+                                <p className="text-white text-xs font-black uppercase tracking-wider">
+                                  {item.displayName} — {item.logs.length} issue record{item.logs.length !== 1 ? "s" : ""}
+                                </p>
+                                <button
+                                  onClick={e => { e.stopPropagation(); setExpandedItem(null); }}
+                                  className="text-white/80 hover:text-white text-xs font-bold px-2 py-1
+                                             rounded hover:bg-white/10 transition cursor-pointer"
+                                >
+                                  ✕ Close
+                                </button>
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-amber-50 border-b border-amber-100 text-amber-900">
+                                      <th className="p-2.5 text-left font-bold uppercase">#</th>
+                                      <th className="p-2.5 text-left font-bold uppercase">Date</th>
+                                      <th className="p-2.5 text-left font-bold uppercase">Department</th>
+                                      <th className="p-2.5 text-left font-bold uppercase">Faculty / Staff</th>
+                                      <th className="p-2.5 text-center font-bold uppercase">Qty</th>
+                                      <th className="p-2.5 text-right font-bold uppercase">Unit Rate</th>
+                                      <th className="p-2.5 text-right font-bold uppercase">Total</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {item.logs
+                                      .slice()
+                                      .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+                                      .map((log, idx) => {
+                                        const uc = getIssuedItemPrice(log);
+                                        return (
+                                          <tr key={log.id} className={idx % 2 === 0 ? "bg-white" : "bg-amber-50/30"}>
+                                            <td className="p-2.5 text-slate-400 font-mono">{idx + 1}</td>
+                                            <td className="p-2.5 font-mono font-semibold text-slate-600 whitespace-nowrap">
+                                              {dFmt(log.date)}
+                                            </td>
+                                            <td className="p-2.5 font-bold text-amber-800">
+                                              {log.department}
+                                            </td>
+                                            <td className="p-2.5 text-slate-600">{log.faculty}</td>
+                                            <td className="p-2.5 text-center font-black text-amber-700">{log.quantity}</td>
+                                            <td className="p-2.5 text-right text-slate-500">₹{fmt(uc)}</td>
+                                            <td className="p-2.5 text-right font-bold text-slate-800">
+                                              ₹{fmt(log.quantity * uc)}
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                  </tbody>
+                                  <tfoot>
+                                    <tr className="bg-amber-600 text-white">
+                                      <td colSpan={4} className="p-2.5 font-black text-xs uppercase">
+                                        {item.displayName} Total
+                                      </td>
+                                      <td className="p-2.5 text-center font-black text-xs">{item.qty}</td>
+                                      <td />
+                                      <td className="p-2.5 text-right font-black text-xs">₹{fmt(item.amt)}</td>
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              </div>
+                            </div>
+                          </td>
                         </tr>
-                      );
-                    })
-                  : <EmptyRow colSpan={9} />}
-              </tbody>
-              {filteredIssued.length > 0 && (
-                <tfoot>
-                  <tr className="bg-slate-800 text-white">
-                    <td colSpan={6} className="p-3 font-black text-xs uppercase">Total</td>
-                    <td className="p-3 text-center font-black text-xs">{totalIssuedQty}</td>
-                    <td />
-                    <td className="p-3 text-right font-black text-xs">₹{fmt(totalIssuedAmt)}</td>
-                  </tr>
-                </tfoot>
+                      )}
+                    </React.Fragment>
+                  );
+                })
               )}
-            </table>
-          </div>
-        )}
+            </tbody>
+            {itemsSummary.length > 0 && (
+              <tfoot>
+                <tr className="bg-slate-800 text-white">
+                  <td colSpan={2} className="p-3 font-black text-xs uppercase">
+                    Grand Total ({itemsSummary.length} item{itemsSummary.length !== 1 ? "s" : ""})
+                  </td>
+                  <td className="p-3 text-center font-black text-xs">{totalIssuedQty}</td>
+                  <td className="p-3 text-right font-black text-xs">₹{fmt(totalIssuedAmt)}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
       </>
     );
   };
@@ -1068,6 +1166,7 @@ export default function Reports() {
                   setSelectedCategory("all");
                   setItemSearchQuery("");
                   setExpandedDept(null);
+                  setExpandedItem(null);
                 }}
                 className={"rounded-2xl p-5 text-left border transition-all duration-200 cursor-pointer w-full " +
                   (selected
@@ -1098,7 +1197,7 @@ export default function Reports() {
                   <p className="text-white/70 text-xs">{activeCard.desc}</p>
                 </div>
               </div>
-              <button onClick={() => setActiveReport(null)}
+              <button onClick={() => { setActiveReport(null); setExpandedDept(null); setExpandedItem(null); }}
                 className="text-white/80 hover:text-white text-xs font-bold px-3 py-1.5 rounded-lg
                            hover:bg-white/10 transition cursor-pointer flex items-center gap-1.5">
                 <FaTimes /> Close
