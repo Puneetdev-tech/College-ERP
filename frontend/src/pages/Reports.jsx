@@ -471,7 +471,7 @@ export default function Reports() {
         <StatChips chips={[
           { label: "Departments", val: depts.length },
           { label: "Total Qty",   val: fmt(totalIssuedQty) },
-          { label: "Total Value", val: "\u20b9" + fmt(totalIssuedAmt) },
+          { label: "Total Value", val: "₹" + fmt(totalIssuedAmt) },
         ]} />
 
         <p className="text-xs text-slate-400 mb-3 -mt-2">
@@ -536,10 +536,10 @@ export default function Reports() {
                                   <div>
                                     <p>{dept.name}</p>
                                     <p className="text-[11px] font-bold text-blue-600 mt-0.5">
-                                      {dept.qty} units &middot; \u20b9{fmt(dept.amt)}
+                                      {dept.qty} units · ₹{fmt(dept.amt)}
                                     </p>
                                     <p className="text-[10px] text-slate-400 mt-0.5">
-                                      {isOpen ? "\u25b2 Collapse" : "\u25bc See all items"}
+                                      {isOpen ? "▲ Collapse" : "▼ See all items"}
                                     </p>
                                   </div>
                                 </div>
@@ -547,7 +547,7 @@ export default function Reports() {
                             ) : null}
                             <td className="p-3.5 text-xs text-slate-600 font-medium">{c.cat}</td>
                             <td className="p-3.5 text-center font-black text-slate-800">{c.qty}</td>
-                            <td className="p-3.5 text-right font-bold text-slate-700">\u20b9{fmt(c.amt)}</td>
+                            <td className="p-3.5 text-right font-bold text-slate-700">₹{fmt(c.amt)}</td>
                             {ci === 0 ? (
                               <td className="p-3.5 text-center text-blue-400 align-top"
                                   rowSpan={dept.catBreakdown.length}>
@@ -571,7 +571,7 @@ export default function Reports() {
                                   className="text-white/70 hover:text-white text-xs font-bold px-2 py-1
                                              rounded hover:bg-white/10 transition cursor-pointer"
                                 >
-                                  \u2715 Close
+                                  ✕ Close
                                 </button>
                               </div>
                               <div className="overflow-x-auto">
@@ -610,9 +610,9 @@ export default function Reports() {
                                             <td className="p-2.5 text-slate-500">{log.category}</td>
                                             <td className="p-2.5 text-slate-600">{log.faculty}</td>
                                             <td className="p-2.5 text-center font-black text-blue-700">{log.quantity}</td>
-                                            <td className="p-2.5 text-right text-slate-500">\u20b9{fmt(uc)}</td>
+                                            <td className="p-2.5 text-right text-slate-500">₹{fmt(uc)}</td>
                                             <td className="p-2.5 text-right font-bold text-slate-800">
-                                              \u20b9{fmt(log.quantity * uc)}
+                                              ₹{fmt(log.quantity * uc)}
                                             </td>
                                           </tr>
                                         );
@@ -625,7 +625,7 @@ export default function Reports() {
                                       </td>
                                       <td className="p-2.5 text-center font-black text-xs">{dept.qty}</td>
                                       <td />
-                                      <td className="p-2.5 text-right font-black text-xs">\u20b9{fmt(dept.amt)}</td>
+                                      <td className="p-2.5 text-right font-black text-xs">₹{fmt(dept.amt)}</td>
                                     </tr>
                                   </tfoot>
                                 </table>
@@ -644,7 +644,7 @@ export default function Reports() {
                 <tr className="bg-slate-800 text-white">
                   <td colSpan={2} className="p-3 font-black text-xs uppercase">Grand Total</td>
                   <td className="p-3 text-center font-black text-xs">{totalIssuedQty}</td>
-                  <td className="p-3 text-right font-black text-xs">\u20b9{fmt(totalIssuedAmt)}</td>
+                  <td className="p-3 text-right font-black text-xs">₹{fmt(totalIssuedAmt)}</td>
                   <td />
                 </tr>
               </tfoot>
