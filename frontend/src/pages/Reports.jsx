@@ -468,122 +468,189 @@ export default function Reports() {
 
         <CollegeHeader />
 
-        {/* Summary / List Toggle */}
-        <div className="flex items-center justify-between mb-4">
-          <StatChips chips={[
-            { label: "Departments", val: depts.length },
-            { label: "Total Qty",   val: fmt(totalIssuedQty) },
-            { label: "Total Value", val: "₹" + fmt(totalIssuedAmt) },
-          ]} />
-          <ViewToggle mode={viewMode} setMode={setViewMode} />
-        </div>
+        <StatChips chips={[
+          { label: "Departments", val: depts.length },
+          { label: "Total Qty",   val: fmt(totalIssuedQty) },
+          { label: "Total Value", val: "\u20b9" + fmt(totalIssuedAmt) },
+        ]} />
 
-        {viewMode === "summary" ? (
-          /* ─ SUMMARY: Dept → Category breakdown ─ */
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-blue-700 text-white">
-                  <th className="p-3 text-left font-bold text-xs uppercase">Department</th>
-                  <th className="p-3 text-left font-bold text-xs uppercase">Category</th>
-                  <th className="p-3 text-center font-bold text-xs uppercase">Total Qty</th>
-                  <th className="p-3 text-right font-bold text-xs uppercase">Total Value</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {depts.length === 0
-                  ? <EmptyRow colSpan={4} />
-                  : depts.sort((a, b) => b.amt - a.amt).map(dept =>
-                    dept.catBreakdown.length === 0
-                      ? (
-                        <tr key={dept.name} className="bg-white">
+        <p className="text-xs text-slate-400 mb-3 -mt-2">
+          Click any department to see all its issue records.
+        </p>
+
+        <div className="rounded-xl border border-slate-200 overflow-hidden">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-blue-700 text-white">
+                <th className="p-3 text-left font-bold text-xs uppercase">Department</th>
+                <th className="p-3 text-left font-bold text-xs uppercase">Category</th>
+                <th className="p-3 text-center font-bold text-xs uppercase">Total Qty</th>
+                <th className="p-3 text-right font-bold text-xs uppercase">Total Value</th>
+                <th className="p-3 w-8"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {depts.length === 0 ? (
+                <EmptyRow colSpan={5} />
+              ) : (
+                depts.sort((a, b) => b.amt - a.amt).map(dept => {
+                  const isOpen = expandedDept === dept.name;
+                  return (
+                    <React.Fragment key={dept.name}>
+                      {dept.catBreakdown.length === 0 ? (
+                        <tr
+                          className="cursor-pointer hover:bg-blue-50/60 transition-colors"
+                          onClick={() => setExpandedDept(isOpen ? null : dept.name)}
+                        >
                           <td className="p-3.5 font-semibold text-slate-800">
-                            <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 inline-flex items-center
-                                             justify-center font-black text-xs mr-2">{dept.name[0]}</span>
-                            {dept.name}
+                            <div className="flex items-center gap-2">
+                              <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center
+                                               justify-center font-black text-xs flex-shrink-0">{dept.name[0]}</span>
+                              {dept.name}
+                            </div>
                           </td>
                           <td className="p-3.5 text-slate-400 text-xs italic" colSpan={3}>No records</td>
+                          <td className="p-3.5 text-center text-blue-400">
+                            {isOpen ? <FaChevronDown size={11}/> : <FaChevronRight size={11}/>}
+                          </td>
                         </tr>
-                      )
-                      : dept.catBreakdown.map((c, ci) => (
-                        <tr key={dept.name + c.cat}
-                            className={ci % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                          {ci === 0
-                            ? <td className="p-3.5 align-top font-semibold text-slate-800"
+                      ) : (
+                        dept.catBreakdown.map((c, ci) => (
+                          <tr
+                            key={dept.name + c.cat}
+                            className={"cursor-pointer transition-colors " +
+                              (isOpen
+                                ? "bg-blue-50/40 "
+                                : ci % 2 === 0 ? "bg-white " : "bg-slate-50/50 ") +
+                              "hover:bg-blue-50/70"}
+                            onClick={() => setExpandedDept(isOpen ? null : dept.name)}
+                          >
+                            {ci === 0 ? (
+                              <td className="p-3.5 align-top font-semibold text-slate-800"
                                   rowSpan={dept.catBreakdown.length}>
                                 <div className="flex items-center gap-2">
                                   <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center
-                                                   justify-center font-black text-xs flex-shrink-0">{dept.name[0]}</span>
-                                  {dept.name}
-                                </div>
-                                <div className="ml-9 mt-1 text-[11px] font-bold text-blue-700">
-                                  Total: {dept.qty} units · ₹{fmt(dept.amt)}
+                                                   justify-center font-black text-xs flex-shrink-0">
+                                    {dept.name[0]}
+                                  </span>
+                                  <div>
+                                    <p>{dept.name}</p>
+                                    <p className="text-[11px] font-bold text-blue-600 mt-0.5">
+                                      {dept.qty} units &middot; \u20b9{fmt(dept.amt)}
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                      {isOpen ? "\u25b2 Collapse" : "\u25bc See all items"}
+                                    </p>
+                                  </div>
                                 </div>
                               </td>
-                            : null}
-                          <td className="p-3.5 text-xs text-slate-600 font-medium">{c.cat}</td>
-                          <td className="p-3.5 text-center font-black text-slate-800">{c.qty}</td>
-                          <td className="p-3.5 text-right font-bold text-slate-700">₹{fmt(c.amt)}</td>
+                            ) : null}
+                            <td className="p-3.5 text-xs text-slate-600 font-medium">{c.cat}</td>
+                            <td className="p-3.5 text-center font-black text-slate-800">{c.qty}</td>
+                            <td className="p-3.5 text-right font-bold text-slate-700">\u20b9{fmt(c.amt)}</td>
+                            {ci === 0 ? (
+                              <td className="p-3.5 text-center text-blue-400 align-top"
+                                  rowSpan={dept.catBreakdown.length}>
+                                {isOpen ? <FaChevronDown size={11}/> : <FaChevronRight size={11}/>}
+                              </td>
+                            ) : null}
+                          </tr>
+                        ))
+                      )}
+
+                      {isOpen && (
+                        <tr>
+                          <td colSpan={5} className="p-0">
+                            <div className="border-y-2 border-blue-300 bg-white">
+                              <div className="flex items-center justify-between px-5 py-2.5 bg-blue-700">
+                                <p className="text-white text-xs font-black uppercase tracking-wider">
+                                  {dept.name} — {dept.logs.length} issue record{dept.logs.length !== 1 ? "s" : ""}
+                                </p>
+                                <button
+                                  onClick={e => { e.stopPropagation(); setExpandedDept(null); }}
+                                  className="text-white/70 hover:text-white text-xs font-bold px-2 py-1
+                                             rounded hover:bg-white/10 transition cursor-pointer"
+                                >
+                                  \u2715 Close
+                                </button>
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-blue-50 border-b border-blue-100 text-blue-900">
+                                      <th className="p-2.5 text-left font-bold uppercase">#</th>
+                                      <th className="p-2.5 text-left font-bold uppercase">Date</th>
+                                      <th className="p-2.5 text-left font-bold uppercase">Item</th>
+                                      <th className="p-2.5 text-left font-bold uppercase">Category</th>
+                                      <th className="p-2.5 text-left font-bold uppercase">Faculty / Staff</th>
+                                      <th className="p-2.5 text-center font-bold uppercase">Qty</th>
+                                      <th className="p-2.5 text-right font-bold uppercase">Unit Rate</th>
+                                      <th className="p-2.5 text-right font-bold uppercase">Total</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {dept.logs
+                                      .slice()
+                                      .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+                                      .map((log, idx) => {
+                                        const uc = getIssuedItemPrice(log);
+                                        return (
+                                          <tr key={log.id}
+                                              className={idx % 2 === 0 ? "bg-white" : "bg-blue-50/30"}>
+                                            <td className="p-2.5 text-slate-400 font-mono">{idx + 1}</td>
+                                            <td className="p-2.5 font-mono font-semibold text-slate-600 whitespace-nowrap">
+                                              {dFmt(log.date)}
+                                            </td>
+                                            <td className="p-2.5 font-semibold text-slate-800">
+                                              {log.item}
+                                              {log.type
+                                                ? <span className="text-slate-400 font-normal ml-1">({log.type})</span>
+                                                : null}
+                                            </td>
+                                            <td className="p-2.5 text-slate-500">{log.category}</td>
+                                            <td className="p-2.5 text-slate-600">{log.faculty}</td>
+                                            <td className="p-2.5 text-center font-black text-blue-700">{log.quantity}</td>
+                                            <td className="p-2.5 text-right text-slate-500">\u20b9{fmt(uc)}</td>
+                                            <td className="p-2.5 text-right font-bold text-slate-800">
+                                              \u20b9{fmt(log.quantity * uc)}
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                  </tbody>
+                                  <tfoot>
+                                    <tr className="bg-blue-700 text-white">
+                                      <td colSpan={5} className="p-2.5 font-black text-xs uppercase">
+                                        {dept.name} Total
+                                      </td>
+                                      <td className="p-2.5 text-center font-black text-xs">{dept.qty}</td>
+                                      <td />
+                                      <td className="p-2.5 text-right font-black text-xs">\u20b9{fmt(dept.amt)}</td>
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              </div>
+                            </div>
+                          </td>
                         </tr>
-                      ))
-                    )
-                  }
-              </tbody>
-              {depts.length > 0 && (
-                <tfoot>
-                  <tr className="bg-slate-800 text-white">
-                    <td colSpan={2} className="p-3 font-black text-xs uppercase">Grand Total</td>
-                    <td className="p-3 text-center font-black text-xs">{totalIssuedQty}</td>
-                    <td className="p-3 text-right font-black text-xs">₹{fmt(totalIssuedAmt)}</td>
-                  </tr>
-                </tfoot>
+                      )}
+                    </React.Fragment>
+                  );
+                })
               )}
-            </table>
-          </div>
-        ) : (
-          /* ─ FULL LIST: every issued log row ─ */
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-blue-700 text-white">
-                  {["#", "Date", "Item", "Category", "Department", "Faculty/Staff", "Qty", "Unit Rate", "Total"].map(h => (
-                    <th key={h} className="p-3 text-left font-bold text-xs uppercase">{h}</th>
-                  ))}
+            </tbody>
+            {depts.length > 0 && (
+              <tfoot>
+                <tr className="bg-slate-800 text-white">
+                  <td colSpan={2} className="p-3 font-black text-xs uppercase">Grand Total</td>
+                  <td className="p-3 text-center font-black text-xs">{totalIssuedQty}</td>
+                  <td className="p-3 text-right font-black text-xs">\u20b9{fmt(totalIssuedAmt)}</td>
+                  <td />
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredIssued.length > 0
-                  ? filteredIssued.map((log, idx) => {
-                      const uc = getIssuedItemPrice(log);
-                      return (
-                        <tr key={log.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
-                          <td className="p-3 text-xs text-slate-400 font-mono">{idx + 1}</td>
-                          <td className="p-3 text-xs font-bold text-slate-700 font-mono whitespace-nowrap">{dFmt(log.date)}</td>
-                          <td className="p-3 font-semibold text-slate-800">{log.item}</td>
-                          <td className="p-3 text-xs text-slate-500">{log.category}</td>
-                          <td className="p-3 text-xs font-bold text-blue-700">{log.department}</td>
-                          <td className="p-3 text-xs text-slate-500">{log.faculty}</td>
-                          <td className="p-3 text-center font-black text-slate-800">{log.quantity}</td>
-                          <td className="p-3 text-right text-xs text-slate-600">₹{fmt(uc)}</td>
-                          <td className="p-3 text-right font-black text-slate-800">₹{fmt(log.quantity * uc)}</td>
-                        </tr>
-                      );
-                    })
-                  : <EmptyRow colSpan={9} />}
-              </tbody>
-              {filteredIssued.length > 0 && (
-                <tfoot>
-                  <tr className="bg-slate-800 text-white">
-                    <td colSpan={6} className="p-3 font-black text-xs uppercase">Total</td>
-                    <td className="p-3 text-center font-black text-xs">{totalIssuedQty}</td>
-                    <td />
-                    <td className="p-3 text-right font-black text-xs">₹{fmt(totalIssuedAmt)}</td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </div>
-        )}
+              </tfoot>
+            )}
+          </table>
+        </div>
       </>
     );
   };
