@@ -10,26 +10,6 @@ import Sidebar from "../components/sidebar";
 import Navbar from "../components/Navbar";
 import ExcelJS from "exceljs";
 
-// ─── View mode toggle chip ────────────────────────────────────────────────────
-const ViewToggle = ({ mode, setMode }) => (
-  <div className="inline-flex bg-slate-100 rounded-xl p-1 gap-1">
-    <button
-      onClick={() => setMode("summary")}
-      className={"flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer " +
-        (mode === "summary" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700")}
-    >
-      <FaChartBar className="text-[11px]" /> Summary
-    </button>
-    <button
-      onClick={() => setMode("list")}
-      className={"flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer " +
-        (mode === "list" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700")}
-    >
-      <FaThList className="text-[11px]" /> Full List
-    </button>
-  </div>
-);
-
 // ─── Empty state ──────────────────────────────────────────────────────────────
 const EmptyRow = ({ colSpan }) => (
   <tr>
@@ -50,19 +30,22 @@ export default function Reports() {
 
   // Active report: "department" | "issue" | "purchase" | null
   const [activeReport, setActiveReport] = useState(null);
-  // View mode per report: "summary" | "list"
-  const [viewMode, setViewMode] = useState("summary");
 
   // Shared filters
   const [selectedDepartment, setSelectedDepartment] = useState("all");
-  const [selectedCategory, setSelectedCategory]   = useState("all");
+  const [selectedCategory, setSelectedCategory]     = useState("all");
   const [itemSearchQuery, setItemSearchQuery]       = useState("");
-  const [startDate, setStartDate] = useState("2020-02-01");
-  const [endDate,   setEndDate]   = useState("2020-02-29");
 
-  // Department report expand
-  const [expandedDept, setExpandedDept] = useState(null);
-  const [expandedItem, setExpandedItem] = useState(null);
+  // Date filters: "range" | "single"
+  const [dateMode, setDateMode]     = useState("range");
+  const [startDate, setStartDate]   = useState("2020-02-01");
+  const [endDate,   setEndDate]     = useState("2020-02-29");
+  const [singleDate, setSingleDate] = useState("2020-02-28");
+
+  // Expand states for item drill-downs
+  const [expandedDept, setExpandedDept]                 = useState(null);
+  const [expandedItem, setExpandedItem]                 = useState(null);
+  const [expandedPurchaseItem, setExpandedPurchaseItem] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [toast, setToast]     = useState("");
@@ -87,13 +70,39 @@ export default function Reports() {
   const inRange = (dateStr) => {
     if (!dateStr) return false;
     const d = dateStr.slice(0, 10);
+    if (dateMode === "single") {
+      return singleDate ? d === singleDate : true;
+    }
     return (!startDate || d >= startDate) && (!endDate || d <= endDate);
   };
 
+  const getPeriodLabel = () => {
+    if (dateMode === "single") {
+      return singleDate ? `Date: ${singleDate}` : "All Records";
+    }
+    if (startDate && endDate) {
+      return `${startDate} to ${endDate}`;
+    }
+    if (startDate) return `From ${startDate}`;
+    if (endDate) return `Up to ${endDate}`;
+    return "All Records";
+  };
+
   const norm = (s) =>
-    (s || "").toLowerCase()
+    (s || "")
+      .toString()
+      .toLowerCase()
       .replace(/phynil/g, "phenyl")
-      .replace(/phenyle/g, "phenyl");
+      .replace(/phenyle/g, "phenyl")
+      .trim();
+
+  const matchSearch = (query, fields) => {
+    if (!query || !query.trim()) return true;
+    const cleanQ = norm(query);
+    const tokens = cleanQ.split(/\s+/).filter(Boolean);
+    const haystack = fields.filter(Boolean).map(f => norm(f)).join(" ");
+    return tokens.every(tok => haystack.includes(tok));
+  };
 
   const fmt  = (n) => (n || 0).toLocaleString("en-IN");
   const dFmt = (s) => (s || "").slice(0, 10);
@@ -121,32 +130,48 @@ export default function Reports() {
       if (lc !== sc && getRegisterForCategory(lc).toLowerCase() !== sc) return false;
     }
     if (itemSearchQuery.trim()) {
-      const q = norm(itemSearchQuery.trim());
-      if (!norm(log.item).includes(q) && !norm(log.subcategory).includes(q) &&
-          !norm(log.type).includes(q)  && !norm(log.category).includes(q))
-        return false;
+      if (!matchSearch(itemSearchQuery, [
+        log.item,
+        log.subcategory,
+        log.type,
+        log.category,
+        log.department,
+        log.faculty,
+        log.id
+      ])) return false;
     }
     return true;
   }).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
   // Filtered orders (Purchase report)
   const filteredOrders = orders.filter(o => {
-    if (!inRange(o.orderDate) && !inRange(o.receiveDate)) return false;
+    const oDate = o.orderDate ? o.orderDate.slice(0, 10) : null;
+    const rDate = o.receiveDate ? o.receiveDate.slice(0, 10) : null;
+    if (!inRange(oDate) && !inRange(rDate)) return false;
+
     if (selectedCategory !== "all") {
       const oc = (o.category || "").toLowerCase();
       const sc = selectedCategory.toLowerCase();
       if (oc !== sc && getRegisterForCategory(oc).toLowerCase() !== sc) return false;
     }
-    if (selectedDepartment !== "all") {
+    if (activeReport === "department" && selectedDepartment !== "all") {
       const rn = getRegisterForCategory(o.category);
       if (rn.toLowerCase() !== selectedDepartment.toLowerCase() &&
           (o.department || "").toLowerCase() !== selectedDepartment.toLowerCase())
         return false;
     }
     if (itemSearchQuery.trim()) {
-      const q = norm(itemSearchQuery.trim());
-      if (!norm(o.item).includes(q) && !norm(o.type).includes(q) &&
-          !norm(o.category).includes(q)) return false;
+      if (!matchSearch(itemSearchQuery, [
+        o.item,
+        o.subcategory,
+        o.type,
+        o.category,
+        o.supplier,
+        o.department,
+        o.faculty,
+        o.status,
+        o.id
+      ])) return false;
     }
     return true;
   }).sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || ""));
@@ -198,9 +223,7 @@ export default function Reports() {
       const cp =
         "Phone: " + (collegeInfo?.phone || "+91-(07524)-274320") +
         " | Email: " + (collegeInfo?.email || "rjit_bsft@yahoo.com");
-      const periodLabel =
-        startDate && endDate ? `${startDate} to ${endDate}` :
-        startDate ? `From ${startDate}` : endDate ? `Up to ${endDate}` : "All Dates";
+      const periodLabel = getPeriodLabel();
       const cols = headers.length;
       const endCol = String.fromCharCode(64 + Math.min(cols, 26));
       const mr = "A1:" + endCol;
@@ -372,9 +395,7 @@ export default function Reports() {
       <div className="sm:text-right flex-shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200">
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Report Period</p>
         <p className="font-black text-slate-700 text-sm">
-          {startDate && endDate
-            ? `${startDate} to ${endDate}`
-            : startDate ? `From ${startDate}` : endDate ? `Up to ${endDate}` : "All Records"}
+          {getPeriodLabel()}
         </p>
       </div>
     </div>
@@ -392,23 +413,92 @@ export default function Reports() {
     </div>
   );
 
-  const DateBar = () => (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="flex flex-col gap-1">
-        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">From</label>
-        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-          className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
-                     focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
-      </div>
-      <div className="flex flex-col gap-1">
-        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">To</label>
-        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-          className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
-                     focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
-      </div>
+  const DateBar = ({ accentColor = "blue" }) => {
+    const ringClass =
+      accentColor === "amber"   ? "focus:ring-amber-400" :
+      accentColor === "emerald" ? "focus:ring-emerald-400" :
+                                  "focus:ring-blue-400";
+    const activeChipClass =
+      accentColor === "amber"   ? "bg-amber-600 text-white shadow-xs" :
+      accentColor === "emerald" ? "bg-emerald-600 text-white shadow-xs" :
+                                  "bg-blue-600 text-white shadow-xs";
 
-    </div>
-  );
+    return (
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Date Filter</label>
+          <div className="inline-flex bg-slate-200/80 p-0.5 rounded-lg text-[10px] font-bold">
+            <button
+              type="button"
+              onClick={() => setDateMode("range")}
+              className={`px-2 py-0.5 rounded-md cursor-pointer transition ${
+                dateMode === "range" ? activeChipClass : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Date Range
+            </button>
+            <button
+              type="button"
+              onClick={() => setDateMode("single")}
+              className={`px-2 py-0.5 rounded-md cursor-pointer transition ${
+                dateMode === "single" ? activeChipClass : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Specific Day
+            </button>
+          </div>
+          {(startDate || endDate || singleDate) && (
+            <button
+              type="button"
+              onClick={() => {
+                if (dateMode === "range") {
+                  setStartDate("");
+                  setEndDate("");
+                } else {
+                  setSingleDate("");
+                }
+              }}
+              className="text-[10px] text-slate-400 hover:text-slate-600 underline ml-auto cursor-pointer"
+              title="Show all records without date filter"
+            >
+              All Time
+            </button>
+          )}
+        </div>
+
+        {dateMode === "range" ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className={`border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700
+                         focus:outline-none focus:ring-2 ${ringClass} bg-white`}
+            />
+            <span className="text-slate-400 text-xs font-bold">to</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className={`border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700
+                         focus:outline-none focus:ring-2 ${ringClass} bg-white`}
+            />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={singleDate}
+              onChange={e => setSingleDate(e.target.value)}
+              className={`border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700
+                         focus:outline-none focus:ring-2 ${ringClass} bg-white w-44`}
+            />
+            <span className="text-[11px] text-slate-400 font-medium">Single Day</span>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const FilterBar = ({ onExport, onPrint, children }) => (
     <div className="flex flex-wrap gap-3 items-end mb-5 p-4 bg-slate-50 border border-slate-200 rounded-xl">
@@ -441,14 +531,41 @@ export default function Reports() {
         <FilterBar onExport={exportDept} onPrint={() => window.print()}>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Department</label>
-            <select value={selectedDepartment} onChange={e => setSelectedDepartment(e.target.value)}
+            <select
+              value={selectedDepartment}
+              onChange={e => { setSelectedDepartment(e.target.value); setExpandedDept(null); }}
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
-                         focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white cursor-pointer">
+                         focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white cursor-pointer"
+            >
               <option value="all">All Departments ({departmentsList.length})</option>
               {departmentsList.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
-          <DateBar />
+          <DateBar accentColor="blue" />
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search Item</label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="e.g. Phenyl, Chalk…"
+                value={itemSearchQuery}
+                onChange={e => { setItemSearchQuery(e.target.value); setExpandedDept(null); }}
+                className="border border-slate-200 rounded-lg px-3 py-2 pl-8 pr-7 text-sm text-slate-700
+                           focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white w-48 transition"
+              />
+              <FaSearch className="absolute left-2.5 top-3 text-slate-400 text-xs pointer-events-none" />
+              {itemSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => { setItemSearchQuery(""); setExpandedDept(null); }}
+                  className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 text-xs rounded-full hover:bg-slate-100 cursor-pointer"
+                  title="Clear search"
+                >
+                  <FaTimes size={11} />
+                </button>
+              )}
+            </div>
+          </div>
         </FilterBar>
 
         <CollegeHeader />
@@ -699,19 +816,29 @@ export default function Reports() {
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <DateBar />
+          <DateBar accentColor="amber" />
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search Item</label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="e.g. Phenyl, Chalk…"
+                placeholder="e.g. Phenyl, Chalk, Pen…"
                 value={itemSearchQuery}
                 onChange={e => { setItemSearchQuery(e.target.value); setExpandedItem(null); }}
-                className="border border-slate-200 rounded-lg px-3 py-2 pl-8 text-sm text-slate-700
-                           focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white w-44"
+                className="border border-slate-200 rounded-lg px-3 py-2 pl-8 pr-7 text-sm text-slate-700
+                           focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white w-48 transition"
               />
-              <FaSearch className="absolute left-2.5 top-3 text-slate-400 text-xs" />
+              <FaSearch className="absolute left-2.5 top-3 text-slate-400 text-xs pointer-events-none" />
+              {itemSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => { setItemSearchQuery(""); setExpandedItem(null); }}
+                  className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 text-xs rounded-full hover:bg-slate-100 cursor-pointer"
+                  title="Clear search"
+                >
+                  <FaTimes size={11} />
+                </button>
+              )}
             </div>
           </div>
         </FilterBar>
@@ -889,145 +1016,257 @@ export default function Reports() {
   // PURCHASE REPORT
   // ══════════════════════════════════════════════════════════════════════════
   const PurchaseReport = () => {
-    // Summary: group by supplier → item count, qty, value
-    const bySupplier = Array.from(
+    // Group filteredOrders by item + type + category
+    const purchaseItemsSummary = Array.from(
       filteredOrders.reduce((m, o) => {
-        const sup = o.supplier || "Unknown";
-        if (!m.has(sup)) m.set(sup, { supplier: sup, orders: 0, qty: 0, amt: 0 });
-        const e = m.get(sup);
-        e.orders++;
-        e.qty += o.quantity;
-        e.amt += o.quantity * (o.pricePerUnit || 0);
+        const itemName = (o.item || "Unknown").trim();
+        const itemType = (o.type || "").trim();
+        const category = (o.category || "").trim();
+        const key = `${itemName}:::${itemType}:::${category}`;
+        if (!m.has(key)) {
+          m.set(key, {
+            key,
+            itemName,
+            itemType,
+            displayName: itemType ? `${itemName} (${itemType})` : itemName,
+            category,
+            qty: 0,
+            amt: 0,
+            orders: [],
+          });
+        }
+        const entry = m.get(key);
+        const qty = Number(o.quantity) || 0;
+        const amt = qty * (Number(o.pricePerUnit) || 0);
+        entry.qty += qty;
+        entry.amt += amt;
+        entry.orders.push(o);
         return m;
-      }, new Map())
-    ).map(([, v]) => v).sort((a, b) => b.amt - a.amt);
+      }, new Map()).values()
+    ).sort((a, b) => b.amt - a.amt || b.qty - a.qty);
 
     // Status badge colour
     const statusBadge = (s) =>
-      s === "Received" ? "bg-emerald-100 text-emerald-700" :
-      s === "Pending"  ? "bg-yellow-100 text-yellow-700" :
-                         "bg-blue-100 text-blue-700";
+      s === "Received" ? "bg-emerald-100 text-emerald-700 border border-emerald-300" :
+      s === "Pending"  ? "bg-amber-100 text-amber-700 border border-amber-300" :
+      s === "Rejected" ? "bg-red-100 text-red-700 border border-red-300" :
+                         "bg-blue-100 text-blue-700 border border-blue-300";
 
     return (
       <>
         <FilterBar onExport={exportPurchase} onPrint={() => window.print()}>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Category</label>
-            <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
+            <select
+              value={selectedCategory}
+              onChange={e => { setSelectedCategory(e.target.value); setExpandedPurchaseItem(null); }}
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
-                         focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white cursor-pointer">
+                         focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white cursor-pointer"
+            >
               <option value="all">All Categories</option>
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <DateBar />
+          <DateBar accentColor="emerald" />
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search Item</label>
             <div className="relative">
-              <input type="text" placeholder="e.g. Phenyl…" value={itemSearchQuery}
-                onChange={e => setItemSearchQuery(e.target.value)}
-                className="border border-slate-200 rounded-lg px-3 py-2 pl-8 text-sm text-slate-700
-                           focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white w-44" />
-              <FaSearch className="absolute left-2.5 top-3 text-slate-400 text-xs" />
+              <input
+                type="text"
+                placeholder="e.g. Laptop, Phenyl, Supplier…"
+                value={itemSearchQuery}
+                onChange={e => { setItemSearchQuery(e.target.value); setExpandedPurchaseItem(null); }}
+                className="border border-slate-200 rounded-lg px-3 py-2 pl-8 pr-7 text-sm text-slate-700
+                           focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white w-48 transition"
+              />
+              <FaSearch className="absolute left-2.5 top-3 text-slate-400 text-xs pointer-events-none" />
+              {itemSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => { setItemSearchQuery(""); setExpandedPurchaseItem(null); }}
+                  className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 text-xs rounded-full hover:bg-slate-100 cursor-pointer"
+                  title="Clear search"
+                >
+                  <FaTimes size={11} />
+                </button>
+              )}
             </div>
           </div>
         </FilterBar>
 
         <CollegeHeader />
 
-        <div className="flex items-center justify-between mb-4">
-          <StatChips chips={[
-            { label: "Orders",      val: filteredOrders.length },
-            { label: "Total Qty",   val: fmt(totalOrderedQty) + " units" },
-            { label: "Total Value", val: "₹" + fmt(totalOrderedAmt) },
-          ]} />
-          <ViewToggle mode={viewMode} setMode={setViewMode} />
-        </div>
+        <StatChips chips={[
+          { label: "Items",       val: purchaseItemsSummary.length },
+          { label: "Orders",      val: filteredOrders.length },
+          { label: "Total Qty",   val: fmt(totalOrderedQty) + " units" },
+          { label: "Total Value", val: "₹" + fmt(totalOrderedAmt) },
+        ]} />
 
-        {viewMode === "summary" ? (
-          /* ─ SUMMARY: supplier-wise totals ─ */
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-emerald-700 text-white">
-                  <th className="p-3 text-left font-bold text-xs uppercase">Supplier</th>
-                  <th className="p-3 text-center font-bold text-xs uppercase">Orders</th>
-                  <th className="p-3 text-center font-bold text-xs uppercase">Total Qty</th>
-                  <th className="p-3 text-right font-bold text-xs uppercase">Total Value</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {bySupplier.length === 0
-                  ? <EmptyRow colSpan={4} />
-                  : bySupplier.map((row, idx) => (
-                    <tr key={row.supplier} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
-                      <td className="p-3 font-semibold text-slate-800">{row.supplier}</td>
-                      <td className="p-3 text-center text-slate-600">{row.orders}</td>
-                      <td className="p-3 text-center font-black text-emerald-700">{row.qty}</td>
-                      <td className="p-3 text-right font-black text-slate-800">₹{fmt(row.amt)}</td>
-                    </tr>
-                  ))}
-              </tbody>
-              {bySupplier.length > 0 && (
-                <tfoot>
-                  <tr className="bg-slate-800 text-white">
-                    <td className="p-3 font-black text-xs uppercase">Total</td>
-                    <td className="p-3 text-center font-black text-xs">{filteredOrders.length}</td>
-                    <td className="p-3 text-center font-black text-xs">{totalOrderedQty}</td>
-                    <td className="p-3 text-right font-black text-xs">₹{fmt(totalOrderedAmt)}</td>
-                  </tr>
-                </tfoot>
+        <p className="text-xs text-slate-400 mb-3 -mt-2">
+          Click any item to see all its purchase orders and history.
+        </p>
+
+        <div className="rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-emerald-700 text-white">
+                <th className="p-3 text-left font-bold text-xs uppercase">Item</th>
+                <th className="p-3 text-left font-bold text-xs uppercase">Category</th>
+                <th className="p-3 text-center font-bold text-xs uppercase">Total Qty</th>
+                <th className="p-3 text-right font-bold text-xs uppercase">Total Value</th>
+                <th className="p-3 w-8"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {purchaseItemsSummary.length === 0 ? (
+                <EmptyRow colSpan={5} />
+              ) : (
+                purchaseItemsSummary.map((item, idx) => {
+                  const isOpen = expandedPurchaseItem === item.key;
+                  return (
+                    <React.Fragment key={item.key}>
+                      <tr
+                        className={"cursor-pointer transition-colors " +
+                          (isOpen
+                            ? "bg-emerald-50/50 "
+                            : idx % 2 === 0 ? "bg-white " : "bg-slate-50/50 ") +
+                          "hover:bg-emerald-50/70"}
+                        onClick={() => setExpandedPurchaseItem(isOpen ? null : item.key)}
+                      >
+                        <td className="p-3.5 font-semibold text-slate-800">
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xs flex-shrink-0">
+                              {(item.itemName || "P")[0].toUpperCase()}
+                            </span>
+                            <div>
+                              <p className="font-bold text-slate-800 text-sm">
+                                {item.itemName}
+                                {item.itemType ? (
+                                  <span className="text-slate-400 font-normal ml-1 text-xs">({item.itemType})</span>
+                                ) : null}
+                              </p>
+                              <p className="text-[11px] font-bold text-emerald-700 mt-0.5">
+                                {item.orders.length} order{item.orders.length !== 1 ? "s" : ""} · {item.qty} units · ₹{fmt(item.amt)}
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                {isOpen ? "▲ Collapse" : "▼ See all purchase records"}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3.5 text-xs font-medium text-slate-600">
+                          <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold border border-slate-200">
+                            {item.category || "—"}
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-center font-black text-slate-800 text-sm">
+                          {item.qty}
+                        </td>
+                        <td className="p-3.5 text-right font-black text-slate-800 text-sm">
+                          ₹{fmt(item.amt)}
+                        </td>
+                        <td className="p-3.5 text-center text-emerald-600">
+                          {isOpen ? <FaChevronDown size={12}/> : <FaChevronRight size={12}/>}
+                        </td>
+                      </tr>
+
+                      {isOpen && (
+                        <tr>
+                          <td colSpan={5} className="p-0">
+                            <div className="border-y-2 border-emerald-300 bg-white">
+                              <div className="flex items-center justify-between px-5 py-2.5 bg-emerald-700">
+                                <p className="text-white text-xs font-black uppercase tracking-wider">
+                                  {item.displayName} — {item.orders.length} purchase record{item.orders.length !== 1 ? "s" : ""}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={e => { e.stopPropagation(); setExpandedPurchaseItem(null); }}
+                                  className="text-white/80 hover:text-white text-xs font-bold px-2 py-1
+                                             rounded hover:bg-white/10 transition cursor-pointer"
+                                >
+                                  ✕ Close
+                                </button>
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-emerald-50 border-b border-emerald-100 text-emerald-950">
+                                      <th className="p-2.5 text-left font-bold uppercase">#</th>
+                                      <th className="p-2.5 text-left font-bold uppercase">Order Date</th>
+                                      <th className="p-2.5 text-left font-bold uppercase">Receive Date</th>
+                                      <th className="p-2.5 text-left font-bold uppercase">Supplier</th>
+                                      <th className="p-2.5 text-left font-bold uppercase">Department</th>
+                                      <th className="p-2.5 text-center font-bold uppercase">Qty</th>
+                                      <th className="p-2.5 text-right font-bold uppercase">Unit Price</th>
+                                      <th className="p-2.5 text-right font-bold uppercase">Total</th>
+                                      <th className="p-2.5 text-center font-bold uppercase">Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {item.orders
+                                      .slice()
+                                      .sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || ""))
+                                      .map((o, oIdx) => (
+                                        <tr key={o.id || oIdx} className={oIdx % 2 === 0 ? "bg-white" : "bg-emerald-50/20"}>
+                                          <td className="p-2.5 text-slate-400 font-mono">{oIdx + 1}</td>
+                                          <td className="p-2.5 font-mono font-semibold text-slate-600 whitespace-nowrap">
+                                            {dFmt(o.orderDate)}
+                                          </td>
+                                          <td className="p-2.5 font-mono text-slate-500 whitespace-nowrap">
+                                            {dFmt(o.receiveDate) || "—"}
+                                          </td>
+                                          <td className="p-2.5 font-medium text-slate-700">{o.supplier || "—"}</td>
+                                          <td className="p-2.5 text-slate-600">{o.department || "—"}</td>
+                                          <td className="p-2.5 text-center font-black text-emerald-800">{o.quantity}</td>
+                                          <td className="p-2.5 text-right text-slate-500">₹{fmt(o.pricePerUnit)}</td>
+                                          <td className="p-2.5 text-right font-bold text-slate-800">
+                                            ₹{fmt(o.quantity * (o.pricePerUnit || 0))}
+                                          </td>
+                                          <td className="p-2.5 text-center">
+                                            <span className={"px-2 py-0.5 rounded-full text-[10px] font-black " + statusBadge(o.status)}>
+                                              {o.status}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                  </tbody>
+                                  <tfoot>
+                                    <tr className="bg-emerald-700 text-white">
+                                      <td colSpan={5} className="p-2.5 font-black text-xs uppercase">
+                                        {item.displayName} Total
+                                      </td>
+                                      <td className="p-2.5 text-center font-black text-xs">{item.qty}</td>
+                                      <td />
+                                      <td className="p-2.5 text-right font-black text-xs">₹{fmt(item.amt)}</td>
+                                      <td />
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
               )}
-            </table>
-          </div>
-        ) : (
-          /* ─ FULL LIST ─ */
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-emerald-700 text-white">
-                  {["#", "Order Date", "Receive Date", "Item", "Type", "Supplier", "Category", "Qty", "Unit Price", "Total", "Status"].map(h => (
-                    <th key={h} className="p-3 text-left font-bold text-xs uppercase">{h}</th>
-                  ))}
+            </tbody>
+            {purchaseItemsSummary.length > 0 && (
+              <tfoot>
+                <tr className="bg-slate-800 text-white">
+                  <td colSpan={2} className="p-3 font-black text-xs uppercase">
+                    Grand Total ({purchaseItemsSummary.length} item{purchaseItemsSummary.length !== 1 ? "s" : ""})
+                  </td>
+                  <td className="p-3 text-center font-black text-xs">{totalOrderedQty}</td>
+                  <td className="p-3 text-right font-black text-xs">₹{fmt(totalOrderedAmt)}</td>
+                  <td />
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredOrders.length > 0
-                  ? filteredOrders.map((o, idx) => (
-                    <tr key={o.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
-                      <td className="p-3 text-xs text-slate-400 font-mono">{idx + 1}</td>
-                      <td className="p-3 text-xs font-bold text-slate-700 font-mono whitespace-nowrap">{dFmt(o.orderDate)}</td>
-                      <td className="p-3 text-xs text-slate-500 font-mono whitespace-nowrap">{dFmt(o.receiveDate) || "—"}</td>
-                      <td className="p-3 font-semibold text-slate-800">{o.item}</td>
-                      <td className="p-3 text-xs text-slate-500">{o.type}</td>
-                      <td className="p-3 text-xs text-slate-500">{o.supplier}</td>
-                      <td className="p-3 text-xs text-slate-500">{o.category}</td>
-                      <td className="p-3 text-center font-black text-slate-800">{o.quantity}</td>
-                      <td className="p-3 text-right text-xs text-slate-600">₹{fmt(o.pricePerUnit)}</td>
-                      <td className="p-3 text-right font-black text-slate-800">₹{fmt(o.quantity * (o.pricePerUnit || 0))}</td>
-                      <td className="p-3">
-                        <span className={"px-2 py-0.5 rounded-full text-[10px] font-black " + statusBadge(o.status)}>
-                          {o.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                  : <EmptyRow colSpan={11} />}
-              </tbody>
-              {filteredOrders.length > 0 && (
-                <tfoot>
-                  <tr className="bg-slate-800 text-white">
-                    <td colSpan={7} className="p-3 font-black text-xs uppercase">Total</td>
-                    <td className="p-3 text-center font-black text-xs">{totalOrderedQty}</td>
-                    <td />
-                    <td className="p-3 text-right font-black text-xs">₹{fmt(totalOrderedAmt)}</td>
-                    <td />
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </div>
-        )}
+              </tfoot>
+            )}
+          </table>
+        </div>
       </>
     );
   };
@@ -1050,11 +1289,7 @@ export default function Reports() {
         </div>
         <div className="ml-auto text-right">
           <p className="text-xs text-slate-500">
-            Period: <strong>
-              {startDate && endDate
-                ? `${startDate} to ${endDate}`
-                : startDate ? `From ${startDate}` : endDate ? `Up to ${endDate}` : "All Records"}
-            </strong>
+            Period: <strong>{getPeriodLabel()}</strong>
           </p>
           <p className="text-xs text-slate-400">Generated: {new Date().toLocaleString("en-IN")}</p>
         </div>
@@ -1161,12 +1396,12 @@ export default function Reports() {
                 onClick={() => {
                   if (selected) { setActiveReport(null); return; }
                   setActiveReport(card.type);
-                  setViewMode("summary");
                   setSelectedDepartment("all");
                   setSelectedCategory("all");
                   setItemSearchQuery("");
                   setExpandedDept(null);
                   setExpandedItem(null);
+                  setExpandedPurchaseItem(null);
                 }}
                 className={"rounded-2xl p-5 text-left border transition-all duration-200 cursor-pointer w-full " +
                   (selected
@@ -1197,7 +1432,7 @@ export default function Reports() {
                   <p className="text-white/70 text-xs">{activeCard.desc}</p>
                 </div>
               </div>
-              <button onClick={() => { setActiveReport(null); setExpandedDept(null); setExpandedItem(null); }}
+              <button onClick={() => { setActiveReport(null); setExpandedDept(null); setExpandedItem(null); setExpandedPurchaseItem(null); }}
                 className="text-white/80 hover:text-white text-xs font-bold px-3 py-1.5 rounded-lg
                            hover:bg-white/10 transition cursor-pointer flex items-center gap-1.5">
                 <FaTimes /> Close
@@ -1220,8 +1455,7 @@ export default function Reports() {
             </div>
             <h2 className="text-lg font-bold text-slate-700 mb-1">Select a Report</h2>
             <p className="text-slate-400 text-sm">
-              Click one of the 3 cards above. Each report lets you toggle between
-              a <strong>Summary view</strong> (totals only) and a <strong>Full List</strong> (every record).
+              Click one of the 3 cards above. Drill down into departments, issued stock, or purchases by item with real-time search, specific single-day or date-range filtering, and instant Excel export.
             </p>
           </div>
         )}
