@@ -405,23 +405,7 @@ export default function Reports() {
           className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700
                      focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
       </div>
-      {/* Quick presets */}
-      <div className="flex items-center gap-1.5 pb-0.5">
-        {[
-          { l: "Feb 2020",  s: "2020-02-01", e: "2020-02-29" },
-          { l: "26 Feb",    s: "2020-02-26", e: "2020-02-26" },
-          { l: "All Time",  s: "",           e: "" },
-        ].map(p => (
-          <button key={p.l} type="button"
-            onClick={() => { setStartDate(p.s); setEndDate(p.e); }}
-            className={"px-3 py-2 rounded-lg text-xs font-bold transition border cursor-pointer " +
-              (startDate === p.s && endDate === p.e
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100")}>
-            {p.l}
-          </button>
-        ))}
-      </div>
+
     </div>
   );
 
