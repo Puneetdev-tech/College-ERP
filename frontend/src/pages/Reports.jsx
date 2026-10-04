@@ -210,6 +210,63 @@ export default function Reports() {
     (selectedDepartment !== "all" && d.name.toLowerCase() === selectedDepartment.toLowerCase())
   );
 
+  // Issue Items summary: grouped by item + type + category
+  const itemsSummary = Array.from(
+    filteredIssued.reduce((m, log) => {
+      const itemName = (log.item || "Unknown").trim();
+      const itemType = (log.type || "").trim();
+      const category = (log.category || "").trim();
+      const key = `${itemName}:::${itemType}:::${category}`;
+      if (!m.has(key)) {
+        m.set(key, {
+          key,
+          itemName,
+          itemType,
+          displayName: itemType ? `${itemName} (${itemType})` : itemName,
+          category,
+          qty: 0,
+          amt: 0,
+          logs: [],
+        });
+      }
+      const entry = m.get(key);
+      const uc = getIssuedItemPrice(log);
+      entry.qty += log.quantity;
+      entry.amt += log.quantity * uc;
+      entry.logs.push(log);
+      return m;
+    }, new Map()).values()
+  ).sort((a, b) => b.amt - a.amt || b.qty - a.qty);
+
+  // Purchase Items summary: grouped by item + type + category
+  const purchaseItemsSummary = Array.from(
+    filteredOrders.reduce((m, o) => {
+      const itemName = (o.item || "Unknown").trim();
+      const itemType = (o.type || "").trim();
+      const category = (o.category || "").trim();
+      const key = `${itemName}:::${itemType}:::${category}`;
+      if (!m.has(key)) {
+        m.set(key, {
+          key,
+          itemName,
+          itemType,
+          displayName: itemType ? `${itemName} (${itemType})` : itemName,
+          category,
+          qty: 0,
+          amt: 0,
+          orders: [],
+        });
+      }
+      const entry = m.get(key);
+      const qty = Number(o.quantity) || 0;
+      const amt = qty * (Number(o.pricePerUnit) || 0);
+      entry.qty += qty;
+      entry.amt += amt;
+      entry.orders.push(o);
+      return m;
+    }, new Map()).values()
+  ).sort((a, b) => b.amt - a.amt || b.qty - a.qty);
+
   // ── Excel export ───────────────────────────────────────────────────────────
   const showToast = (msg) => {
     setToast(msg);
@@ -302,35 +359,105 @@ export default function Reports() {
     }
   };
 
-  const exportDept = () => exportExcel(
-    selectedDepartment === "all" ? "Department Report" : "Dept – " + selectedDepartment,
-    deptSummary.flatMap(d =>
-      d.catBreakdown.map(c => [d.name, c.cat, c.qty, c.amt])
-    ),
-    ["Department", "Category", "Total Qty", "Total Value (Rs)"],
-    [24, 22, 12, 18]
-  );
+  const exportDept = () => {
+    if (expandedDept) {
+      const dept = deptSummary.find(d => d.name === expandedDept);
+      if (dept) {
+        const rows = dept.logs
+          .slice()
+          .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+          .map((l, idx) => {
+            const uc = getIssuedItemPrice(l);
+            return [idx + 1, dFmt(l.date), l.item, l.category, l.faculty, l.quantity, uc, l.quantity * uc];
+          });
+        rows.push(["", "TOTAL FOR " + dept.name.toUpperCase(), "", "", "", dept.qty, "", dept.amt]);
+        return exportExcel(
+          `Dept – ${dept.name}`,
+          rows,
+          ["#", "Date", "Item", "Category", "Faculty/Staff", "Qty", "Unit Rate (Rs)", "Total (Rs)"],
+          [6, 14, 28, 18, 22, 10, 14, 16]
+        );
+      }
+    }
+    const rows = [];
+    let idx = 1;
+    deptSummary.forEach(d => {
+      d.catBreakdown.forEach(c => {
+        rows.push([idx++, d.name, c.cat, c.qty, c.amt]);
+      });
+    });
+    rows.push(["", "GRAND TOTAL", "", totalIssuedQty, totalIssuedAmt]);
+    return exportExcel(
+      selectedDepartment === "all" ? "Department Summary Report" : "Dept – " + selectedDepartment,
+      rows,
+      ["#", "Department", "Category", "Total Qty", "Total Value (Rs)"],
+      [6, 26, 20, 14, 18]
+    );
+  };
 
-  const exportIssue = () => exportExcel(
-    "Issue Register",
-    filteredIssued.map(l => {
-      const uc = getIssuedItemPrice(l);
-      return [dFmt(l.date), l.item, l.category, l.department, l.faculty, l.quantity, uc, l.quantity * uc];
-    }),
-    ["Date", "Item", "Category", "Department", "Faculty/Staff", "Qty", "Unit Rate (Rs)", "Total (Rs)"],
-    [14, 28, 18, 20, 18, 8, 14, 14]
-  );
+  const exportIssue = () => {
+    if (expandedItem) {
+      const item = itemsSummary.find(i => i.key === expandedItem);
+      if (item) {
+        const rows = item.logs
+          .slice()
+          .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+          .map((l, idx) => {
+            const uc = getIssuedItemPrice(l);
+            return [idx + 1, dFmt(l.date), l.department, l.faculty, l.quantity, uc, l.quantity * uc];
+          });
+        rows.push(["", "TOTAL FOR " + item.displayName.toUpperCase(), "", "", item.qty, "", item.amt]);
+        return exportExcel(
+          `Issue History – ${item.displayName}`,
+          rows,
+          ["#", "Date", "Department", "Faculty/Staff", "Qty", "Unit Rate (Rs)", "Total (Rs)"],
+          [6, 14, 24, 22, 10, 14, 16]
+        );
+      }
+    }
+    const rows = itemsSummary.map((item, idx) => [
+      idx + 1, item.displayName, item.category, item.qty, item.amt
+    ]);
+    rows.push(["", "GRAND TOTAL", "", totalIssuedQty, totalIssuedAmt]);
+    return exportExcel(
+      "Item Issue Report",
+      rows,
+      ["#", "Item", "Category", "Total Qty Issued", "Total Value (Rs)"],
+      [6, 30, 20, 16, 18]
+    );
+  };
 
-  const exportPurchase = () => exportExcel(
-    "Purchase Register",
-    filteredOrders.map(o => [
-      dFmt(o.orderDate), dFmt(o.receiveDate) || "—",
-      o.item, o.type, o.supplier, o.category,
-      o.quantity, o.pricePerUnit, o.quantity * (o.pricePerUnit || 0), o.status
-    ]),
-    ["Order Date", "Receive Date", "Item", "Type", "Supplier", "Category", "Qty", "Unit Price (Rs)", "Total (Rs)", "Status"],
-    [14, 14, 26, 14, 20, 16, 8, 14, 14, 12]
-  );
+  const exportPurchase = () => {
+    if (expandedPurchaseItem) {
+      const item = purchaseItemsSummary.find(i => i.key === expandedPurchaseItem);
+      if (item) {
+        const rows = item.orders
+          .slice()
+          .sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || ""))
+          .map((o, idx) => [
+            idx + 1, dFmt(o.orderDate), dFmt(o.receiveDate) || "—", o.supplier, o.status,
+            o.quantity, o.pricePerUnit, o.quantity * (o.pricePerUnit || 0)
+          ]);
+        rows.push(["", "TOTAL FOR " + item.displayName.toUpperCase(), "", "", "", item.qty, "", item.amt]);
+        return exportExcel(
+          `Purchase History – ${item.displayName}`,
+          rows,
+          ["#", "Order Date", "Receive Date", "Supplier", "Status", "Qty", "Unit Price (Rs)", "Total (Rs)"],
+          [6, 14, 14, 24, 14, 10, 14, 16]
+        );
+      }
+    }
+    const rows = purchaseItemsSummary.map((item, idx) => [
+      idx + 1, item.displayName, item.category, item.orders.length, item.qty, item.amt
+    ]);
+    rows.push(["", "GRAND TOTAL", "", filteredOrders.length, totalOrderedQty, totalOrderedAmt]);
+    return exportExcel(
+      "Purchase Items Report",
+      rows,
+      ["#", "Item", "Category", "Total Orders", "Total Qty Ordered", "Total Value (Rs)"],
+      [6, 30, 20, 14, 18, 18]
+    );
+  };
 
   // ── Report card config ──────────────────────────────────────────────────────
   const reportCards = [
@@ -778,34 +905,6 @@ export default function Reports() {
   // ISSUE REPORT
   // ══════════════════════════════════════════════════════════════════════════
   const renderIssueReport = () => {
-    // Group filteredIssued by item + type + category
-    const itemsSummary = Array.from(
-      filteredIssued.reduce((m, log) => {
-        const itemName = (log.item || "Unknown").trim();
-        const itemType = (log.type || "").trim();
-        const category = (log.category || "").trim();
-        const key = `${itemName}:::${itemType}:::${category}`;
-        if (!m.has(key)) {
-          m.set(key, {
-            key,
-            itemName,
-            itemType,
-            displayName: itemType ? `${itemName} (${itemType})` : itemName,
-            category,
-            qty: 0,
-            amt: 0,
-            logs: [],
-          });
-        }
-        const entry = m.get(key);
-        const uc = getIssuedItemPrice(log);
-        entry.qty += log.quantity;
-        entry.amt += log.quantity * uc;
-        entry.logs.push(log);
-        return m;
-      }, new Map()).values()
-    ).sort((a, b) => b.amt - a.amt || b.qty - a.qty);
-
     return (
       <>
         {renderFilterBar(exportIssue, () => window.print(), (
@@ -1035,35 +1134,6 @@ export default function Reports() {
   // PURCHASE REPORT
   // ══════════════════════════════════════════════════════════════════════════
   const renderPurchaseReport = () => {
-    // Group filteredOrders by item + type + category
-    const purchaseItemsSummary = Array.from(
-      filteredOrders.reduce((m, o) => {
-        const itemName = (o.item || "Unknown").trim();
-        const itemType = (o.type || "").trim();
-        const category = (o.category || "").trim();
-        const key = `${itemName}:::${itemType}:::${category}`;
-        if (!m.has(key)) {
-          m.set(key, {
-            key,
-            itemName,
-            itemType,
-            displayName: itemType ? `${itemName} (${itemType})` : itemName,
-            category,
-            qty: 0,
-            amt: 0,
-            orders: [],
-          });
-        }
-        const entry = m.get(key);
-        const qty = Number(o.quantity) || 0;
-        const amt = qty * (Number(o.pricePerUnit) || 0);
-        entry.qty += qty;
-        entry.amt += amt;
-        entry.orders.push(o);
-        return m;
-      }, new Map()).values()
-    ).sort((a, b) => b.amt - a.amt || b.qty - a.qty);
-
     // Status badge colour
     const statusBadge = (s) =>
       s === "Received" ? "bg-emerald-100 text-emerald-700 border border-emerald-300" :
@@ -1317,68 +1387,373 @@ export default function Reports() {
       </div>
       <h2 className="text-lg font-black mb-4 text-blue-900">{activeCard?.title}</h2>
 
-      {(activeReport === "department" || activeReport === "issue") && (
-        <table className="w-full border-collapse text-xs">
-          <thead>
-            <tr className="bg-slate-800 text-white">
-              {["#", "Date", "Item", "Category", "Department", "Faculty/Staff", "Qty", "Unit Rate", "Total"].map(h => (
-                <th key={h} className="border border-slate-600 p-2 text-left">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredIssued.map((log, idx) => {
-              const uc = getIssuedItemPrice(log);
+      {/* ────────────────── DEPARTMENT REPORT PRINT ────────────────── */}
+      {activeReport === "department" && (
+        <div>
+          {expandedDept ? (
+            (() => {
+              const dept = deptSummary.find(d => d.name === expandedDept);
+              if (!dept) return null;
               return (
-                <tr key={log.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-                  <td className="border border-slate-200 p-2">{idx + 1}</td>
-                  <td className="border border-slate-200 p-2 font-mono">{dFmt(log.date)}</td>
-                  <td className="border border-slate-200 p-2 font-semibold">{log.item}</td>
-                  <td className="border border-slate-200 p-2">{log.category}</td>
-                  <td className="border border-slate-200 p-2 font-bold">{log.department}</td>
-                  <td className="border border-slate-200 p-2">{log.faculty}</td>
-                  <td className="border border-slate-200 p-2 text-center font-bold">{log.quantity}</td>
-                  <td className="border border-slate-200 p-2 text-right">₹{fmt(uc)}</td>
-                  <td className="border border-slate-200 p-2 text-right font-bold">₹{fmt(log.quantity * uc)}</td>
-                </tr>
+                <div>
+                  <div className="bg-blue-50 border border-blue-200 p-3 rounded mb-4">
+                    <p className="font-bold text-sm text-blue-900">
+                      Department: <span className="font-black">{dept.name}</span>
+                    </p>
+                    <p className="text-xs text-blue-700 mt-0.5">
+                      Total Issued: {dept.qty} units · Total Value: ₹{fmt(dept.amt)} ({dept.logs.length} records)
+                    </p>
+                  </div>
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-blue-800 text-white">
+                        {["#", "Date", "Item", "Category", "Faculty / Staff", "Qty", "Unit Rate", "Total"].map(h => (
+                          <th key={h} className="border border-blue-900 p-2 text-left">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dept.logs.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((l, idx) => {
+                        const uc = getIssuedItemPrice(l);
+                        return (
+                          <tr key={l.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                            <td className="border border-slate-300 p-2">{idx + 1}</td>
+                            <td className="border border-slate-300 p-2 font-mono">{dFmt(l.date)}</td>
+                            <td className="border border-slate-300 p-2 font-semibold">{l.item}</td>
+                            <td className="border border-slate-300 p-2">{l.category}</td>
+                            <td className="border border-slate-300 p-2">{l.faculty}</td>
+                            <td className="border border-slate-300 p-2 text-center font-bold">{l.quantity}</td>
+                            <td className="border border-slate-300 p-2 text-right">₹{fmt(uc)}</td>
+                            <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(l.quantity * uc)}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="bg-slate-800 text-white font-bold">
+                        <td colSpan={5} className="border border-slate-600 p-2">Total for {dept.name}</td>
+                        <td className="border border-slate-600 p-2 text-center">{dept.qty}</td>
+                        <td />
+                        <td className="border border-slate-600 p-2 text-right">₹{fmt(dept.amt)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               );
-            })}
-            <tr className="bg-slate-800 text-white font-bold">
-              <td colSpan={6} className="border border-slate-600 p-2">Total</td>
-              <td className="border border-slate-600 p-2 text-center">{totalIssuedQty}</td>
-              <td />
-              <td className="border border-slate-600 p-2 text-right">₹{fmt(totalIssuedAmt)}</td>
-            </tr>
-          </tbody>
-        </table>
+            })()
+          ) : (
+            <div>
+              <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Department Summary</p>
+              <table className="w-full border-collapse text-xs mb-6">
+                <thead>
+                  <tr className="bg-blue-800 text-white">
+                    <th className="border border-blue-900 p-2 text-left">#</th>
+                    <th className="border border-blue-900 p-2 text-left">Department</th>
+                    <th className="border border-blue-900 p-2 text-left">Category</th>
+                    <th className="border border-blue-900 p-2 text-center">Total Qty</th>
+                    <th className="border border-blue-900 p-2 text-right">Total Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    let count = 0;
+                    return deptSummary.map(d =>
+                      d.catBreakdown.map(c => (
+                        <tr key={d.name + c.cat} className={count++ % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                          <td className="border border-slate-300 p-2">{count}</td>
+                          <td className="border border-slate-300 p-2 font-bold">{d.name}</td>
+                          <td className="border border-slate-300 p-2">{c.cat}</td>
+                          <td className="border border-slate-300 p-2 text-center font-bold">{c.qty}</td>
+                          <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(c.amt)}</td>
+                        </tr>
+                      ))
+                    );
+                  })()}
+                  <tr className="bg-slate-800 text-white font-bold">
+                    <td colSpan={3} className="border border-slate-600 p-2 uppercase">Grand Total</td>
+                    <td className="border border-slate-600 p-2 text-center">{totalIssuedQty}</td>
+                    <td className="border border-slate-600 p-2 text-right">₹{fmt(totalIssuedAmt)}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Department-wise Breakdown</p>
+              {deptSummary.map(d => (
+                <div key={d.name} className="mb-5 break-inside-avoid">
+                  <div className="bg-slate-100 border border-slate-300 px-3 py-1.5 font-bold text-xs flex justify-between">
+                    <span>Department: {d.name}</span>
+                    <span>Total: {d.qty} units · ₹{fmt(d.amt)}</span>
+                  </div>
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-700 text-white">
+                        {["#", "Date", "Item", "Category", "Faculty / Staff", "Qty", "Unit Rate", "Total"].map(h => (
+                          <th key={h} className="border border-slate-600 p-1.5 text-left">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {d.logs.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((l, idx) => {
+                        const uc = getIssuedItemPrice(l);
+                        return (
+                          <tr key={l.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                            <td className="border border-slate-200 p-1.5">{idx + 1}</td>
+                            <td className="border border-slate-200 p-1.5 font-mono">{dFmt(l.date)}</td>
+                            <td className="border border-slate-200 p-1.5 font-semibold">{l.item}</td>
+                            <td className="border border-slate-200 p-1.5">{l.category}</td>
+                            <td className="border border-slate-200 p-1.5">{l.faculty}</td>
+                            <td className="border border-slate-200 p-1.5 text-center font-bold">{l.quantity}</td>
+                            <td className="border border-slate-200 p-1.5 text-right">₹{fmt(uc)}</td>
+                            <td className="border border-slate-200 p-1.5 text-right font-bold">₹{fmt(l.quantity * uc)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
-      {activeReport === "purchase" && (
-        <table className="w-full border-collapse text-xs">
-          <thead>
-            <tr className="bg-slate-800 text-white">
-              {["#", "Order Date", "Item", "Type", "Supplier", "Category", "Qty", "Unit Price", "Total", "Status"].map(h => (
-                <th key={h} className="border border-slate-600 p-2 text-left">{h}</th>
+      {/* ────────────────── ISSUE REPORT PRINT ────────────────── */}
+      {activeReport === "issue" && (
+        <div>
+          {expandedItem ? (
+            (() => {
+              const item = itemsSummary.find(i => i.key === expandedItem);
+              if (!item) return null;
+              return (
+                <div>
+                  <div className="bg-amber-50 border border-amber-200 p-3 rounded mb-4">
+                    <p className="font-bold text-sm text-amber-900">
+                      Item: <span className="font-black">{item.displayName}</span> ({item.category})
+                    </p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      Total Issued: {item.qty} units · Total Value: ₹{fmt(item.amt)} ({item.logs.length} records)
+                    </p>
+                  </div>
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-amber-600 text-white">
+                        {["#", "Date", "Department", "Faculty / Staff", "Qty", "Unit Rate", "Total"].map(h => (
+                          <th key={h} className="border border-amber-700 p-2 text-left">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {item.logs.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((l, idx) => {
+                        const uc = getIssuedItemPrice(l);
+                        return (
+                          <tr key={l.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                            <td className="border border-slate-300 p-2">{idx + 1}</td>
+                            <td className="border border-slate-300 p-2 font-mono">{dFmt(l.date)}</td>
+                            <td className="border border-slate-300 p-2 font-bold">{l.department}</td>
+                            <td className="border border-slate-300 p-2">{l.faculty}</td>
+                            <td className="border border-slate-300 p-2 text-center font-bold">{l.quantity}</td>
+                            <td className="border border-slate-300 p-2 text-right">₹{fmt(uc)}</td>
+                            <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(l.quantity * uc)}</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="bg-slate-800 text-white font-bold">
+                        <td colSpan={4} className="border border-slate-600 p-2">Total for {item.displayName}</td>
+                        <td className="border border-slate-600 p-2 text-center">{item.qty}</td>
+                        <td />
+                        <td className="border border-slate-600 p-2 text-right">₹{fmt(item.amt)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()
+          ) : (
+            <div>
+              <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Item Issue Summary</p>
+              <table className="w-full border-collapse text-xs mb-6">
+                <thead>
+                  <tr className="bg-amber-600 text-white">
+                    <th className="border border-amber-700 p-2 text-left">#</th>
+                    <th className="border border-amber-700 p-2 text-left">Item</th>
+                    <th className="border border-amber-700 p-2 text-left">Category</th>
+                    <th className="border border-amber-700 p-2 text-center">Total Qty Issued</th>
+                    <th className="border border-amber-700 p-2 text-right">Total Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itemsSummary.map((item, idx) => (
+                    <tr key={item.key} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <td className="border border-slate-300 p-2">{idx + 1}</td>
+                      <td className="border border-slate-300 p-2 font-bold">{item.displayName}</td>
+                      <td className="border border-slate-300 p-2">{item.category}</td>
+                      <td className="border border-slate-300 p-2 text-center font-bold">{item.qty}</td>
+                      <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(item.amt)}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-800 text-white font-bold">
+                    <td colSpan={3} className="border border-slate-600 p-2 uppercase">Grand Total</td>
+                    <td className="border border-slate-600 p-2 text-center">{totalIssuedQty}</td>
+                    <td className="border border-slate-600 p-2 text-right">₹{fmt(totalIssuedAmt)}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Item-wise Disbursement Records</p>
+              {itemsSummary.map(item => (
+                <div key={item.key} className="mb-5 break-inside-avoid">
+                  <div className="bg-slate-100 border border-slate-300 px-3 py-1.5 font-bold text-xs flex justify-between">
+                    <span>Item: {item.displayName} ({item.category})</span>
+                    <span>Total: {item.qty} units · ₹{fmt(item.amt)}</span>
+                  </div>
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-700 text-white">
+                        {["#", "Date", "Department", "Faculty / Staff", "Qty", "Unit Rate", "Total"].map(h => (
+                          <th key={h} className="border border-slate-600 p-1.5 text-left">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {item.logs.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((l, idx) => {
+                        const uc = getIssuedItemPrice(l);
+                        return (
+                          <tr key={l.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                            <td className="border border-slate-200 p-1.5">{idx + 1}</td>
+                            <td className="border border-slate-200 p-1.5 font-mono">{dFmt(l.date)}</td>
+                            <td className="border border-slate-200 p-1.5 font-bold">{l.department}</td>
+                            <td className="border border-slate-200 p-1.5">{l.faculty}</td>
+                            <td className="border border-slate-200 p-1.5 text-center font-bold">{l.quantity}</td>
+                            <td className="border border-slate-200 p-1.5 text-right">₹{fmt(uc)}</td>
+                            <td className="border border-slate-200 p-1.5 text-right font-bold">₹{fmt(l.quantity * uc)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.map((o, idx) => (
-              <tr key={o.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-                <td className="border border-slate-200 p-2">{idx + 1}</td>
-                <td className="border border-slate-200 p-2 font-mono">{dFmt(o.orderDate)}</td>
-                <td className="border border-slate-200 p-2 font-semibold">{o.item}</td>
-                <td className="border border-slate-200 p-2">{o.type}</td>
-                <td className="border border-slate-200 p-2">{o.supplier}</td>
-                <td className="border border-slate-200 p-2">{o.category}</td>
-                <td className="border border-slate-200 p-2 text-center font-bold">{o.quantity}</td>
-                <td className="border border-slate-200 p-2 text-right">₹{fmt(o.pricePerUnit)}</td>
-                <td className="border border-slate-200 p-2 text-right font-bold">₹{fmt(o.quantity * (o.pricePerUnit || 0))}</td>
-                <td className="border border-slate-200 p-2">{o.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ────────────────── PURCHASE REPORT PRINT ────────────────── */}
+      {activeReport === "purchase" && (
+        <div>
+          {expandedPurchaseItem ? (
+            (() => {
+              const item = purchaseItemsSummary.find(i => i.key === expandedPurchaseItem);
+              if (!item) return null;
+              return (
+                <div>
+                  <div className="bg-emerald-50 border border-emerald-200 p-3 rounded mb-4">
+                    <p className="font-bold text-sm text-emerald-900">
+                      Purchase History: <span className="font-black">{item.displayName}</span> ({item.category})
+                    </p>
+                    <p className="text-xs text-emerald-700 mt-0.5">
+                      Total Orders: {item.orders.length} · Total Qty: {item.qty} units · Total Value: ₹{fmt(item.amt)}
+                    </p>
+                  </div>
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-emerald-700 text-white">
+                        {["#", "Order Date", "Receive Date", "Supplier", "Status", "Qty", "Unit Price", "Total"].map(h => (
+                          <th key={h} className="border border-emerald-800 p-2 text-left">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {item.orders.slice().sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || "")).map((o, idx) => (
+                        <tr key={o.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                          <td className="border border-slate-300 p-2">{idx + 1}</td>
+                          <td className="border border-slate-300 p-2 font-mono">{dFmt(o.orderDate)}</td>
+                          <td className="border border-slate-300 p-2 font-mono">{dFmt(o.receiveDate) || "—"}</td>
+                          <td className="border border-slate-300 p-2">{o.supplier}</td>
+                          <td className="border border-slate-300 p-2 font-semibold">{o.status}</td>
+                          <td className="border border-slate-300 p-2 text-center font-bold">{o.quantity}</td>
+                          <td className="border border-slate-300 p-2 text-right">₹{fmt(o.pricePerUnit)}</td>
+                          <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(o.quantity * (o.pricePerUnit || 0))}</td>
+                        </tr>
+                      ))}
+                      <tr className="bg-slate-800 text-white font-bold">
+                        <td colSpan={5} className="border border-slate-600 p-2">Total for {item.displayName}</td>
+                        <td className="border border-slate-600 p-2 text-center">{item.qty}</td>
+                        <td />
+                        <td className="border border-slate-600 p-2 text-right">₹{fmt(item.amt)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()
+          ) : (
+            <div>
+              <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Purchase Items Summary</p>
+              <table className="w-full border-collapse text-xs mb-6">
+                <thead>
+                  <tr className="bg-emerald-700 text-white">
+                    <th className="border border-emerald-800 p-2 text-left">#</th>
+                    <th className="border border-emerald-800 p-2 text-left">Item</th>
+                    <th className="border border-emerald-800 p-2 text-left">Category</th>
+                    <th className="border border-emerald-800 p-2 text-center">Orders Count</th>
+                    <th className="border border-emerald-800 p-2 text-center">Total Qty Ordered</th>
+                    <th className="border border-emerald-800 p-2 text-right">Total Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchaseItemsSummary.map((item, idx) => (
+                    <tr key={item.key} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <td className="border border-slate-300 p-2">{idx + 1}</td>
+                      <td className="border border-slate-300 p-2 font-bold">{item.displayName}</td>
+                      <td className="border border-slate-300 p-2">{item.category}</td>
+                      <td className="border border-slate-300 p-2 text-center">{item.orders.length}</td>
+                      <td className="border border-slate-300 p-2 text-center font-bold">{item.qty}</td>
+                      <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(item.amt)}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-800 text-white font-bold">
+                    <td colSpan={3} className="border border-slate-600 p-2 uppercase">Grand Total</td>
+                    <td className="border border-slate-600 p-2 text-center">{filteredOrders.length}</td>
+                    <td className="border border-slate-600 p-2 text-center">{totalOrderedQty}</td>
+                    <td className="border border-slate-600 p-2 text-right">₹{fmt(totalOrderedAmt)}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Item-wise Purchase Orders</p>
+              {purchaseItemsSummary.map(item => (
+                <div key={item.key} className="mb-5 break-inside-avoid">
+                  <div className="bg-slate-100 border border-slate-300 px-3 py-1.5 font-bold text-xs flex justify-between">
+                    <span>Item: {item.displayName} ({item.category})</span>
+                    <span>{item.orders.length} order{item.orders.length !== 1 ? "s" : ""} · {item.qty} units · ₹{fmt(item.amt)}</span>
+                  </div>
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-700 text-white">
+                        {["#", "Order Date", "Receive Date", "Supplier", "Status", "Qty", "Unit Price", "Total"].map(h => (
+                          <th key={h} className="border border-slate-600 p-1.5 text-left">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {item.orders.slice().sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || "")).map((o, idx) => (
+                        <tr key={o.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                          <td className="border border-slate-200 p-1.5">{idx + 1}</td>
+                          <td className="border border-slate-200 p-1.5 font-mono">{dFmt(o.orderDate)}</td>
+                          <td className="border border-slate-200 p-1.5 font-mono">{dFmt(o.receiveDate) || "—"}</td>
+                          <td className="border border-slate-200 p-1.5">{o.supplier}</td>
+                          <td className="border border-slate-200 p-1.5">{o.status}</td>
+                          <td className="border border-slate-200 p-1.5 text-center font-bold">{o.quantity}</td>
+                          <td className="border border-slate-200 p-1.5 text-right">₹{fmt(o.pricePerUnit)}</td>
+                          <td className="border border-slate-200 p-1.5 text-right font-bold">₹{fmt(o.quantity * (o.pricePerUnit || 0))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
