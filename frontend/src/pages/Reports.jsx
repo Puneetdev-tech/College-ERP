@@ -1335,7 +1335,49 @@ export default function Reports() {
                                       ))}
                                   </tbody>
                                   <tfoot>
-                                    <tr c  const renderPrintPortal = () => (
+                                    <tr className="bg-emerald-700 text-white">
+                                      <td colSpan={5} className="p-2.5 font-black text-xs uppercase">
+                                        {item.displayName} Total
+                                      </td>
+                                      <td className="p-2.5 text-center font-black text-xs">{item.qty}</td>
+                                      <td />
+                                      <td className="p-2.5 text-right font-black text-xs">₹{fmt(item.amt)}</td>
+                                      <td />
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              )}
+            </tbody>
+            {purchaseItemsSummary.length > 0 && (
+              <tfoot>
+                <tr className="bg-slate-800 text-white">
+                  <td colSpan={2} className="p-3 font-black text-xs uppercase">
+                    Grand Total ({purchaseItemsSummary.length} item{purchaseItemsSummary.length !== 1 ? "s" : ""})
+                  </td>
+                  <td className="p-3 text-center font-black text-xs">{totalOrderedQty}</td>
+                  <td className="p-3 text-right font-black text-xs">₹{fmt(totalOrderedAmt)}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </>
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // PRINT PORTAL
+  // ══════════════════════════════════════════════════════════════════════════
+  const renderPrintPortal = () => (
     <div className="hidden print-report-layout p-8 bg-white text-black font-sans min-h-screen">
       <div className="flex items-center gap-4 border-b-2 border-slate-300 pb-4 mb-6">
         {collegeInfo?.logo
