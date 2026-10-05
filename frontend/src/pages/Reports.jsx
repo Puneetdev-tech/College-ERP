@@ -47,6 +47,18 @@ export default function Reports() {
   const [expandedItem, setExpandedItem]                 = useState(null);
   const [expandedPurchaseItem, setExpandedPurchaseItem] = useState(null);
 
+  // Print scope & modal: "summary" | "full"
+  const [printScope, setPrintScope] = useState("summary");
+  const [showPrintModal, setShowPrintModal] = useState(false);
+
+  const triggerPrint = (scope) => {
+    setPrintScope(scope);
+    setShowPrintModal(false);
+    setTimeout(() => {
+      window.print();
+    }, 150);
+  };
+
   const [loading, setLoading] = useState(false);
   const [toast, setToast]     = useState("");
 
@@ -670,7 +682,7 @@ export default function Reports() {
 
     return (
       <>
-        {renderFilterBar(exportDept, () => window.print(), (
+        {renderFilterBar(exportDept, () => setShowPrintModal(true), (
           <>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Department</label>
@@ -907,7 +919,7 @@ export default function Reports() {
   const renderIssueReport = () => {
     return (
       <>
-        {renderFilterBar(exportIssue, () => window.print(), (
+        {renderFilterBar(exportIssue, () => setShowPrintModal(true), (
           <>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Department</label>
@@ -1143,7 +1155,7 @@ export default function Reports() {
 
     return (
       <>
-        {renderFilterBar(exportPurchase, () => window.print(), (
+        {renderFilterBar(exportPurchase, () => setShowPrintModal(true), (
           <>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Category</label>
@@ -1323,49 +1335,7 @@ export default function Reports() {
                                       ))}
                                   </tbody>
                                   <tfoot>
-                                    <tr className="bg-emerald-700 text-white">
-                                      <td colSpan={5} className="p-2.5 font-black text-xs uppercase">
-                                        {item.displayName} Total
-                                      </td>
-                                      <td className="p-2.5 text-center font-black text-xs">{item.qty}</td>
-                                      <td />
-                                      <td className="p-2.5 text-right font-black text-xs">₹{fmt(item.amt)}</td>
-                                      <td />
-                                    </tr>
-                                  </tfoot>
-                                </table>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </tbody>
-            {purchaseItemsSummary.length > 0 && (
-              <tfoot>
-                <tr className="bg-slate-800 text-white">
-                  <td colSpan={2} className="p-3 font-black text-xs uppercase">
-                    Grand Total ({purchaseItemsSummary.length} item{purchaseItemsSummary.length !== 1 ? "s" : ""})
-                  </td>
-                  <td className="p-3 text-center font-black text-xs">{totalOrderedQty}</td>
-                  <td className="p-3 text-right font-black text-xs">₹{fmt(totalOrderedAmt)}</td>
-                  <td />
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
-      </>
-    );
-  };
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // PRINT PORTAL
-  // ══════════════════════════════════════════════════════════════════════════
-  const renderPrintPortal = () => (
+                                    <tr c  const renderPrintPortal = () => (
     <div className="hidden print-report-layout p-8 bg-white text-black font-sans min-h-screen">
       <div className="flex items-center gap-4 border-b-2 border-slate-300 pb-4 mb-6">
         {collegeInfo?.logo
@@ -1381,6 +1351,9 @@ export default function Reports() {
         <div className="ml-auto text-right">
           <p className="text-xs text-slate-500">
             Period: <strong>{getPeriodLabel()}</strong>
+          </p>
+          <p className="text-xs text-slate-500">
+            Report Type: <strong className="uppercase">{printScope === "full" ? "Full Detailed Report" : "Summary Data"}</strong>
           </p>
           <p className="text-xs text-slate-400">Generated: {new Date().toLocaleString("en-IN")}</p>
         </div>
@@ -1404,38 +1377,72 @@ export default function Reports() {
                       Total Issued: {dept.qty} units · Total Value: ₹{fmt(dept.amt)} ({dept.logs.length} records)
                     </p>
                   </div>
-                  <table className="w-full border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-blue-800 text-white">
-                        {["#", "Date", "Item", "Category", "Faculty / Staff", "Qty", "Unit Rate", "Total"].map(h => (
-                          <th key={h} className="border border-blue-900 p-2 text-left">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dept.logs.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((l, idx) => {
-                        const uc = getIssuedItemPrice(l);
-                        return (
-                          <tr key={l.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+
+                  {dept.catBreakdown && dept.catBreakdown.length > 0 && (
+                    <table className="w-full border-collapse text-xs mb-4">
+                      <thead>
+                        <tr className="bg-blue-800 text-white">
+                          <th className="border border-blue-900 p-2 text-left">#</th>
+                          <th className="border border-blue-900 p-2 text-left">Category</th>
+                          <th className="border border-blue-900 p-2 text-center">Quantity Issued</th>
+                          <th className="border border-blue-900 p-2 text-right">Total Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dept.catBreakdown.map((c, idx) => (
+                          <tr key={c.cat} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
                             <td className="border border-slate-300 p-2">{idx + 1}</td>
-                            <td className="border border-slate-300 p-2 font-mono">{dFmt(l.date)}</td>
-                            <td className="border border-slate-300 p-2 font-semibold">{l.item}</td>
-                            <td className="border border-slate-300 p-2">{l.category}</td>
-                            <td className="border border-slate-300 p-2">{l.faculty}</td>
-                            <td className="border border-slate-300 p-2 text-center font-bold">{l.quantity}</td>
-                            <td className="border border-slate-300 p-2 text-right">₹{fmt(uc)}</td>
-                            <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(l.quantity * uc)}</td>
+                            <td className="border border-slate-300 p-2 font-bold">{c.cat}</td>
+                            <td className="border border-slate-300 p-2 text-center font-bold">{c.qty}</td>
+                            <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(c.amt)}</td>
                           </tr>
-                        );
-                      })}
-                      <tr className="bg-slate-800 text-white font-bold">
-                        <td colSpan={5} className="border border-slate-600 p-2">Total for {dept.name}</td>
-                        <td className="border border-slate-600 p-2 text-center">{dept.qty}</td>
-                        <td />
-                        <td className="border border-slate-600 p-2 text-right">₹{fmt(dept.amt)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                        ))}
+                        <tr className="bg-slate-800 text-white font-bold">
+                          <td colSpan={2} className="border border-slate-600 p-2 uppercase">Total for {dept.name}</td>
+                          <td className="border border-slate-600 p-2 text-center">{dept.qty}</td>
+                          <td className="border border-slate-600 p-2 text-right">₹{fmt(dept.amt)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  )}
+
+                  {printScope === "full" && (
+                    <>
+                      <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Detailed Transaction Records</p>
+                      <table className="w-full border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-700 text-white">
+                            {["#", "Date", "Item", "Category", "Faculty / Staff", "Qty", "Unit Rate", "Total"].map(h => (
+                              <th key={h} className="border border-slate-600 p-2 text-left">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dept.logs.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((l, idx) => {
+                            const uc = getIssuedItemPrice(l);
+                            return (
+                              <tr key={l.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                                <td className="border border-slate-300 p-2">{idx + 1}</td>
+                                <td className="border border-slate-300 p-2 font-mono">{dFmt(l.date)}</td>
+                                <td className="border border-slate-300 p-2 font-semibold">{l.item}</td>
+                                <td className="border border-slate-300 p-2">{l.category}</td>
+                                <td className="border border-slate-300 p-2">{l.faculty}</td>
+                                <td className="border border-slate-300 p-2 text-center font-bold">{l.quantity}</td>
+                                <td className="border border-slate-300 p-2 text-right">₹{fmt(uc)}</td>
+                                <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(l.quantity * uc)}</td>
+                              </tr>
+                            );
+                          })}
+                          <tr className="bg-slate-800 text-white font-bold">
+                            <td colSpan={5} className="border border-slate-600 p-2">Total for {dept.name}</td>
+                            <td className="border border-slate-600 p-2 text-center">{dept.qty}</td>
+                            <td />
+                            <td className="border border-slate-600 p-2 text-right">₹{fmt(dept.amt)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </>
+                  )}
                 </div>
               );
             })()
@@ -1475,41 +1482,45 @@ export default function Reports() {
                 </tbody>
               </table>
 
-              <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Department-wise Breakdown</p>
-              {deptSummary.map(d => (
-                <div key={d.name} className="mb-5 break-inside-avoid">
-                  <div className="bg-slate-100 border border-slate-300 px-3 py-1.5 font-bold text-xs flex justify-between">
-                    <span>Department: {d.name}</span>
-                    <span>Total: {d.qty} units · ₹{fmt(d.amt)}</span>
-                  </div>
-                  <table className="w-full border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-slate-700 text-white">
-                        {["#", "Date", "Item", "Category", "Faculty / Staff", "Qty", "Unit Rate", "Total"].map(h => (
-                          <th key={h} className="border border-slate-600 p-1.5 text-left">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {d.logs.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((l, idx) => {
-                        const uc = getIssuedItemPrice(l);
-                        return (
-                          <tr key={l.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-                            <td className="border border-slate-200 p-1.5">{idx + 1}</td>
-                            <td className="border border-slate-200 p-1.5 font-mono">{dFmt(l.date)}</td>
-                            <td className="border border-slate-200 p-1.5 font-semibold">{l.item}</td>
-                            <td className="border border-slate-200 p-1.5">{l.category}</td>
-                            <td className="border border-slate-200 p-1.5">{l.faculty}</td>
-                            <td className="border border-slate-200 p-1.5 text-center font-bold">{l.quantity}</td>
-                            <td className="border border-slate-200 p-1.5 text-right">₹{fmt(uc)}</td>
-                            <td className="border border-slate-200 p-1.5 text-right font-bold">₹{fmt(l.quantity * uc)}</td>
+              {printScope === "full" && (
+                <>
+                  <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Department-wise Breakdown</p>
+                  {deptSummary.map(d => (
+                    <div key={d.name} className="mb-5 break-inside-avoid">
+                      <div className="bg-slate-100 border border-slate-300 px-3 py-1.5 font-bold text-xs flex justify-between">
+                        <span>Department: {d.name}</span>
+                        <span>Total: {d.qty} units · ₹{fmt(d.amt)}</span>
+                      </div>
+                      <table className="w-full border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-700 text-white">
+                            {["#", "Date", "Item", "Category", "Faculty / Staff", "Qty", "Unit Rate", "Total"].map(h => (
+                              <th key={h} className="border border-slate-600 p-1.5 text-left">{h}</th>
+                            ))}
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
+                        </thead>
+                        <tbody>
+                          {d.logs.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((l, idx) => {
+                            const uc = getIssuedItemPrice(l);
+                            return (
+                              <tr key={l.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                                <td className="border border-slate-200 p-1.5">{idx + 1}</td>
+                                <td className="border border-slate-200 p-1.5 font-mono">{dFmt(l.date)}</td>
+                                <td className="border border-slate-200 p-1.5 font-semibold">{l.item}</td>
+                                <td className="border border-slate-200 p-1.5">{l.category}</td>
+                                <td className="border border-slate-200 p-1.5">{l.faculty}</td>
+                                <td className="border border-slate-200 p-1.5 text-center font-bold">{l.quantity}</td>
+                                <td className="border border-slate-200 p-1.5 text-right">₹{fmt(uc)}</td>
+                                <td className="border border-slate-200 p-1.5 text-right font-bold">₹{fmt(l.quantity * uc)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -1532,37 +1543,63 @@ export default function Reports() {
                       Total Issued: {item.qty} units · Total Value: ₹{fmt(item.amt)} ({item.logs.length} records)
                     </p>
                   </div>
-                  <table className="w-full border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-amber-600 text-white">
-                        {["#", "Date", "Department", "Faculty / Staff", "Qty", "Unit Rate", "Total"].map(h => (
-                          <th key={h} className="border border-amber-700 p-2 text-left">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {item.logs.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((l, idx) => {
-                        const uc = getIssuedItemPrice(l);
-                        return (
-                          <tr key={l.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-                            <td className="border border-slate-300 p-2">{idx + 1}</td>
-                            <td className="border border-slate-300 p-2 font-mono">{dFmt(l.date)}</td>
-                            <td className="border border-slate-300 p-2 font-bold">{l.department}</td>
-                            <td className="border border-slate-300 p-2">{l.faculty}</td>
-                            <td className="border border-slate-300 p-2 text-center font-bold">{l.quantity}</td>
-                            <td className="border border-slate-300 p-2 text-right">₹{fmt(uc)}</td>
-                            <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(l.quantity * uc)}</td>
+
+                  {printScope === "summary" && (
+                    <div className="bg-white border border-slate-200 rounded p-4 mb-4 text-xs">
+                      <p className="font-bold text-slate-700 mb-2">Item Overview</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-slate-50 p-2.5 rounded border border-slate-200">
+                          <span className="text-slate-400 block text-[10px] uppercase font-bold">Category</span>
+                          <span className="font-bold text-slate-800 text-sm">{item.category}</span>
+                        </div>
+                        <div className="bg-slate-50 p-2.5 rounded border border-slate-200">
+                          <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Issued Qty</span>
+                          <span className="font-black text-amber-600 text-sm">{item.qty} units</span>
+                        </div>
+                        <div className="bg-slate-50 p-2.5 rounded border border-slate-200">
+                          <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Value</span>
+                          <span className="font-black text-slate-800 text-sm">₹{fmt(item.amt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {printScope === "full" && (
+                    <>
+                      <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Detailed Issue Records</p>
+                      <table className="w-full border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-amber-600 text-white">
+                            {["#", "Date", "Department", "Faculty / Staff", "Qty", "Unit Rate", "Total"].map(h => (
+                              <th key={h} className="border border-amber-700 p-2 text-left">{h}</th>
+                            ))}
                           </tr>
-                        );
-                      })}
-                      <tr className="bg-slate-800 text-white font-bold">
-                        <td colSpan={4} className="border border-slate-600 p-2">Total for {item.displayName}</td>
-                        <td className="border border-slate-600 p-2 text-center">{item.qty}</td>
-                        <td />
-                        <td className="border border-slate-600 p-2 text-right">₹{fmt(item.amt)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody>
+                          {item.logs.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((l, idx) => {
+                            const uc = getIssuedItemPrice(l);
+                            return (
+                              <tr key={l.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                                <td className="border border-slate-300 p-2">{idx + 1}</td>
+                                <td className="border border-slate-300 p-2 font-mono">{dFmt(l.date)}</td>
+                                <td className="border border-slate-300 p-2 font-bold">{l.department}</td>
+                                <td className="border border-slate-300 p-2">{l.faculty}</td>
+                                <td className="border border-slate-300 p-2 text-center font-bold">{l.quantity}</td>
+                                <td className="border border-slate-300 p-2 text-right">₹{fmt(uc)}</td>
+                                <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(l.quantity * uc)}</td>
+                              </tr>
+                            );
+                          })}
+                          <tr className="bg-slate-800 text-white font-bold">
+                            <td colSpan={4} className="border border-slate-600 p-2">Total for {item.displayName}</td>
+                            <td className="border border-slate-600 p-2 text-center">{item.qty}</td>
+                            <td />
+                            <td className="border border-slate-600 p-2 text-right">₹{fmt(item.amt)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </>
+                  )}
                 </div>
               );
             })()
@@ -1597,40 +1634,44 @@ export default function Reports() {
                 </tbody>
               </table>
 
-              <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Item-wise Disbursement Records</p>
-              {itemsSummary.map(item => (
-                <div key={item.key} className="mb-5 break-inside-avoid">
-                  <div className="bg-slate-100 border border-slate-300 px-3 py-1.5 font-bold text-xs flex justify-between">
-                    <span>Item: {item.displayName} ({item.category})</span>
-                    <span>Total: {item.qty} units · ₹{fmt(item.amt)}</span>
-                  </div>
-                  <table className="w-full border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-slate-700 text-white">
-                        {["#", "Date", "Department", "Faculty / Staff", "Qty", "Unit Rate", "Total"].map(h => (
-                          <th key={h} className="border border-slate-600 p-1.5 text-left">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {item.logs.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((l, idx) => {
-                        const uc = getIssuedItemPrice(l);
-                        return (
-                          <tr key={l.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-                            <td className="border border-slate-200 p-1.5">{idx + 1}</td>
-                            <td className="border border-slate-200 p-1.5 font-mono">{dFmt(l.date)}</td>
-                            <td className="border border-slate-200 p-1.5 font-bold">{l.department}</td>
-                            <td className="border border-slate-200 p-1.5">{l.faculty}</td>
-                            <td className="border border-slate-200 p-1.5 text-center font-bold">{l.quantity}</td>
-                            <td className="border border-slate-200 p-1.5 text-right">₹{fmt(uc)}</td>
-                            <td className="border border-slate-200 p-1.5 text-right font-bold">₹{fmt(l.quantity * uc)}</td>
+              {printScope === "full" && (
+                <>
+                  <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Item-wise Disbursement Records</p>
+                  {itemsSummary.map(item => (
+                    <div key={item.key} className="mb-5 break-inside-avoid">
+                      <div className="bg-slate-100 border border-slate-300 px-3 py-1.5 font-bold text-xs flex justify-between">
+                        <span>Item: {item.displayName} ({item.category})</span>
+                        <span>Total: {item.qty} units · ₹{fmt(item.amt)}</span>
+                      </div>
+                      <table className="w-full border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-700 text-white">
+                            {["#", "Date", "Department", "Faculty / Staff", "Qty", "Unit Rate", "Total"].map(h => (
+                              <th key={h} className="border border-slate-600 p-1.5 text-left">{h}</th>
+                            ))}
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
+                        </thead>
+                        <tbody>
+                          {item.logs.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map((l, idx) => {
+                            const uc = getIssuedItemPrice(l);
+                            return (
+                              <tr key={l.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                                <td className="border border-slate-200 p-1.5">{idx + 1}</td>
+                                <td className="border border-slate-200 p-1.5 font-mono">{dFmt(l.date)}</td>
+                                <td className="border border-slate-200 p-1.5 font-bold">{l.department}</td>
+                                <td className="border border-slate-200 p-1.5">{l.faculty}</td>
+                                <td className="border border-slate-200 p-1.5 text-center font-bold">{l.quantity}</td>
+                                <td className="border border-slate-200 p-1.5 text-right">₹{fmt(uc)}</td>
+                                <td className="border border-slate-200 p-1.5 text-right font-bold">₹{fmt(l.quantity * uc)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -1653,35 +1694,61 @@ export default function Reports() {
                       Total Orders: {item.orders.length} · Total Qty: {item.qty} units · Total Value: ₹{fmt(item.amt)}
                     </p>
                   </div>
-                  <table className="w-full border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-emerald-700 text-white">
-                        {["#", "Order Date", "Receive Date", "Supplier", "Status", "Qty", "Unit Price", "Total"].map(h => (
-                          <th key={h} className="border border-emerald-800 p-2 text-left">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {item.orders.slice().sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || "")).map((o, idx) => (
-                        <tr key={o.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-                          <td className="border border-slate-300 p-2">{idx + 1}</td>
-                          <td className="border border-slate-300 p-2 font-mono">{dFmt(o.orderDate)}</td>
-                          <td className="border border-slate-300 p-2 font-mono">{dFmt(o.receiveDate) || "—"}</td>
-                          <td className="border border-slate-300 p-2">{o.supplier}</td>
-                          <td className="border border-slate-300 p-2 font-semibold">{o.status}</td>
-                          <td className="border border-slate-300 p-2 text-center font-bold">{o.quantity}</td>
-                          <td className="border border-slate-300 p-2 text-right">₹{fmt(o.pricePerUnit)}</td>
-                          <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(o.quantity * (o.pricePerUnit || 0))}</td>
-                        </tr>
-                      ))}
-                      <tr className="bg-slate-800 text-white font-bold">
-                        <td colSpan={5} className="border border-slate-600 p-2">Total for {item.displayName}</td>
-                        <td className="border border-slate-600 p-2 text-center">{item.qty}</td>
-                        <td />
-                        <td className="border border-slate-600 p-2 text-right">₹{fmt(item.amt)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+
+                  {printScope === "summary" && (
+                    <div className="bg-white border border-slate-200 rounded p-4 mb-4 text-xs">
+                      <p className="font-bold text-slate-700 mb-2">Purchase Overview</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-slate-50 p-2.5 rounded border border-slate-200">
+                          <span className="text-slate-400 block text-[10px] uppercase font-bold">Category</span>
+                          <span className="font-bold text-slate-800 text-sm">{item.category}</span>
+                        </div>
+                        <div className="bg-slate-50 p-2.5 rounded border border-slate-200">
+                          <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Ordered Qty</span>
+                          <span className="font-black text-emerald-600 text-sm">{item.qty} units</span>
+                        </div>
+                        <div className="bg-slate-50 p-2.5 rounded border border-slate-200">
+                          <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Value</span>
+                          <span className="font-black text-slate-800 text-sm">₹{fmt(item.amt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {printScope === "full" && (
+                    <>
+                      <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Detailed Purchase Orders</p>
+                      <table className="w-full border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-emerald-700 text-white">
+                            {["#", "Order Date", "Receive Date", "Supplier", "Status", "Qty", "Unit Price", "Total"].map(h => (
+                              <th key={h} className="border border-emerald-800 p-2 text-left">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {item.orders.slice().sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || "")).map((o, idx) => (
+                            <tr key={o.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                              <td className="border border-slate-300 p-2">{idx + 1}</td>
+                              <td className="border border-slate-300 p-2 font-mono">{dFmt(o.orderDate)}</td>
+                              <td className="border border-slate-300 p-2 font-mono">{dFmt(o.receiveDate) || "—"}</td>
+                              <td className="border border-slate-300 p-2">{o.supplier}</td>
+                              <td className="border border-slate-300 p-2 font-semibold">{o.status}</td>
+                              <td className="border border-slate-300 p-2 text-center font-bold">{o.quantity}</td>
+                              <td className="border border-slate-300 p-2 text-right">₹{fmt(o.pricePerUnit)}</td>
+                              <td className="border border-slate-300 p-2 text-right font-bold">₹{fmt(o.quantity * (o.pricePerUnit || 0))}</td>
+                            </tr>
+                          ))}
+                          <tr className="bg-slate-800 text-white font-bold">
+                            <td colSpan={5} className="border border-slate-600 p-2">Total for {item.displayName}</td>
+                            <td className="border border-slate-600 p-2 text-center">{item.qty}</td>
+                            <td />
+                            <td className="border border-slate-600 p-2 text-right">₹{fmt(item.amt)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </>
+                  )}
                 </div>
               );
             })()
@@ -1719,38 +1786,42 @@ export default function Reports() {
                 </tbody>
               </table>
 
-              <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Item-wise Purchase Orders</p>
-              {purchaseItemsSummary.map(item => (
-                <div key={item.key} className="mb-5 break-inside-avoid">
-                  <div className="bg-slate-100 border border-slate-300 px-3 py-1.5 font-bold text-xs flex justify-between">
-                    <span>Item: {item.displayName} ({item.category})</span>
-                    <span>{item.orders.length} order{item.orders.length !== 1 ? "s" : ""} · {item.qty} units · ₹{fmt(item.amt)}</span>
-                  </div>
-                  <table className="w-full border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-slate-700 text-white">
-                        {["#", "Order Date", "Receive Date", "Supplier", "Status", "Qty", "Unit Price", "Total"].map(h => (
-                          <th key={h} className="border border-slate-600 p-1.5 text-left">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {item.orders.slice().sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || "")).map((o, idx) => (
-                        <tr key={o.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-                          <td className="border border-slate-200 p-1.5">{idx + 1}</td>
-                          <td className="border border-slate-200 p-1.5 font-mono">{dFmt(o.orderDate)}</td>
-                          <td className="border border-slate-200 p-1.5 font-mono">{dFmt(o.receiveDate) || "—"}</td>
-                          <td className="border border-slate-200 p-1.5">{o.supplier}</td>
-                          <td className="border border-slate-200 p-1.5">{o.status}</td>
-                          <td className="border border-slate-200 p-1.5 text-center font-bold">{o.quantity}</td>
-                          <td className="border border-slate-200 p-1.5 text-right">₹{fmt(o.pricePerUnit)}</td>
-                          <td className="border border-slate-200 p-1.5 text-right font-bold">₹{fmt(o.quantity * (o.pricePerUnit || 0))}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
+              {printScope === "full" && (
+                <>
+                  <p className="font-bold text-xs uppercase tracking-wider text-slate-500 mb-2">Item-wise Purchase Orders</p>
+                  {purchaseItemsSummary.map(item => (
+                    <div key={item.key} className="mb-5 break-inside-avoid">
+                      <div className="bg-slate-100 border border-slate-300 px-3 py-1.5 font-bold text-xs flex justify-between">
+                        <span>Item: {item.displayName} ({item.category})</span>
+                        <span>{item.orders.length} order{item.orders.length !== 1 ? "s" : ""} · {item.qty} units · ₹{fmt(item.amt)}</span>
+                      </div>
+                      <table className="w-full border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-700 text-white">
+                            {["#", "Order Date", "Receive Date", "Supplier", "Status", "Qty", "Unit Price", "Total"].map(h => (
+                              <th key={h} className="border border-slate-600 p-1.5 text-left">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {item.orders.slice().sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || "")).map((o, idx) => (
+                            <tr key={o.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                              <td className="border border-slate-200 p-1.5">{idx + 1}</td>
+                              <td className="border border-slate-200 p-1.5 font-mono">{dFmt(o.orderDate)}</td>
+                              <td className="border border-slate-200 p-1.5 font-mono">{dFmt(o.receiveDate) || "—"}</td>
+                              <td className="border border-slate-200 p-1.5">{o.supplier}</td>
+                              <td className="border border-slate-200 p-1.5">{o.status}</td>
+                              <td className="border border-slate-200 p-1.5 text-center font-bold">{o.quantity}</td>
+                              <td className="border border-slate-200 p-1.5 text-right">₹{fmt(o.pricePerUnit)}</td>
+                              <td className="border border-slate-200 p-1.5 text-right font-bold">₹{fmt(o.quantity * (o.pricePerUnit || 0))}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -1856,6 +1927,50 @@ export default function Reports() {
           </div>
         )}
       </div>
+
+      {/* Print Options Modal */}
+      {showPrintModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800">Print Options</h3>
+              <button onClick={() => setShowPrintModal(false)} className="text-slate-400 hover:text-slate-600">
+                <FaTimes />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-slate-500 mb-4">Select the level of detail for the printed report:</p>
+              
+              <div className="space-y-3">
+                <label className={"flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors " + (printScope === "summary" ? "bg-indigo-50 border-indigo-200" : "hover:bg-slate-50 border-slate-200")}>
+                  <input type="radio" name="printScope" value="summary" checked={printScope === "summary"} onChange={() => setPrintScope("summary")} className="w-4 h-4 text-indigo-600 focus:ring-indigo-500" />
+                  <div>
+                    <div className="font-bold text-sm text-slate-800">Summary Data</div>
+                    <div className="text-xs text-slate-500">Only main totals and aggregated figures</div>
+                  </div>
+                </label>
+                
+                <label className={"flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors " + (printScope === "full" ? "bg-indigo-50 border-indigo-200" : "hover:bg-slate-50 border-slate-200")}>
+                  <input type="radio" name="printScope" value="full" checked={printScope === "full"} onChange={() => setPrintScope("full")} className="w-4 h-4 text-indigo-600 focus:ring-indigo-500" />
+                  <div>
+                    <div className="font-bold text-sm text-slate-800">Full Detailed Data</div>
+                    <div className="text-xs text-slate-500">Includes all itemized transactions and breakdown</div>
+                  </div>
+                </label>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button onClick={() => setShowPrintModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
+                  Cancel
+                </button>
+                <button onClick={triggerPrint} className="px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-sm flex items-center gap-2">
+                  <FaPrint /> Print Report
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Print portal */}
       {activeReport && createPortal(renderPrintPortal(), document.body)}
