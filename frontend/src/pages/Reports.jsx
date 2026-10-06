@@ -23,7 +23,7 @@ const EmptyRow = ({ colSpan }) => (
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function Reports() {
   const {
-    inventory, issuedStock, orders,
+    inventory, issuedStock, orders, sanitaryInventory,
     systemSettings, inventoryCategories, getRegisterForCategory
   } = useStore();
   const collegeInfo = systemSettings?.collegeInfo;
@@ -290,126 +290,327 @@ export default function Reports() {
     setTimeout(() => setToast(""), 4000);
   };
 
-  const exportExcel = async (sheetTitle, rows, headers, colWidths) => {
+  const getMonthTimeline = () => {
+    let startD = new Date("2024-11-01");
+    let endD = new Date("2026-08-01");
+
+    if (dateMode === "range" && startDate && endDate) {
+      startD = new Date(startDate);
+      endD = new Date(endDate);
+    } else if (dateMode === "single" && singleDate) {
+      startD = new Date(singleDate);
+      endD = new Date(singleDate);
+    } else {
+      const dates = [
+        ...filteredIssued.map(l => l.date).filter(Boolean),
+        ...filteredOrders.map(o => o.orderDate).filter(Boolean)
+      ].map(d => new Date(d)).filter(d => !isNaN(d.getTime()));
+
+      if (dates.length > 0) {
+        startD = new Date(Math.min(...dates));
+        endD = new Date(Math.max(...dates));
+      }
+    }
+
+    if (isNaN(startD.getTime())) startD = new Date("2024-11-01");
+    if (isNaN(endD.getTime())) endD = new Date();
+    if (startD > endD) {
+      const t = startD; startD = endD; endD = t;
+    }
+
+    const months = [];
+    const cur = new Date(startD.getFullYear(), startD.getMonth(), 1);
+    const endMonth = new Date(endD.getFullYear(), endD.getMonth(), 1);
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    let count = 0;
+    while (cur <= endMonth && count < 48) {
+      const y = cur.getFullYear();
+      const m = cur.getMonth();
+      const shortYear = String(y).slice(-2);
+      months.push({
+        label: `${monthNames[m]}-${shortYear}`,
+        key: `${y}-${String(m + 1).padStart(2, "0")}`,
+        year: y,
+        month: m
+      });
+      cur.setMonth(cur.getMonth() + 1);
+      count++;
+    }
+
+    if (months.length === 0) {
+      const y = startD.getFullYear();
+      const m = startD.getMonth();
+      months.push({
+        label: `${monthNames[m]}-${String(y).slice(-2)}`,
+        key: `${y}-${String(m + 1).padStart(2, "0")}`,
+        year: y,
+        month: m
+      });
+    }
+
+    return months;
+  };
+
+  const getItemUnit = (itemObj) => {
+    if (!itemObj) return "No";
+    if (itemObj.itemType && itemObj.itemType !== "Standard") return itemObj.itemType;
+    const clean = (itemObj.itemName || "").toLowerCase();
+    const inv = inventory.find(i => (i.item || "").toLowerCase() === clean);
+    if (inv?.type && inv.type !== "Standard") return inv.type;
+    const san = (sanitaryInventory || []).find(s => (s.item_name || "").toLowerCase() === clean);
+    if (san?.quantity_unit) return san.quantity_unit;
+    if (san?.quantity_text) return san.quantity_text;
+
+    if (/ltr|litre|liter/i.test(itemObj.displayName)) return "Ltrs";
+    if (/pkt|packet/i.test(itemObj.displayName)) return "Pkt";
+    if (/ml|500ml/i.test(itemObj.displayName)) return "ml";
+    if (/kg/i.test(itemObj.displayName)) return "KG";
+    if (/pair/i.test(itemObj.displayName)) return "Pair";
+    if (/bottle|btl/i.test(itemObj.displayName)) return "Bottel";
+    return "No";
+  };
+
+  const exportExcel = async ({
+    sheetTitle,
+    headers,
+    rows,
+    colWidths,
+    fileName = "Report",
+    extraSheets = []
+  }) => {
     setLoading(true);
-    showToast("Compiling report…");
+    showToast("Compiling Excel report…");
     try {
       const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet("Report");
-      const cn = collegeInfo?.name    || "Rustamji Institute of Technology";
-      const ca = collegeInfo?.address || "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh";
-      const cp =
-        "Phone: " + (collegeInfo?.phone || "+91-(07524)-274320") +
-        " | Email: " + (collegeInfo?.email || "rjit_bsft@yahoo.com");
-      const periodLabel = getPeriodLabel();
-      const cols = headers.length;
-      const endCol = String.fromCharCode(64 + Math.min(cols, 26));
-      const mr = "A1:" + endCol;
+      wb.creator = "RJIT College ERP";
+      wb.lastModifiedBy = "RJIT College ERP";
+      wb.created = new Date();
 
-      [
-        [cn, 14, "FF1E3A8A", "FFFFFFFF", 36],
-        [ca, 9,  "FFF8FAFC", "FF475569", 18],
-        [cp, 9,  "FFF8FAFC", "FF475569", 16],
-        [sheetTitle.toUpperCase() + " — Period: " + periodLabel, 11, "FFEFF6FF", "FF1E40AF", 26],
-        ["Generated: " + new Date().toLocaleString("en-IN"), 8, "FFFFFFFF", "FF94A3B8", 16],
-      ].forEach(([val, sz, bg, fg, h], i) => {
-        ws.mergeCells(mr + (i + 1));
-        const r = ws.getRow(i + 1);
-        r.getCell(1).value = val;
-        r.getCell(1).font  = { name: "Calibri", size: sz, bold: i === 0 || i === 3, color: { argb: fg } };
-        r.getCell(1).fill  = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
-        r.getCell(1).alignment = { vertical: "middle", horizontal: "center" };
-        r.height = h;
-      });
+      const createSheet = (ws, title, sHeaders, sRows, sWidths) => {
+        const cn = collegeInfo?.name || "Rustamji Institute of Technology";
+        const ca = collegeInfo?.address || "BSF Academy, Tekanpur, Gwalior, Madhya Pradesh";
+        const cp = "Phone: " + (collegeInfo?.phone || "+91-(07524)-274320") + " | Email: " + (collegeInfo?.email || "rjit_bsft@yahoo.com");
+        const periodLabel = getPeriodLabel();
+        const totalCols = Math.max(sHeaders.length, 8);
 
-      if (collegeInfo?.logo?.startsWith("data:image/")) {
-        try {
-          const parts = collegeInfo.logo.split(",");
-          const ext = (parts[0].match(/image\/(\w+)/) || ["", "png"])[1];
-          const imgId = wb.addImage({ base64: parts[1], extension: ext });
-          ws.addImage(imgId, { tl: { col: 0.1, row: 0.1 }, ext: { width: 48, height: 48 } });
-        } catch (_) {}
-      }
+        // 1. College Header Rows
+        const headerRowsData = [
+          { text: cn, size: 14, bold: true, bg: "FF1E3A8A", fg: "FFFFFFFF", height: 32 },
+          { text: ca, size: 9, bold: false, bg: "FFF8FAFC", fg: "FF475569", height: 18 },
+          { text: cp, size: 9, bold: false, bg: "FFF8FAFC", fg: "FF475569", height: 16 },
+          { text: (title || "EXPENSE VOUCHER").toUpperCase() + " — PERIOD: " + periodLabel, size: 11, bold: true, bg: "FFEFF6FF", fg: "FF1E40AF", height: 26 },
+          { text: "Generated: " + new Date().toLocaleString("en-IN"), size: 8, bold: false, bg: "FFFFFFFF", fg: "FF94A3B8", height: 16 }
+        ];
 
-      const hr = ws.getRow(7);
-      hr.values = headers;
-      hr.height = 26;
-      headers.forEach((_, ci) => {
-        const cell = hr.getCell(ci + 1);
-        cell.font  = { name: "Calibri", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
-        cell.fill  = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1E3A8A" } };
-        cell.alignment = { vertical: "middle", horizontal: "center" };
-        cell.border = { top: {style:"thin"}, bottom: {style:"thin"}, left: {style:"thin"}, right: {style:"thin"} };
-      });
+        headerRowsData.forEach((h, idx) => {
+          const rowNum = idx + 1;
+          ws.mergeCells(rowNum, 1, rowNum, totalCols);
+          const cell = ws.getCell(rowNum, 1);
+          cell.value = h.text;
+          cell.font = { name: "Calibri", size: h.size, bold: h.bold, color: { argb: h.fg } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: h.bg } };
+          cell.alignment = { vertical: "middle", horizontal: "center" };
+          ws.getRow(rowNum).height = h.height;
+        });
 
-      rows.forEach((rowData, ri) => {
-        const r = ws.getRow(8 + ri);
-        r.values = rowData;
-        r.height = 18;
-        rowData.forEach((_, ci) => {
-          const cell = r.getCell(ci + 1);
-          cell.font   = { name: "Calibri", size: 10 };
-          cell.fill   = { type: "pattern", pattern: "solid",
-            fgColor: { argb: ri % 2 === 0 ? "FFFFFFFF" : "FFF8FAFC" } };
+        // 2. Table Headers (Row 7)
+        const headerRowIndex = 7;
+        const hr = ws.getRow(headerRowIndex);
+        hr.values = sHeaders;
+        hr.height = 26;
+
+        sHeaders.forEach((_, ci) => {
+          const cell = hr.getCell(ci + 1);
+          cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF334155" } };
+          cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
           cell.border = {
-            top: {style:"thin", color:{argb:"FFCBD5E1"}}, bottom: {style:"thin", color:{argb:"FFCBD5E1"}},
-            left: {style:"thin", color:{argb:"FFCBD5E1"}}, right: {style:"thin", color:{argb:"FFCBD5E1"}},
+            top: { style: "thin", color: { argb: "FF0F172A" } },
+            bottom: { style: "thin", color: { argb: "FF0F172A" } },
+            left: { style: "thin", color: { argb: "FF0F172A" } },
+            right: { style: "thin", color: { argb: "FF0F172A" } }
           };
         });
-      });
 
-      colWidths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+        // 3. Data Rows
+        sRows.forEach((rowData, ri) => {
+          const rIndex = headerRowIndex + 1 + ri;
+          const r = ws.getRow(rIndex);
+          r.values = rowData;
+          r.height = 20;
+
+          const isTotalRow = ri === sRows.length - 1 && (String(rowData[0]).toUpperCase().includes("TOTAL") || String(rowData[1]).toUpperCase().includes("TOTAL"));
+
+          rowData.forEach((val, ci) => {
+            const cell = r.getCell(ci + 1);
+            if (isTotalRow) {
+              cell.font = { name: "Calibri", size: 10, bold: true, color: { argb: "FF0F172A" } };
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
+              cell.border = {
+                top: { style: "thin", color: { argb: "FF475569" } },
+                bottom: { style: "double", color: { argb: "FF0F172A" } },
+                left: { style: "thin", color: { argb: "FFCBD5E1" } },
+                right: { style: "thin", color: { argb: "FFCBD5E1" } }
+              };
+            } else {
+              cell.font = { name: "Calibri", size: 10, color: { argb: "FF1E293B" } };
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: ri % 2 === 0 ? "FFFFFFFF" : "FFF8FAFC" }
+              };
+              cell.border = {
+                top: { style: "thin", color: { argb: "FFE2E8F0" } },
+                bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+                left: { style: "thin", color: { argb: "FFE2E8F0" } },
+                right: { style: "thin", color: { argb: "FFE2E8F0" } }
+              };
+            }
+
+            if (typeof val === "number") {
+              cell.alignment = { vertical: "middle", horizontal: "right" };
+            } else if (val === "-" || val === "—") {
+              cell.alignment = { vertical: "middle", horizontal: "center" };
+            } else if (ci === 1) {
+              cell.alignment = { vertical: "middle", horizontal: "left" };
+            } else {
+              cell.alignment = { vertical: "middle", horizontal: "center" };
+            }
+          });
+        });
+
+        // 4. Column Widths
+        if (sWidths && sWidths.length > 0) {
+          sWidths.forEach((w, i) => {
+            ws.getColumn(i + 1).width = w;
+          });
+        }
+      };
+
+      // Create primary worksheet
+      const cleanTitle = (sheetTitle || "Expense Voucher").replace(/[\\/*?[\]:]/g, "").slice(0, 31);
+      const ws = wb.addWorksheet(cleanTitle);
+      createSheet(ws, sheetTitle, headers, rows, colWidths);
+
+      // Create extra worksheets
+      if (Array.isArray(extraSheets) && extraSheets.length > 0) {
+        extraSheets.forEach(es => {
+          if (!es || !es.name) return;
+          const extraTitle = es.name.replace(/[\\/*?[\]:]/g, "").slice(0, 31);
+          const extraWs = wb.addWorksheet(extraTitle);
+          createSheet(extraWs, es.name, es.headers, es.rows, es.colWidths);
+        });
+      }
+
       const buf = await wb.xlsx.writeBuffer();
-      const url = URL.createObjectURL(new Blob([buf], {
+      const blob = new Blob([buf], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      }));
+      });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = sheetTitle.replace(/\s+/g, "_") + "_report.xlsx";
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      showToast("Report downloaded!");
+      a.download = `${fileName.replace(/\s+/g, "_")}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast("Excel Report downloaded successfully!");
     } catch (e) {
-      console.error(e);
-      showToast("Export failed.");
+      console.error("Excel generation error:", e);
+      showToast("Export failed: " + (e.message || "Unknown error"));
     } finally {
       setLoading(false);
     }
   };
 
-  const exportDept = () => {
-    if (expandedDept) {
-      const dept = deptSummary.find(d => d.name === expandedDept);
-      if (dept) {
-        const rows = dept.logs
-          .slice()
-          .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-          .map((l, idx) => {
-            const uc = getIssuedItemPrice(l);
-            return [idx + 1, dFmt(l.date), l.item, l.category, l.faculty, l.quantity, uc, l.quantity * uc];
-          });
-        rows.push(["", "TOTAL FOR " + dept.name.toUpperCase(), "", "", "", dept.qty, "", dept.amt]);
-        return exportExcel(
-          `Dept – ${dept.name}`,
-          rows,
-          ["#", "Date", "Item", "Category", "Faculty/Staff", "Qty", "Unit Rate (Rs)", "Total (Rs)"],
-          [6, 14, 28, 18, 22, 10, 14, 16]
-        );
-      }
-    }
-    const rows = [];
-    let idx = 1;
-    deptSummary.forEach(d => {
-      d.catBreakdown.forEach(c => {
-        rows.push([idx++, d.name, c.cat, c.qty, c.amt]);
+  const buildExpenseVoucherData = (itemsList, titleName) => {
+    const months = getMonthTimeline();
+    const staticHeaders = ["S. No.", "Nomenclature", "A/U", "Purchase", "Issue Qty", "Balance Qty", "Page No.", "DOP"];
+    const monthHeaders = months.map(m => m.label);
+    const headers = [...staticHeaders, ...monthHeaders];
+
+    let totalPurchase = 0;
+    let totalIssue = 0;
+    let totalBalance = 0;
+    let totalAmount = 0;
+    const monthTotals = new Array(months.length).fill(0);
+
+    const rows = itemsList.map((item, idx) => {
+      const unit = getItemUnit(item);
+      const cleanName = (item.itemName || "").toLowerCase();
+
+      const pItem = purchaseItemsSummary.find(p => (p.itemName || "").toLowerCase() === cleanName);
+      const san = (sanitaryInventory || []).find(s => (s.item_name || "").toLowerCase() === cleanName);
+      const inv = inventory.find(i => (i.item || "").toLowerCase() === cleanName);
+
+      const purchaseQty = pItem
+        ? pItem.qty
+        : (san?.quantity != null
+            ? Math.round(Number(san.quantity))
+            : (inv ? inv.stock + item.qty : item.qty));
+
+      const issueQty = item.qty;
+      const balanceQty = purchaseQty - issueQty;
+      const pageNo = san?.s_no || inv?.id || (idx + 1);
+      const dopDate = pItem?.orders?.[0]?.orderDate || san?.dop || inv?.createdAt;
+      const dop = dopDate ? dFmt(dopDate) : "—";
+
+      totalPurchase += purchaseQty;
+      totalIssue += issueQty;
+      totalBalance += balanceQty;
+      totalAmount += (item.amt || 0);
+
+      const formattedBal = balanceQty < 0 ? `(${Math.abs(balanceQty)})` : (balanceQty === 0 ? "-" : balanceQty);
+
+      const monthValues = months.map((m, mIdx) => {
+        const mLogs = item.logs.filter(l => (l.date || "").startsWith(m.key));
+        const mQty = mLogs.reduce((s, l) => s + l.quantity, 0);
+        if (mQty > 0) {
+          monthTotals[mIdx] += mQty;
+          return mQty;
+        }
+        return "-";
       });
+
+      return [
+        idx + 1,
+        item.displayName,
+        unit,
+        purchaseQty,
+        issueQty,
+        formattedBal,
+        pageNo,
+        dop,
+        ...monthValues
+      ];
     });
-    rows.push(["", "GRAND TOTAL", "", totalIssuedQty, totalIssuedAmt]);
-    return exportExcel(
-      selectedDepartment === "all" ? "Department Summary Report" : "Dept – " + selectedDepartment,
+
+    const totalRow = [
+      "",
+      "Total",
+      "",
+      totalPurchase,
+      totalIssue,
+      totalBalance < 0 ? `(${Math.abs(totalBalance)})` : totalBalance,
+      "",
+      totalAmount > 0 ? `₹${fmt(totalAmount)}` : "—",
+      ...monthTotals.map(t => (t > 0 ? t : "-"))
+    ];
+    rows.push(totalRow);
+
+    const colWidths = [
+      8, 32, 10, 12, 12, 14, 12, 14,
+      ...months.map(() => 10)
+    ];
+
+    return {
+      name: titleName,
+      headers,
       rows,
-      ["#", "Department", "Category", "Total Qty", "Total Value (Rs)"],
-      [6, 26, 20, 14, 18]
-    );
+      colWidths
+    };
   };
 
   const exportIssue = () => {
@@ -424,24 +625,79 @@ export default function Reports() {
             return [idx + 1, dFmt(l.date), l.department, l.faculty, l.quantity, uc, l.quantity * uc];
           });
         rows.push(["", "TOTAL FOR " + item.displayName.toUpperCase(), "", "", item.qty, "", item.amt]);
-        return exportExcel(
-          `Issue History – ${item.displayName}`,
+        return exportExcel({
+          sheetTitle: `Issue – ${item.displayName.slice(0, 20)}`,
           rows,
-          ["#", "Date", "Department", "Faculty/Staff", "Qty", "Unit Rate (Rs)", "Total (Rs)"],
-          [6, 14, 24, 22, 10, 14, 16]
-        );
+          headers: ["#", "Date", "Department", "Faculty/Staff", "Qty", "Unit Rate (Rs)", "Total (Rs)"],
+          colWidths: [6, 14, 24, 22, 10, 14, 16],
+          fileName: `Expense_Voucher_${item.displayName}`
+        });
       }
     }
-    const rows = itemsSummary.map((item, idx) => [
-      idx + 1, item.displayName, item.category, item.qty, item.amt
-    ]);
+
+    const mainSheetName = selectedCategory !== "all" ? selectedCategory : "Expense Voucher";
+    const primaryData = buildExpenseVoucherData(itemsSummary, mainSheetName);
+
+    const extraSheets = [];
+    if (selectedCategory === "all") {
+      const distinctCategories = Array.from(new Set(itemsSummary.map(i => i.category).filter(Boolean)));
+      if (distinctCategories.length > 1) {
+        distinctCategories.forEach(cat => {
+          const catItems = itemsSummary.filter(i => (i.category || "").toLowerCase() === cat.toLowerCase());
+          if (catItems.length > 0) {
+            extraSheets.push(buildExpenseVoucherData(catItems, cat));
+          }
+        });
+      }
+    }
+
+    return exportExcel({
+      sheetTitle: primaryData.name,
+      headers: primaryData.headers,
+      rows: primaryData.rows,
+      colWidths: primaryData.colWidths,
+      fileName: "Expense_Voucher_Report",
+      extraSheets
+    });
+  };
+
+  const exportDept = () => {
+    if (expandedDept) {
+      const dept = deptSummary.find(d => d.name === expandedDept);
+      if (dept) {
+        const rows = dept.logs
+          .slice()
+          .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+          .map((l, idx) => {
+            const uc = getIssuedItemPrice(l);
+            return [idx + 1, dFmt(l.date), l.item, l.category, l.faculty, l.quantity, uc, l.quantity * uc];
+          });
+        rows.push(["", "TOTAL FOR " + dept.name.toUpperCase(), "", "", "", dept.qty, "", dept.amt]);
+        return exportExcel({
+          sheetTitle: `Dept – ${dept.name.slice(0, 20)}`,
+          rows,
+          headers: ["#", "Date", "Item", "Category", "Faculty/Staff", "Qty", "Unit Rate (Rs)", "Total (Rs)"],
+          colWidths: [6, 14, 28, 18, 22, 10, 14, 16],
+          fileName: `Department_Report_${dept.name}`
+        });
+      }
+    }
+
+    const rows = [];
+    let idx = 1;
+    deptSummary.forEach(d => {
+      d.catBreakdown.forEach(c => {
+        rows.push([idx++, d.name, c.cat, c.qty, c.amt]);
+      });
+    });
     rows.push(["", "GRAND TOTAL", "", totalIssuedQty, totalIssuedAmt]);
-    return exportExcel(
-      "Item Issue Report",
+    return exportExcel({
+      sheetTitle: selectedDepartment === "all" ? "Department Summary" : `Dept – ${selectedDepartment}`,
       rows,
-      ["#", "Item", "Category", "Total Qty Issued", "Total Value (Rs)"],
-      [6, 30, 20, 16, 18]
-    );
+      headers: ["#", "Department", "Category", "Total Qty", "Total Value (Rs)"],
+      colWidths: [6, 26, 20, 14, 18],
+      fileName: "Department_Summary_Report"
+    });
   };
 
   const exportPurchase = () => {
@@ -456,24 +712,27 @@ export default function Reports() {
             o.quantity, o.pricePerUnit, o.quantity * (o.pricePerUnit || 0)
           ]);
         rows.push(["", "TOTAL FOR " + item.displayName.toUpperCase(), "", "", "", item.qty, "", item.amt]);
-        return exportExcel(
-          `Purchase History – ${item.displayName}`,
+        return exportExcel({
+          sheetTitle: `Purchase – ${item.displayName.slice(0, 20)}`,
           rows,
-          ["#", "Order Date", "Receive Date", "Supplier", "Status", "Qty", "Unit Price (Rs)", "Total (Rs)"],
-          [6, 14, 14, 24, 14, 10, 14, 16]
-        );
+          headers: ["#", "Order Date", "Receive Date", "Supplier", "Status", "Qty", "Unit Price (Rs)", "Total (Rs)"],
+          colWidths: [6, 14, 14, 24, 14, 10, 14, 16],
+          fileName: `Purchase_History_${item.displayName}`
+        });
       }
     }
+
     const rows = purchaseItemsSummary.map((item, idx) => [
       idx + 1, item.displayName, item.category, item.orders.length, item.qty, item.amt
     ]);
     rows.push(["", "GRAND TOTAL", "", filteredOrders.length, totalOrderedQty, totalOrderedAmt]);
-    return exportExcel(
-      "Purchase Items Report",
+    return exportExcel({
+      sheetTitle: "Purchase Items Report",
       rows,
-      ["#", "Item", "Category", "Total Orders", "Total Qty Ordered", "Total Value (Rs)"],
-      [6, 30, 20, 14, 18, 18]
-    );
+      headers: ["#", "Item", "Category", "Total Orders", "Total Qty Ordered", "Total Value (Rs)"],
+      colWidths: [6, 30, 20, 14, 18, 18],
+      fileName: "Purchase_Items_Report"
+    });
   };
 
   // ── Report card config ──────────────────────────────────────────────────────
