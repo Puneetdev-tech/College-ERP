@@ -52,11 +52,16 @@ export default function Reports() {
   const [showPrintModal, setShowPrintModal] = useState(false);
 
   const triggerPrint = (scope) => {
-    setPrintScope(scope);
+    const finalScope = (typeof scope === "string" && (scope === "summary" || scope === "full"))
+      ? scope
+      : (printScope === "full" ? "full" : "summary");
+    setPrintScope(finalScope);
     setShowPrintModal(false);
-    setTimeout(() => {
-      window.print();
-    }, 150);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.print();
+      }, 300);
+    });
   };
 
   const [loading, setLoading] = useState(false);
@@ -2005,7 +2010,11 @@ export default function Reports() {
                 <button onClick={() => setShowPrintModal(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
                   Cancel
                 </button>
-                <button onClick={triggerPrint} className="px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-sm flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => triggerPrint(printScope)}
+                  className="px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-sm flex items-center gap-2 cursor-pointer"
+                >
                   <FaPrint /> Print Report
                 </button>
               </div>
